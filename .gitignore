@@ -1,0 +1,24 @@
+﻿# Compiled class files
+*.class
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application specific
+application-local.yml
+application-dev.yml
