@@ -2,6 +2,9 @@
   application:
     name: nexus-market
 
+  # ========================
+  # CONFIGURACIÓN DE MYSQL
+  # ========================
   datasource:
     url: jdbc:mysql://localhost:3306/nexusmarket_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
@@ -16,6 +19,9 @@
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
 
+  # ========================
+  # CONFIGURACIÓN DE MONGODB
+  # ========================
   data:
     mongodb:
       host: localhost
@@ -25,10 +31,18 @@
       username: admin
       password: admin123
 
+# ========================
+# CONFIGURACIÓN DEL SERVIDOR
+# ========================
 server:
   port: 8080
 
+# ========================
+# NIVELES DE LOGGING (para depuración)
+# ========================
 logging:
   level:
     com.nexusmarket: DEBUG
     org.springframework.web: INFO
+    org.springframework.boot: INFO
+    org.springframework.data: INFO
