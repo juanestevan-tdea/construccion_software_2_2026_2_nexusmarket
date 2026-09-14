@@ -29,6 +29,7 @@ public class Buyer {
     @Column(nullable = false)
     private String primaryAddress;
 
+    @Builder.Default
     @ElementCollection
     @CollectionTable(name = "comprador_direcciones_adicionales", joinColumns = @JoinColumn(name = "comprador_id"))
     @Column(name = "direccion")

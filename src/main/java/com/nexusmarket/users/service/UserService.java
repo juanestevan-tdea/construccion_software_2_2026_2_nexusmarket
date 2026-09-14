@@ -58,27 +58,27 @@ public class UserService {
 
     // Bloquear usuario
     @Transactional
-    public User blockUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    public User blockUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
         user.block();
         return userRepository.save(user);
     }
 
     // Activar usuario
     @Transactional
-    public User activateUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    public User activateUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
         user.activate();
         return userRepository.save(user);
     }
 
     // Cambiar rol de usuario (regla de negocio: cada usuario tiene un único rol)
     @Transactional
-    public User changeRole(Long userId, UserRole newRole) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    public User changeRole(Long id, UserRole newRole) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
         user.setRole(newRole);
         return userRepository.save(user);
     }

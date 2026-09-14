@@ -1,16 +1,18 @@
 package com.nexusmarket.users.service;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.model.User;
+import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.BuyerRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -46,10 +48,7 @@ public class BuyerService {
 
     // Buscar comprador por usuario
     public Optional<Buyer> findByUser(User user) {
-        // Nota: implementar método en BuyerRepository si es necesario
-        return buyerRepository.findAll().stream()
-                .filter(b -> b.getUser().equals(user))
-                .findFirst();
+        return buyerRepository.findByUser(user);
     }
 
     // Listar todos los compradores
@@ -64,18 +63,18 @@ public class BuyerService {
 
     // Agregar dirección adicional
     @Transactional
-    public Buyer addAdditionalAddress(Long buyerId, String address) {
-        Buyer buyer = buyerRepository.findById(buyerId)
-                .orElseThrow(() -> new IllegalArgumentException("Buyer not found: " + buyerId));
+    public Buyer addAdditionalAddress(Long id, String address) {
+        Buyer buyer = buyerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Buyer not found: " + id));
         buyer.addAdditionalAddress(address);
         return buyerRepository.save(buyer);
     }
 
     // Cambiar estado comercial del comprador
     @Transactional
-    public Buyer changeCommercialStatus(Long buyerId, BuyerCommercialStatus newStatus) {
-        Buyer buyer = buyerRepository.findById(buyerId)
-                .orElseThrow(() -> new IllegalArgumentException("Buyer not found: " + buyerId));
+    public Buyer changeCommercialStatus(Long id, BuyerCommercialStatus newStatus) {
+        Buyer buyer = buyerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Buyer not found: " + id));
         buyer.setCommercialStatus(newStatus);
         return buyerRepository.save(buyer);
     }

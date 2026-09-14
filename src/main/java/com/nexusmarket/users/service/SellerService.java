@@ -2,6 +2,7 @@ package com.nexusmarket.users.service;
 
 import com.nexusmarket.users.domain.model.Seller;
 import com.nexusmarket.users.domain.model.User;
+import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.SellerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,11 @@ public class SellerService {
         return sellerRepository.findById(id);
     }
 
+    // Buscar vendedor por usuario
+    public Optional<Seller> findByUser(User user) {
+        return sellerRepository.findByUser(user);
+    }
+
     // Buscar vendedor por taxId (NIT/RUT)
     public Optional<Seller> findByTaxId(String taxId) {
         return sellerRepository.findByTaxId(taxId);
@@ -65,27 +71,27 @@ public class SellerService {
 
     // Activar vendedor
     @Transactional
-    public Seller activateSeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + sellerId));
+    public Seller activateSeller(Long id) {
+        Seller seller = sellerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + id));
         seller.activate();
         return sellerRepository.save(seller);
     }
 
     // Desactivar vendedor
     @Transactional
-    public Seller deactivateSeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + sellerId));
+    public Seller deactivateSeller(Long id) {
+        Seller seller = sellerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + id));
         seller.deactivate();
         return sellerRepository.save(seller);
     }
 
     // Actualizar información del vendedor
     @Transactional
-    public Seller updateSeller(Long sellerId, String companyName, String taxId) {
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + sellerId));
+    public Seller updateSeller(Long id, String companyName, String taxId) {
+        Seller seller = sellerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + id));
 
         if (companyName != null && !companyName.isEmpty()) {
             seller.setCompanyName(companyName);

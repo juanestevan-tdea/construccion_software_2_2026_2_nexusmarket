@@ -28,6 +28,7 @@ public class Seller {
     @Column(nullable = false)
     private String companyName;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
 
