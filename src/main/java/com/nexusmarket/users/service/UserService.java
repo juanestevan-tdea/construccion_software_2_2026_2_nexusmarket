@@ -1,5 +1,7 @@
 package com.nexusmarket.users.service;
 
+import com.nexusmarket.exception.DuplicateResourceException;
+import com.nexusmarket.exception.ResourceNotFoundException;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.model.UserStatus;
@@ -22,7 +24,7 @@ public class UserService {
     public User createUser(String email, String fullName, String password, UserRole role) {
         // Validar que el email no exista
         if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email already exists: " + email);
+            throw new DuplicateResourceException("User", "email", email);
         }
 
         User user = User.builder()
@@ -60,7 +62,7 @@ public class UserService {
     @Transactional
     public User blockUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
         user.block();
         return userRepository.save(user);
     }
@@ -69,7 +71,7 @@ public class UserService {
     @Transactional
     public User activateUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
         user.activate();
         return userRepository.save(user);
     }
@@ -78,7 +80,7 @@ public class UserService {
     @Transactional
     public User changeRole(Long id, UserRole newRole) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
         user.setRole(newRole);
         return userRepository.save(user);
     }

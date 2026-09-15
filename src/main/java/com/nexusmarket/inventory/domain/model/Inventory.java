@@ -2,6 +2,7 @@ package com.nexusmarket.inventory.domain.model;
 
 import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.model.Warehouse;
+import com.nexusmarket.exception.BusinessRuleException;
 import jakarta.persistence.*;
 
 @Entity
@@ -32,10 +33,10 @@ public class Inventory {
     // Métodos de negocio
     public void reserve(int amount) {
         if (this.status == InventoryStatus.DAMAGED) {
-            throw new IllegalStateException("Cannot reserve damaged inventory");
+            throw new BusinessRuleException("Cannot reserve damaged inventory");
         }
         if (this.quantity < amount) {
-            throw new IllegalArgumentException("Insufficient quantity");
+            throw new BusinessRuleException("Insufficient quantity");
         }
         this.quantity -= amount;
         this.status = InventoryStatus.RESERVED;
@@ -48,7 +49,7 @@ public class Inventory {
 
     public void adjust(int amount) {
         if (this.quantity + amount < 0) {
-            throw new IllegalArgumentException("Quantity cannot be negative");
+            throw new BusinessRuleException("Quantity cannot be negative");
         }
         this.quantity += amount;
     }

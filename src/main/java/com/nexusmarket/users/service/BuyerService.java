@@ -1,5 +1,7 @@
 package com.nexusmarket.users.service;
 
+import com.nexusmarket.exception.BusinessRuleException;
+import com.nexusmarket.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,11 +27,11 @@ public class BuyerService {
     @Transactional
     public Buyer createBuyer(Long userId, String primaryAddress) {
         User user = userService.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
         // Validar que el usuario tenga rol BUYER
         if (!user.getRole().equals(UserRole.BUYER)) {
-            throw new IllegalArgumentException("User is not a BUYER. Current role: " + user.getRole());
+            throw new BusinessRuleException("User is not a BUYER. Current role: " + user.getRole());
         }
 
         Buyer buyer = Buyer.builder()
@@ -65,7 +67,7 @@ public class BuyerService {
     @Transactional
     public Buyer addAdditionalAddress(Long id, String address) {
         Buyer buyer = buyerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Buyer not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Buyer", id));
         buyer.addAdditionalAddress(address);
         return buyerRepository.save(buyer);
     }
@@ -74,7 +76,7 @@ public class BuyerService {
     @Transactional
     public Buyer changeCommercialStatus(Long id, BuyerCommercialStatus newStatus) {
         Buyer buyer = buyerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Buyer not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Buyer", id));
         buyer.setCommercialStatus(newStatus);
         return buyerRepository.save(buyer);
     }

@@ -1,5 +1,8 @@
 package com.nexusmarket.users.service;
 
+import com.nexusmarket.exception.BusinessRuleException;
+import com.nexusmarket.exception.DuplicateResourceException;
+import com.nexusmarket.exception.ResourceNotFoundException;
 import com.nexusmarket.users.domain.model.Seller;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
@@ -22,16 +25,16 @@ public class SellerService {
     @Transactional
     public Seller createSeller(Long userId, String taxId, String companyName) {
         User user = userService.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
         // Validar que el usuario tenga rol SELLER
         if (!user.getRole().equals(UserRole.SELLER)) {
-            throw new IllegalArgumentException("User is not a SELLER. Current role: " + user.getRole());
+            throw new BusinessRuleException("User is not a SELLER. Current role: " + user.getRole());
         }
 
         // Validar que el taxId no exista
         if (sellerRepository.findByTaxId(taxId).isPresent()) {
-            throw new IllegalArgumentException("Tax ID already exists: " + taxId);
+            throw new DuplicateResourceException("Seller", "taxId", taxId);
         }
 
         Seller seller = Seller.builder()
@@ -73,7 +76,7 @@ public class SellerService {
     @Transactional
     public Seller activateSeller(Long id) {
         Seller seller = sellerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
         seller.activate();
         return sellerRepository.save(seller);
     }
@@ -82,7 +85,7 @@ public class SellerService {
     @Transactional
     public Seller deactivateSeller(Long id) {
         Seller seller = sellerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
         seller.deactivate();
         return sellerRepository.save(seller);
     }
@@ -91,7 +94,7 @@ public class SellerService {
     @Transactional
     public Seller updateSeller(Long id, String companyName, String taxId) {
         Seller seller = sellerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
 
         if (companyName != null && !companyName.isEmpty()) {
             seller.setCompanyName(companyName);
@@ -100,7 +103,7 @@ public class SellerService {
         if (taxId != null && !taxId.isEmpty()) {
             // Validar que el nuevo taxId no esté en uso
             if (sellerRepository.findByTaxId(taxId).isPresent()) {
-                throw new IllegalArgumentException("Tax ID already exists: " + taxId);
+                throw new DuplicateResourceException("Seller", "taxId", taxId);
             }
             seller.setTaxId(taxId);
         }

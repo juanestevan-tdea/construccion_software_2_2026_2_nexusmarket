@@ -1,5 +1,6 @@
 package com.nexusmarket.orders.domain.model;
 
+import com.nexusmarket.exception.InvalidStatusTransitionException;
 import com.nexusmarket.users.domain.model.Buyer;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -37,28 +38,28 @@ public class Order {
     // Métodos de negocio
     public void confirmPayment() {
         if (this.status != OrderStatus.PENDING_PAYMENT) {
-            throw new IllegalStateException("Order must be in PENDING_PAYMENT state");
+            throw new InvalidStatusTransitionException("PENDING_PAYMENT", status.name());
         }
         this.status = OrderStatus.PAID;
     }
 
     public void dispatch() {
         if (this.status != OrderStatus.PAID) {
-            throw new IllegalStateException("Order must be PAID to dispatch");
+            throw new InvalidStatusTransitionException("PAID", status.name());
         }
         this.status = OrderStatus.DISPATCHED;
     }
 
     public void deliver() {
         if (this.status != OrderStatus.DISPATCHED) {
-            throw new IllegalStateException("Order must be DISPATCHED to deliver");
+            throw new InvalidStatusTransitionException("DISPATCHED", status.name());
         }
         this.status = OrderStatus.DELIVERED;
     }
 
     public void finish() {
         if (this.status != OrderStatus.DELIVERED) {
-            throw new IllegalStateException("Order must be DELIVERED to finish");
+            throw new InvalidStatusTransitionException("DELIVERED", status.name());
         }
         this.status = OrderStatus.FINISHED;
     }
