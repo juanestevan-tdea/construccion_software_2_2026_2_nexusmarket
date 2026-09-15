@@ -92,3 +92,48 @@ Se generó con `mvn wrapper:wrapper` para garantizar reproducibilidad del build.
 **Fecha de creación**: 30 de agosto de 2026  
 **Autor**: Juan Esteban T-DEA  
 **Curso**: Construcción de Software 2 - 2026-2
+
+---
+
+### 5. Reglas de Negocio Extraídas (Del Documento Funcional)
+| ID | Regla de Negocio | Módulo | Excepción Asociada |
+|----|------------------|--------|--------------------|
+| RN-01 | Un pedido finalizado no puede modificarse. | orders | `InvalidStatusTransitionException` |
+| RN-02 | No se permiten existencias negativas en inventario. | inventory | `BusinessRuleException` |
+| RN-03 | No se puede reservar inventario dañado. | inventory | `BusinessRuleException` |
+| RN-04 | El ciclo de vida del pedido es: `CART` → `PENDING_PAYMENT` → `PAID` → `DISPATCHED` → `DELIVERED` → `FINISHED`. | orders | `InvalidStatusTransitionException` |
+| RN-05 | Un vendedor debe estar activo para publicar productos. | catalog | `BusinessRuleException` |
+| RN-06 | No se puede registrar un usuario con un email ya existente. | users | `DuplicateResourceException` |
+| RN-07 | Un comprador debe estar activo para realizar compras. | orders | `BusinessRuleException` |
+| RN-08 | Toda acción relevante (creación, modificación, eliminación) debe quedar auditada. | audit | - |
+| RN-09 | Un pedido debe estar en estado `PENDING_PAYMENT` para poder registrar el pago. | orders | `InvalidStatusTransitionException` |
+| RN-10 | No se puede despachar un pedido que no esté pagado. | logistics | `InvalidStatusTransitionException` |
+
+### 6. Servicios Requeridos por Módulo
+| Módulo | Servicio | Responsabilidad Principal |
+|--------|----------|---------------------------|
+| users | `UserService` | Gestión de usuarios: creación, bloqueo, activación. |
+| users | `BuyerService` | Administración de compradores y direcciones. |
+| users | `SellerService` | Registro y administración de vendedores. |
+| catalog | `CatalogService` | Consulta pública del catálogo. |
+| catalog | `ProductService` | Gestión de productos (publicar, actualizar, descontinuar). |
+| catalog | `CategoryService` | Administración de categorías. |
+| catalog | `WarehouseService` | Control de información de bodegas. |
+| inventory | `InventoryService` | Control de stock, reservas y estados del inventario. |
+| orders | `OrderService` | Ciclo completo de vida del pedido. |
+| logistics | `ShipmentService` | Gestión de envíos y entregas. |
+| logistics | `ReturnService` | Gestión de devoluciones. |
+| billing | `InvoiceService` | Generación y consulta de facturas. |
+| billing | `RefundService` | Gestión de reembolsos. |
+| audit | `AuditService` | Registro de acciones en MongoDB. |
+
+### 7. Estrategia de Excepciones Personalizadas
+| Excepción | HTTP | Cuándo se lanza |
+|-----------|------|-----------------|
+| `ResourceNotFoundException` | 404 | El recurso solicitado no existe. |
+| `BusinessRuleException` | 400 | Se viola una regla de negocio (RN-02, RN-03, RN-05, RN-07). |
+| `InvalidStatusTransitionException` | 400 | Transición de estado inválida (RN-01, RN-04, RN-09, RN-10). |
+| `DuplicateResourceException` | 409 | Se intenta crear un recurso que ya existe (RN-06). |
+| `ErrorResponse` | - | DTO estándar de respuesta de error (timestamp, status, message). |
+
+Todas son capturadas por el `GlobalExceptionHandler` (`@RestControllerAdvice`), que garantiza respuestas de error consistentes en toda la API.
