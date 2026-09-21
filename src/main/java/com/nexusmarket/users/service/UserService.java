@@ -6,6 +6,8 @@ import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.model.UserStatus;
 import com.nexusmarket.users.domain.repository.UserRepository;
+import com.nexusmarket.users.dto.UserCreateRequest;
+import com.nexusmarket.users.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,13 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+
+    // Crear un nuevo usuario a partir de un DTO
+    @Transactional
+    public UserResponse createUser(UserCreateRequest request) {
+        User user = createUser(request.getEmail(), request.getFullName(), request.getPassword(), request.getRole());
+        return UserResponse.fromEntity(user);
+    }
 
     // Crear un nuevo usuario
     @Transactional
@@ -36,6 +45,18 @@ public class UserService {
                 .build();
 
         return userRepository.save(user);
+    }
+
+    // Buscar usuario por ID o lanzar excepción
+    public User getUserByIdOrThrow(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+    }
+
+    // Buscar usuario por email o lanzar excepción
+    public User getUserByEmailOrThrow(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User with email '" + email + "' was not found"));
     }
 
     // Buscar usuario por email

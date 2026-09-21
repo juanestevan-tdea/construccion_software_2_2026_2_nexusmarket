@@ -1,15 +1,16 @@
 package com.nexusmarket.users.controller;
 
-import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
+import com.nexusmarket.users.dto.BuyerCreateRequest;
+import com.nexusmarket.users.dto.BuyerResponse;
 import com.nexusmarket.users.service.BuyerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/buyers")
@@ -18,46 +19,50 @@ public class BuyerController {
 
     private final BuyerService buyerService;
 
-    // Crear un comprador a partir de un userId existente
+    // Crear un comprador usando DTO y Bean Validation
     @PostMapping
-    public ResponseEntity<Buyer> createBuyer(@RequestParam Long userId,
-                                             @RequestParam String primaryAddress) {
-        Buyer newBuyer = buyerService.createBuyer(userId, primaryAddress);
+    public ResponseEntity<BuyerResponse> createBuyer(@Valid @RequestBody BuyerCreateRequest request) {
+        BuyerResponse newBuyer = buyerService.createBuyer(request);
         return new ResponseEntity<>(newBuyer, HttpStatus.CREATED);
     }
 
     // Obtener comprador por ID
     @GetMapping("/{id}")
-    public ResponseEntity<Buyer> getBuyerById(@PathVariable Long id) {
-        Optional<Buyer> buyer = buyerService.findById(id);
-        return buyer.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<BuyerResponse> getBuyerById(@PathVariable Long id) {
+        BuyerResponse buyer = BuyerResponse.fromEntity(buyerService.getBuyerByIdOrThrow(id));
+        return ResponseEntity.ok(buyer);
     }
 
     // Listar todos los compradores
     @GetMapping
-    public ResponseEntity<List<Buyer>> getAllBuyers() {
-        return ResponseEntity.ok(buyerService.findAll());
+    public ResponseEntity<List<BuyerResponse>> getAllBuyers() {
+        List<BuyerResponse> buyers = buyerService.findAll().stream()
+                .map(BuyerResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(buyers);
     }
 
     // Listar compradores por estado comercial
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<Buyer>> getBuyersByStatus(@PathVariable BuyerCommercialStatus status) {
-        return ResponseEntity.ok(buyerService.findByCommercialStatus(status));
+    public ResponseEntity<List<BuyerResponse>> getBuyersByStatus(@PathVariable BuyerCommercialStatus status) {
+        List<BuyerResponse> buyers = buyerService.findByCommercialStatus(status).stream()
+                .map(BuyerResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(buyers);
     }
 
     // Agregar una dirección adicional
     @PostMapping("/{id}/addresses")
-    public ResponseEntity<Buyer> addAddress(@PathVariable Long id, @RequestParam String address) {
-        Buyer updatedBuyer = buyerService.addAdditionalAddress(id, address);
+    public ResponseEntity<BuyerResponse> addAddress(@PathVariable Long id, @RequestParam String address) {
+        BuyerResponse updatedBuyer = BuyerResponse.fromEntity(buyerService.addAdditionalAddress(id, address));
         return ResponseEntity.ok(updatedBuyer);
     }
 
     // Cambiar estado comercial
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Buyer> changeCommercialStatus(@PathVariable Long id,
-                                                        @RequestParam BuyerCommercialStatus newStatus) {
-        Buyer updatedBuyer = buyerService.changeCommercialStatus(id, newStatus);
+    public ResponseEntity<BuyerResponse> changeCommercialStatus(@PathVariable Long id,
+                                                                @RequestParam BuyerCommercialStatus newStatus) {
+        BuyerResponse updatedBuyer = BuyerResponse.fromEntity(buyerService.changeCommercialStatus(id, newStatus));
         return ResponseEntity.ok(updatedBuyer);
     }
 }

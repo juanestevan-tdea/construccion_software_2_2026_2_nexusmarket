@@ -1,4 +1,4 @@
-﻿# 📘 Documentación Técnica - NexusMarket
+﻿﻿# 📘 Documentación Técnica - NexusMarket
 
 ## 🏗️ Proceso de Construcción del Software
 
@@ -131,8 +131,8 @@ Se generó con `mvn wrapper:wrapper` para garantizar reproducibilidad del build.
 | Excepción | HTTP | Cuándo se lanza |
 |-----------|------|-----------------|
 | `ResourceNotFoundException` | 404 | El recurso solicitado no existe. |
-| `BusinessRuleException` | 400 | Se viola una regla de negocio (RN-02, RN-03, RN-05, RN-07). |
-| `InvalidStatusTransitionException` | 400 | Transición de estado inválida (RN-01, RN-04, RN-09, RN-10). |
+| `BusinessRuleException` | 422 | Se viola una regla de negocio (RN-02, RN-03, RN-05, RN-07). |
+| `InvalidStatusTransitionException` | 409 | Transición de estado inválida (RN-01, RN-04, RN-09, RN-10). |
 | `DuplicateResourceException` | 409 | Se intenta crear un recurso que ya existe (RN-06). |
 | `ErrorResponse` | - | DTO estándar de respuesta de error (timestamp, status, message). |
 

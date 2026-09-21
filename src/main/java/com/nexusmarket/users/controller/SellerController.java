@@ -1,14 +1,15 @@
 package com.nexusmarket.users.controller;
 
-import com.nexusmarket.users.domain.model.Seller;
+import com.nexusmarket.users.dto.SellerCreateRequest;
+import com.nexusmarket.users.dto.SellerResponse;
 import com.nexusmarket.users.service.SellerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/sellers")
@@ -17,57 +18,56 @@ public class SellerController {
 
     private final SellerService sellerService;
 
-    // Crear un vendedor (solo Admin debería poder hacer esto)
+    // Crear un vendedor usando DTO y Bean Validation
     @PostMapping
-    public ResponseEntity<Seller> createSeller(@RequestParam Long userId,
-                                               @RequestParam String taxId,
-                                               @RequestParam String companyName) {
-        Seller newSeller = sellerService.createSeller(userId, taxId, companyName);
+    public ResponseEntity<SellerResponse> createSeller(@Valid @RequestBody SellerCreateRequest request) {
+        SellerResponse newSeller = sellerService.createSeller(request);
         return new ResponseEntity<>(newSeller, HttpStatus.CREATED);
     }
 
     // Obtener vendedor por ID
     @GetMapping("/{id}")
-    public ResponseEntity<Seller> getSellerById(@PathVariable Long id) {
-        Optional<Seller> seller = sellerService.findById(id);
-        return seller.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<SellerResponse> getSellerById(@PathVariable Long id) {
+        SellerResponse seller = SellerResponse.fromEntity(sellerService.getSellerByIdOrThrow(id));
+        return ResponseEntity.ok(seller);
     }
 
     // Obtener vendedor por NIT/RUT
     @GetMapping("/taxId")
-    public ResponseEntity<Seller> getSellerByTaxId(@RequestParam String taxId) {
-        Optional<Seller> seller = sellerService.findByTaxId(taxId);
-        return seller.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<SellerResponse> getSellerByTaxId(@RequestParam String taxId) {
+        SellerResponse seller = SellerResponse.fromEntity(sellerService.getSellerByTaxIdOrThrow(taxId));
+        return ResponseEntity.ok(seller);
     }
 
     // Listar todos los vendedores
     @GetMapping
-    public ResponseEntity<List<Seller>> getAllSellers() {
-        return ResponseEntity.ok(sellerService.findAll());
+    public ResponseEntity<List<SellerResponse>> getAllSellers() {
+        List<SellerResponse> sellers = sellerService.findAll().stream()
+                .map(SellerResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(sellers);
     }
 
     // Activar un vendedor
     @PatchMapping("/{id}/activate")
-    public ResponseEntity<Seller> activateSeller(@PathVariable Long id) {
-        Seller activatedSeller = sellerService.activateSeller(id);
+    public ResponseEntity<SellerResponse> activateSeller(@PathVariable Long id) {
+        SellerResponse activatedSeller = SellerResponse.fromEntity(sellerService.activateSeller(id));
         return ResponseEntity.ok(activatedSeller);
     }
 
     // Desactivar un vendedor
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<Seller> deactivateSeller(@PathVariable Long id) {
-        Seller deactivatedSeller = sellerService.deactivateSeller(id);
+    public ResponseEntity<SellerResponse> deactivateSeller(@PathVariable Long id) {
+        SellerResponse deactivatedSeller = SellerResponse.fromEntity(sellerService.deactivateSeller(id));
         return ResponseEntity.ok(deactivatedSeller);
     }
 
     // Actualizar información de un vendedor
     @PatchMapping("/{id}/update")
-    public ResponseEntity<Seller> updateSeller(@PathVariable Long id,
-                                               @RequestParam(required = false) String companyName,
-                                               @RequestParam(required = false) String taxId) {
-        Seller updatedSeller = sellerService.updateSeller(id, companyName, taxId);
+    public ResponseEntity<SellerResponse> updateSeller(@PathVariable Long id,
+                                                       @RequestParam(required = false) String companyName,
+                                                       @RequestParam(required = false) String taxId) {
+        SellerResponse updatedSeller = SellerResponse.fromEntity(sellerService.updateSeller(id, companyName, taxId));
         return ResponseEntity.ok(updatedSeller);
     }
 }

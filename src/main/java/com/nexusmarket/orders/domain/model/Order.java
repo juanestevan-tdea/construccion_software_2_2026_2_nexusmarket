@@ -36,6 +36,21 @@ public class Order {
     public Order() {}
 
     // Métodos de negocio
+    public void addItem(OrderItem item) {
+        if (this.status != OrderStatus.CART && this.status != OrderStatus.PENDING_PAYMENT) {
+            throw new InvalidStatusTransitionException(status.name(), "MODIFY_ITEMS");
+        }
+        item.setOrder(this);
+        this.items.add(item);
+        recalculateTotal();
+    }
+
+    public void recalculateTotal() {
+        this.totalAmount = this.items.stream()
+                .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     public void confirmPayment() {
         if (this.status != OrderStatus.PENDING_PAYMENT) {
             throw new InvalidStatusTransitionException("PENDING_PAYMENT", status.name());

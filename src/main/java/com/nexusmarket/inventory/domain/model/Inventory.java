@@ -47,6 +47,18 @@ public class Inventory {
         this.status = InventoryStatus.AVAILABLE;
     }
 
+    public void markAsDamaged() {
+        this.status = InventoryStatus.DAMAGED;
+    }
+
+    public void confirmPayment(int amount) {
+        // En un flujo de pago/salida de inventario, se descuenta o confirma la reserva
+        if (this.status == InventoryStatus.DAMAGED) {
+            throw new BusinessRuleException("Cannot confirm payment for damaged inventory");
+        }
+        this.status = InventoryStatus.AVAILABLE;
+    }
+
     public void adjust(int amount) {
         if (this.quantity + amount < 0) {
             throw new BusinessRuleException("Quantity cannot be negative");

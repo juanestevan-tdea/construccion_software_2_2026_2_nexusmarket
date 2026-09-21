@@ -7,6 +7,8 @@ import com.nexusmarket.users.domain.model.Seller;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.SellerRepository;
+import com.nexusmarket.users.dto.SellerCreateRequest;
+import com.nexusmarket.users.dto.SellerResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,13 @@ public class SellerService {
     private final SellerRepository sellerRepository;
     private final UserService userService;
 
+    // Crear un vendedor a partir de un DTO
+    @Transactional
+    public SellerResponse createSeller(SellerCreateRequest request) {
+        Seller seller = createSeller(request.getUserId(), request.getTaxId(), request.getCompanyName());
+        return SellerResponse.fromEntity(seller);
+    }
+
     // Crear un vendedor a partir de un usuario existente (solo Admin)
     @Transactional
     public Seller createSeller(Long userId, String taxId, String companyName) {
@@ -30,6 +39,11 @@ public class SellerService {
         // Validar que el usuario tenga rol SELLER
         if (!user.getRole().equals(UserRole.SELLER)) {
             throw new BusinessRuleException("User is not a SELLER. Current role: " + user.getRole());
+        }
+
+        // Validar que el usuario no tenga ya un perfil de vendedor asociado
+        if (sellerRepository.findByUser(user).isPresent()) {
+            throw new BusinessRuleException("User is already a registered seller");
         }
 
         // Validar que el taxId no exista
@@ -45,6 +59,18 @@ public class SellerService {
                 .build();
 
         return sellerRepository.save(seller);
+    }
+
+    // Buscar vendedor por ID o lanzar excepción
+    public Seller getSellerByIdOrThrow(Long id) {
+        return sellerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
+    }
+
+    // Buscar vendedor por taxId o lanzar excepción
+    public Seller getSellerByTaxIdOrThrow(String taxId) {
+        return sellerRepository.findByTaxId(taxId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller with taxId '" + taxId + "' was not found"));
     }
 
     // Buscar vendedor por ID
@@ -101,8 +127,8 @@ public class SellerService {
         }
 
         if (taxId != null && !taxId.isEmpty()) {
-            // Validar que el nuevo taxId no esté en uso
-            if (sellerRepository.findByTaxId(taxId).isPresent()) {
+            // Validar que el nuevo taxId no esté en uso por otro vendedor
+            if (sellerRepository.findByTaxId(taxId).filter(s -> !s.getId().equals(id)).isPresent()) {
                 throw new DuplicateResourceException("Seller", "taxId", taxId);
             }
             seller.setTaxId(taxId);

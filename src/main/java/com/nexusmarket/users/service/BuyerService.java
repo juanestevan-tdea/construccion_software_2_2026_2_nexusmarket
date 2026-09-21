@@ -2,19 +2,19 @@ package com.nexusmarket.users.service;
 
 import com.nexusmarket.exception.BusinessRuleException;
 import com.nexusmarket.exception.ResourceNotFoundException;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.BuyerRepository;
-
+import com.nexusmarket.users.dto.BuyerCreateRequest;
+import com.nexusmarket.users.dto.BuyerResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +22,13 @@ public class BuyerService {
 
     private final BuyerRepository buyerRepository;
     private final UserService userService;
+
+    // Crear un comprador a partir de un DTO
+    @Transactional
+    public BuyerResponse createBuyer(BuyerCreateRequest request) {
+        Buyer buyer = createBuyer(request.getUserId(), request.getPrimaryAddress());
+        return BuyerResponse.fromEntity(buyer);
+    }
 
     // Crear un comprador a partir de un usuario existente
     @Transactional
@@ -34,6 +41,11 @@ public class BuyerService {
             throw new BusinessRuleException("User is not a BUYER. Current role: " + user.getRole());
         }
 
+        // Validar que el usuario no tenga ya un perfil de comprador asociado
+        if (buyerRepository.findByUser(user).isPresent()) {
+            throw new BusinessRuleException("User is already a registered buyer");
+        }
+
         Buyer buyer = Buyer.builder()
                 .user(user)
                 .primaryAddress(primaryAddress)
@@ -41,6 +53,12 @@ public class BuyerService {
                 .build();
 
         return buyerRepository.save(buyer);
+    }
+
+    // Buscar comprador por ID o lanzar excepción
+    public Buyer getBuyerByIdOrThrow(Long id) {
+        return buyerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Buyer", id));
     }
 
     // Buscar comprador por ID

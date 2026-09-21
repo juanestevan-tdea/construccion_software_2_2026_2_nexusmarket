@@ -1,5 +1,6 @@
 package com.nexusmarket.orders.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nexusmarket.catalog.domain.model.Product;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
