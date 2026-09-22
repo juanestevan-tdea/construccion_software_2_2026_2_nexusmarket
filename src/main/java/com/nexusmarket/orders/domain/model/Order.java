@@ -45,6 +45,14 @@ public class Order {
         recalculateTotal();
     }
 
+    public void removeItem(Long itemId) {
+        if (this.status != OrderStatus.CART && this.status != OrderStatus.PENDING_PAYMENT) {
+            throw new InvalidStatusTransitionException(status.name(), "MODIFY_ITEMS");
+        }
+        this.items.removeIf(item -> item.getId() != null && item.getId().equals(itemId));
+        recalculateTotal();
+    }
+
     public void recalculateTotal() {
         this.totalAmount = this.items.stream()
                 .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -77,6 +85,13 @@ public class Order {
             throw new InvalidStatusTransitionException("DELIVERED", status.name());
         }
         this.status = OrderStatus.FINISHED;
+    }
+
+    public void cancel() {
+        if (this.status == OrderStatus.FINISHED || this.status == OrderStatus.DELIVERED) {
+            throw new InvalidStatusTransitionException(status.name(), "CANCELLED");
+        }
+        this.status = OrderStatus.CANCELLED;
     }
 
     // Getters y Setters

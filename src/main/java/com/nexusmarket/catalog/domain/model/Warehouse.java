@@ -1,9 +1,15 @@
 package com.nexusmarket.catalog.domain.model;
 
 import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "bodegas")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Warehouse {
 
     @Id
@@ -20,15 +26,6 @@ public class Warehouse {
     @Column(nullable = false)
     private WarehouseType type;
 
-    public Warehouse() {}
-
-    // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-    public WarehouseType getType() { return type; }
-    public void setType(WarehouseType type) { this.type = type; }
+    @Column(nullable = false)
+    private Integer capacity;
 }

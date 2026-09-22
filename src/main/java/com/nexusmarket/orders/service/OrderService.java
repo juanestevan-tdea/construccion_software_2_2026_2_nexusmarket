@@ -1,5 +1,12 @@
 package com.nexusmarket.orders.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
 import com.nexusmarket.exception.BusinessRuleException;
@@ -8,16 +15,14 @@ import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderItem;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;
+import com.nexusmarket.orders.dto.OrderCreateRequest;
+import com.nexusmarket.orders.dto.OrderItemRequest;
+import com.nexusmarket.orders.dto.OrderResponse;
 import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.repository.BuyerRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,12 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final BuyerRepository buyerRepository;
     private final ProductRepository productRepository;
+
+    @Transactional
+    public OrderResponse createOrder(OrderCreateRequest request) {
+        Order order = createOrder(request.getBuyerId());
+        return OrderResponse.fromEntity(order);
+    }
 
     @Transactional
     public Order createOrder(Long buyerId) {
@@ -66,6 +77,12 @@ public class OrderService {
     }
 
     @Transactional
+    public OrderResponse addItem(Long orderId, OrderItemRequest request) {
+        Order order = addItem(orderId, request.getProductId(), request.getQuantity());
+        return OrderResponse.fromEntity(order);
+    }
+
+    @Transactional
     public Order addItem(Long orderId, Long productId, Integer quantity) {
         if (quantity == null || quantity <= 0) {
             throw new BusinessRuleException("Item quantity must be greater than zero");
@@ -82,6 +99,13 @@ public class OrderService {
 
         order.addItem(item);
         return orderRepository.save(order);
+    }
+
+    @Transactional
+    public OrderResponse removeItem(Long orderId, Long itemId) {
+        Order order = getByIdOrThrow(orderId);
+        order.removeItem(itemId);
+        return OrderResponse.fromEntity(orderRepository.save(order));
     }
 
     @Transactional
@@ -109,6 +133,13 @@ public class OrderService {
     public Order finish(Long id) {
         Order order = getByIdOrThrow(id);
         order.finish();
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order cancel(Long id) {
+        Order order = getByIdOrThrow(id);
+        order.cancel();
         return orderRepository.save(order);
     }
 }

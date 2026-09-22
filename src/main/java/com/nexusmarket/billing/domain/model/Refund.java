@@ -2,18 +2,29 @@ package com.nexusmarket.billing.domain.model;
 
 import com.nexusmarket.logistics.domain.model.Return;
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "reembolsos")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Refund {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "invoice_id", nullable = false)
+    private Invoice invoice;
+
     @OneToOne
-    @JoinColumn(name = "return_id", nullable = false)
+    @JoinColumn(name = "return_id")
     private Return returnRequest;
 
     @Column(nullable = false)
@@ -22,16 +33,4 @@ public class Refund {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RefundStatus status;
-
-    public Refund() {}
-
-    // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public Return getReturnRequest() { return returnRequest; }
-    public void setReturnRequest(Return returnRequest) { this.returnRequest = returnRequest; }
-    public BigDecimal getAmount() { return amount; }
-    public void setAmount(BigDecimal amount) { this.amount = amount; }
-    public RefundStatus getStatus() { return status; }
-    public void setStatus(RefundStatus status) { this.status = status; }
 }

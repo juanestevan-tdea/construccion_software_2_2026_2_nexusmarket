@@ -2,11 +2,18 @@ package com.nexusmarket.billing.domain.model;
 
 import com.nexusmarket.orders.domain.model.Order;
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "facturas")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Invoice {
 
     @Id
@@ -28,19 +35,11 @@ public class Invoice {
 
     private String pdfUrl;
 
-    public Invoice() {}
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean active = true;
 
-    // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public Order getOrder() { return order; }
-    public void setOrder(Order order) { this.order = order; }
-    public String getInvoiceNumber() { return invoiceNumber; }
-    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
-    public LocalDateTime getIssueDate() { return issueDate; }
-    public void setIssueDate(LocalDateTime issueDate) { this.issueDate = issueDate; }
-    public BigDecimal getAmount() { return amount; }
-    public void setAmount(BigDecimal amount) { this.amount = amount; }
-    public String getPdfUrl() { return pdfUrl; }
-    public void setPdfUrl(String pdfUrl) { this.pdfUrl = pdfUrl; }
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean paid = true;
 }

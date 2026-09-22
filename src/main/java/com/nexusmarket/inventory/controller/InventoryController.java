@@ -8,72 +8,83 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nexusmarket.inventory.domain.model.Inventory;
+import com.nexusmarket.inventory.dto.InventoryCreateRequest;
+import com.nexusmarket.inventory.dto.InventoryResponse;
 import com.nexusmarket.inventory.service.InventoryService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/inventories")
+@RequestMapping({"/api/inventory", "/api/inventories"})
 @RequiredArgsConstructor
 public class InventoryController {
 
     private final InventoryService inventoryService;
 
     @PostMapping
-    public ResponseEntity<Inventory> createInventory(@RequestParam Long productId,
-            @RequestParam Long warehouseId,
-            @RequestParam Integer quantity) {
-        Inventory inventory = inventoryService.createInventory(productId, warehouseId, quantity);
+    public ResponseEntity<InventoryResponse> createInventory(@Valid @RequestBody InventoryCreateRequest request) {
+        InventoryResponse inventory = inventoryService.createInventory(request);
         return new ResponseEntity<>(inventory, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Inventory> getInventoryById(@PathVariable Long id) {
+    public ResponseEntity<InventoryResponse> getInventoryById(@PathVariable Long id) {
         Inventory inventory = inventoryService.getByIdOrThrow(id);
-        return ResponseEntity.ok(inventory);
+        return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));
     }
 
     @GetMapping
-    public ResponseEntity<List<Inventory>> getAllInventories() {
-        return ResponseEntity.ok(inventoryService.findAll());
+    public ResponseEntity<List<InventoryResponse>> getAllInventories() {
+        List<InventoryResponse> list = inventoryService.findAll().stream()
+                .map(InventoryResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(list);
     }
 
     @GetMapping("/product/{productId}")
-    public ResponseEntity<List<Inventory>> getInventoriesByProduct(@PathVariable Long productId) {
-        return ResponseEntity.ok(inventoryService.findByProduct(productId));
+    public ResponseEntity<List<InventoryResponse>> getInventoriesByProduct(@PathVariable Long productId) {
+        List<InventoryResponse> list = inventoryService.findByProduct(productId).stream()
+                .map(InventoryResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(list);
     }
 
     @GetMapping("/warehouse/{warehouseId}")
-    public ResponseEntity<List<Inventory>> getInventoriesByWarehouse(@PathVariable Long warehouseId) {
-        return ResponseEntity.ok(inventoryService.findByWarehouse(warehouseId));
+    public ResponseEntity<List<InventoryResponse>> getInventoriesByWarehouse(@PathVariable Long warehouseId) {
+        List<InventoryResponse> list = inventoryService.findByWarehouse(warehouseId).stream()
+                .map(InventoryResponse::fromEntity)
+                .toList();
+        return ResponseEntity.ok(list);
     }
 
     @PatchMapping("/{id}/reserve")
-    public ResponseEntity<Inventory> reserve(@PathVariable Long id, @RequestParam int amount) {
+    public ResponseEntity<InventoryResponse> reserve(@PathVariable Long id, @RequestParam int amount) {
         Inventory inventory = inventoryService.reserve(id, amount);
-        return ResponseEntity.ok(inventory);
+        return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));
     }
 
     @PatchMapping("/{id}/confirm-payment")
-    public ResponseEntity<Inventory> confirmPayment(@PathVariable Long id, @RequestParam int amount) {
+    public ResponseEntity<InventoryResponse> confirmPayment(@PathVariable Long id, @RequestParam int amount) {
         Inventory inventory = inventoryService.confirmPayment(id, amount);
-        return ResponseEntity.ok(inventory);
+        return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));
     }
 
-    @PatchMapping("/{id}/mark-damaged")
-    public ResponseEntity<Inventory> markAsDamaged(@PathVariable Long id) {
+    @PatchMapping({"/{id}/damage", "/{id}/mark-damaged"})
+    public ResponseEntity<InventoryResponse> markAsDamaged(@PathVariable Long id) {
         Inventory inventory = inventoryService.markAsDamaged(id);
-        return ResponseEntity.ok(inventory);
+        return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));
     }
 
     @PatchMapping("/{id}/adjust")
-    public ResponseEntity<Inventory> adjust(@PathVariable Long id, @RequestParam int amount) {
+    public ResponseEntity<InventoryResponse> adjust(@PathVariable Long id, @RequestParam int amount) {
         Inventory inventory = inventoryService.adjust(id, amount);
-        return ResponseEntity.ok(inventory);
+        return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));
     }
 }

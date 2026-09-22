@@ -134,6 +134,126 @@ Se generó con `mvn wrapper:wrapper` para garantizar reproducibilidad del build.
 | `BusinessRuleException` | 422 | Se viola una regla de negocio (RN-02, RN-03, RN-05, RN-07). |
 | `InvalidStatusTransitionException` | 409 | Transición de estado inválida (RN-01, RN-04, RN-09, RN-10). |
 | `DuplicateResourceException` | 409 | Se intenta crear un recurso que ya existe (RN-06). |
+| `ProductNotAvailableException` | 409 | Producto con stock reservado o no disponible para la operación. |
+| `CategoryHasProductsException` | 409 | Intento de eliminar una categoría con productos asignados. |
+| `WarehouseCapacityExceededException` | 422 | Capacidad de la bodega superada al asignar inventario. |
+| `InvoiceAlreadyExistsException` | 409 | Ya existe una factura activa para la orden. |
+| `InvoiceNotPayableException` | 422 | La orden no está en estado pagado para facturarse. |
+| `RefundAmountExceededException` | 422 | Monto a reembolsar excede el total facturado. |
+| `RefundNotAllowedException` | 422 | Reembolso o anulación no permitida según estado de la factura. |
+| `PaymentGatewayException` | 502 | Falla de pasarela de pagos. |
+| `ShipmentAlreadyExistsException` | 409 | Ya existe un envío para la orden o tracking repetido. |
+| `TrackingNotFoundException` | 404 | Número de rastreo de envío no encontrado. |
+| `ReturnWindowExpiredException` | 422 | La ventana de devolución (30 días) ha expirado. |
+| `ReturnNotAllowedException` | 422 | Retorno no permitido para órdenes no entregadas/finalizadas. |
+| `ReturnAlreadyProcessedException` | 409 | Devolución ya procesada o completada anteriormente. |
 | `ErrorResponse` | - | DTO estándar de respuesta de error (timestamp, status, message). |
 
 Todas son capturadas por el `GlobalExceptionHandler` (`@RestControllerAdvice`), que garantiza respuestas de error consistentes en toda la API.
+
+---
+
+### 8. Endpoints de la API REST
+
+#### Módulo Users
+- `POST /api/users` - Crear usuario con DTO validado
+- `GET /api/users/{id}` - Obtener usuario por ID
+- `GET /api/users/email` - Obtener usuario por email
+- `GET /api/users` - Listar usuarios
+- `GET /api/users/role/{role}` - Filtrar usuarios por rol
+- `PATCH /api/users/{id}/block` - Bloquear usuario
+- `PATCH /api/users/{id}/activate` - Activar usuario
+- `PATCH /api/users/{id}/role` - Cambiar rol
+- `POST /api/buyers` - Crear comprador con DTO
+- `GET /api/buyers/{id}` - Obtener comprador
+- `GET /api/buyers` - Listar compradores
+- `GET /api/buyers/status/{status}` - Filtrar por estado comercial
+- `POST /api/buyers/{id}/addresses` - Añadir dirección adicional
+- `PATCH /api/buyers/{id}/status` - Cambiar estado comercial
+- `POST /api/sellers` - Crear vendedor con DTO
+- `GET /api/sellers/{id}` - Obtener vendedor
+- `GET /api/sellers/taxId` - Buscar vendedor por NIT/RUT
+- `GET /api/sellers` - Listar vendedores
+- `PATCH /api/sellers/{id}/activate` - Activar vendedor
+- `PATCH /api/sellers/{id}/deactivate` - Desactivar vendedor
+- `PATCH /api/sellers/{id}/update` - Actualizar información del vendedor
+
+#### Módulo Catalog
+- `POST /api/products` - Crear producto (valida SKU único, rol SELLER activo, precio > 0)
+- `GET /api/products/{id}` - Detalle de producto por ID
+- `GET /api/products` - Listar todos los productos
+- `GET /api/products/category/{categoryId}` - Filtrar por categoría
+- `GET /api/products/seller/{sellerId}` - Filtrar por vendedor
+- `GET /api/products/price-range` - Filtrar por rango de precio
+- `PATCH /api/products/{id}` - Actualizar producto
+- `DELETE /api/products/{id}` - Desactivar producto (soft-delete, valida stock reservado)
+- `GET /api/catalog` - Vista general agregada del catálogo
+- `GET /api/catalog/search` - Búsqueda de productos en catálogo
+- `GET /api/catalog/products/{id}` - Detalle de producto en catálogo
+- `POST /api/categories` - Crear categoría con soporte de jerarquía
+- `GET /api/categories` - Listar todas las categorías
+- `GET /api/categories/roots` - Listar categorías raíz
+- `GET /api/categories/{id}` - Obtener categoría por ID
+- `PATCH /api/categories/{id}` - Actualizar categoría
+- `DELETE /api/categories/{id}` - Eliminar categoría (valida que no tenga productos)
+- `POST /api/warehouses` - Crear bodega
+- `GET /api/warehouses` - Listar bodegas
+- `GET /api/warehouses/{id}` - Obtener bodega por ID
+- `GET /api/warehouses/type/{type}` - Filtrar bodegas por tipo
+- `PATCH /api/warehouses/{id}` - Actualizar bodega (valida capacidad vs stock actual)
+
+#### Módulo Inventory
+- `POST /api/inventory` (y `/api/inventories`) - Crear inventario (valida capacidad de bodega)
+- `GET /api/inventory/{id}` - Obtener inventario por ID
+- `GET /api/inventory` - Listar inventarios
+- `GET /api/inventory/product/{productId}` - Filtrar inventario por producto
+- `GET /api/inventory/warehouse/{warehouseId}` - Filtrar inventario por bodega
+- `PATCH /api/inventory/{id}/reserve` - Reservar existencias
+- `PATCH /api/inventory/{id}/confirm-payment` - Confirmar pago/salida
+- `PATCH /api/inventory/{id}/damage` (o `/mark-damaged`) - Marcar inventario como dañado
+- `PATCH /api/inventory/{id}/adjust` - Ajustar cantidades
+
+#### Módulo Orders
+- `POST /api/orders` - Crear orden para un comprador activo
+- `GET /api/orders/{id}` - Obtener orden con sus items y montos calculados
+- `GET /api/orders` - Listar órdenes
+- `GET /api/orders/buyer/{buyerId}` - Listar órdenes por comprador
+- `POST /api/orders/{id}/items` - Añadir ítem a la orden (recalcula total)
+- `DELETE /api/orders/{id}/items/{itemId}` - Eliminar ítem de la orden (recalcula total)
+- `PATCH /api/orders/{id}/confirm-payment` - Confirmar pago (PENDING_PAYMENT -> PAID)
+- `PATCH /api/orders/{id}/dispatch` - Despachar orden (PAID -> DISPATCHED)
+- `PATCH /api/orders/{id}/deliver` - Registrar entrega (DISPATCHED -> DELIVERED)
+- `PATCH /api/orders/{id}/finish` - Finalizar orden (DELIVERED -> FINISHED)
+- `PATCH /api/orders/{id}/cancel` - Cancelar orden
+
+#### Módulo Billing
+- `POST /api/invoices` - Generar factura (valida orden pagada y factura única)
+- `GET /api/invoices/{id}` - Obtener factura por ID
+- `GET /api/invoices/order/{orderId}` - Obtener factura por orden
+- `GET /api/invoices` - Listar facturas
+- `PATCH /api/invoices/{id}/void` - Anular factura
+- `POST /api/refunds` - Solicitar reembolso (valida monto y factura pagada)
+- `GET /api/refunds/{id}` - Obtener reembolso por ID
+- `GET /api/refunds/invoice/{invoiceId}` - Listar reembolsos por factura
+- `GET /api/refunds` - Listar todos los reembolsos
+- `PATCH /api/refunds/{id}/approve` - Aprobar reembolso
+- `PATCH /api/refunds/{id}/reject` - Rechazar reembolso
+
+#### Módulo Logistics
+- `POST /api/shipments` - Crear envío (valida orden DISPATCHED y tracking único)
+- `GET /api/shipments/{id}` - Obtener envío por ID
+- `GET /api/shipments/tracking/{trackingNumber}` - Consultar por guía de rastreo
+- `GET /api/shipments/order/{orderId}` - Consultar envío por orden
+- `GET /api/shipments` - Listar envíos
+- `PATCH /api/shipments/{id}/status` - Actualizar estado de envío
+- `POST /api/returns` - Solicitar devolución (valida orden entregada y ventana de 30 días)
+- `GET /api/returns/{id}` - Obtener devolución por ID
+- `GET /api/returns/order/{orderId}` - Consultar devoluciones por orden
+- `GET /api/returns` - Listar devoluciones
+- `PATCH /api/returns/{id}/approve` - Aprobar devolución
+- `PATCH /api/returns/{id}/reject` - Rechazar devolución
+- `PATCH /api/returns/{id}/complete` - Completar devolución
+
+#### Módulo Audit
+- `GET /api/audit` - Consultar logs de auditoría (con filtros por usuario, entidad y rango de fechas)
+- `GET /api/audit/{id}` - Obtener log de auditoría por ID

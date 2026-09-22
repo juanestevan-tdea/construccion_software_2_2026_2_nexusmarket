@@ -1,19 +1,24 @@
 package com.nexusmarket.inventory.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
 import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
 import com.nexusmarket.exception.BusinessRuleException;
 import com.nexusmarket.exception.ResourceNotFoundException;
+import com.nexusmarket.exception.WarehouseCapacityExceededException;
 import com.nexusmarket.inventory.domain.model.Inventory;
 import com.nexusmarket.inventory.domain.model.InventoryStatus;
 import com.nexusmarket.inventory.domain.repository.InventoryRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.nexusmarket.inventory.dto.InventoryCreateRequest;
+import com.nexusmarket.inventory.dto.InventoryResponse;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +27,12 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
+
+    @Transactional
+    public InventoryResponse createInventory(InventoryCreateRequest request) {
+        Inventory inventory = createInventory(request.getProductId(), request.getWarehouseId(), request.getQuantity());
+        return InventoryResponse.fromEntity(inventory);
+    }
 
     @Transactional
     public Inventory createInventory(Long productId, Long warehouseId, Integer quantity) {
@@ -33,6 +44,17 @@ public class InventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
         Warehouse warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse", warehouseId));
+
+        // Validar capacidad de la bodega
+        int currentStored = inventoryRepository.findByWarehouse(warehouse).stream()
+                .mapToInt(Inventory::getQuantity)
+                .sum();
+        if (warehouse.getCapacity() != null && (currentStored + quantity > warehouse.getCapacity())) {
+            throw new WarehouseCapacityExceededException(
+                    String.format("Warehouse capacity of %d exceeded. Current: %d, adding: %d",
+                            warehouse.getCapacity(), currentStored, quantity)
+            );
+        }
 
         Inventory inventory = new Inventory();
         inventory.setProduct(product);
