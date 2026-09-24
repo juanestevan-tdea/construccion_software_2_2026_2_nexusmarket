@@ -18,12 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.catalog.domain.model.WarehouseType;
 import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
-import com.nexusmarket.catalog.dto.WarehouseCreateRequest;
-import com.nexusmarket.catalog.dto.WarehouseResponse;
-import com.nexusmarket.catalog.dto.WarehouseUpdateRequest;
-import com.nexusmarket.exception.DuplicateResourceException;
-import com.nexusmarket.exception.ResourceNotFoundException;
-import com.nexusmarket.exception.WarehouseCapacityExceededException;
+import com.nexusmarket.catalog.dto.request.WarehouseCreateRequest;
+import com.nexusmarket.catalog.dto.response.WarehouseResponse;
+import com.nexusmarket.catalog.dto.request.WarehouseUpdateRequest;
+import com.nexusmarket.common.exception.DuplicateResourceException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
 import com.nexusmarket.inventory.domain.model.Inventory;
 import com.nexusmarket.inventory.domain.repository.InventoryRepository;
 

@@ -1,7 +1,7 @@
 package com.nexusmarket.billing.controller;
 
-import com.nexusmarket.billing.dto.InvoiceCreateRequest;
-import com.nexusmarket.billing.dto.InvoiceResponse;
+import com.nexusmarket.billing.dto.request.InvoiceCreateRequest;
+import com.nexusmarket.billing.dto.response.InvoiceResponse;
 import com.nexusmarket.billing.service.InvoiceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

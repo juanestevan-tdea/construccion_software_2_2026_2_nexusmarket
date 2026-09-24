@@ -1,6 +1,6 @@
 package com.nexusmarket.orders.domain.model;
 
-import com.nexusmarket.exception.InvalidStatusTransitionException;
+import com.nexusmarket.common.exception.InvalidStatusTransitionException;
 import com.nexusmarket.users.domain.model.Buyer;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -57,6 +57,16 @@ public class Order {
         this.totalAmount = this.items.stream()
                 .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public void checkout() {
+        if (this.status != OrderStatus.CART) {
+            throw new InvalidStatusTransitionException("CART", status.name());
+        }
+        if (this.items.isEmpty()) {
+            throw new InvalidStatusTransitionException(status.name(), "PENDING_PAYMENT");
+        }
+        this.status = OrderStatus.PENDING_PAYMENT;
     }
 
     public void confirmPayment() {

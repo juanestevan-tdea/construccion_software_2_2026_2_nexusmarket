@@ -1,12 +1,12 @@
 package com.nexusmarket.logistics.service;
 
-import com.nexusmarket.exception.InvalidStatusTransitionException;
-import com.nexusmarket.exception.TrackingNotFoundException;
+import com.nexusmarket.common.exception.InvalidStatusTransitionException;
+import com.nexusmarket.common.exception.TrackingNotFoundException;
 import com.nexusmarket.logistics.domain.model.Shipment;
 import com.nexusmarket.logistics.domain.model.ShipmentStatus;
 import com.nexusmarket.logistics.domain.repository.ShipmentRepository;
-import com.nexusmarket.logistics.dto.ShipmentResponse;
-import com.nexusmarket.logistics.dto.ShipmentStatusUpdateRequest;
+import com.nexusmarket.logistics.dto.response.ShipmentResponse;
+import com.nexusmarket.logistics.dto.request.ShipmentStatusUpdateRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

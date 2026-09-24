@@ -9,9 +9,9 @@ import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
 import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
-import com.nexusmarket.exception.BusinessRuleException;
-import com.nexusmarket.exception.ResourceNotFoundException;
-import com.nexusmarket.exception.WarehouseCapacityExceededException;
+import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
 import com.nexusmarket.inventory.domain.model.Inventory;
 import com.nexusmarket.inventory.domain.model.InventoryStatus;
 import com.nexusmarket.inventory.domain.repository.InventoryRepository;
@@ -94,9 +94,9 @@ public class InventoryService {
     }
 
     @Transactional
-    public Inventory confirmPayment(Long id, int amount) {
+    public Inventory confirmPayment(Long id) {
         Inventory inventory = getByIdOrThrow(id);
-        inventory.confirmPayment(amount);
+        inventory.confirmPayment();
         return inventoryRepository.save(inventory);
     }
 

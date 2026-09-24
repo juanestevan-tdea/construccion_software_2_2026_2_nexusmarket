@@ -1,14 +1,14 @@
 package com.nexusmarket.logistics.service;
 
-import com.nexusmarket.exception.ResourceNotFoundException;
-import com.nexusmarket.exception.ReturnAlreadyProcessedException;
-import com.nexusmarket.exception.ReturnNotAllowedException;
-import com.nexusmarket.exception.ReturnWindowExpiredException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
+import com.nexusmarket.common.exception.ReturnNotAllowedException;
+import com.nexusmarket.common.exception.ReturnWindowExpiredException;
 import com.nexusmarket.logistics.domain.model.Return;
 import com.nexusmarket.logistics.domain.model.ReturnStatus;
 import com.nexusmarket.logistics.domain.repository.ReturnRepository;
-import com.nexusmarket.logistics.dto.ReturnCreateRequest;
-import com.nexusmarket.logistics.dto.ReturnResponse;
+import com.nexusmarket.logistics.dto.request.ReturnCreateRequest;
+import com.nexusmarket.logistics.dto.response.ReturnResponse;
 import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;

@@ -1,7 +1,7 @@
 package com.nexusmarket.logistics.controller;
 
-import com.nexusmarket.logistics.dto.ReturnCreateRequest;
-import com.nexusmarket.logistics.dto.ReturnResponse;
+import com.nexusmarket.logistics.dto.request.ReturnCreateRequest;
+import com.nexusmarket.logistics.dto.response.ReturnResponse;
 import com.nexusmarket.logistics.service.ReturnService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

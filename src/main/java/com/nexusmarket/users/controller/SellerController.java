@@ -1,7 +1,7 @@
 package com.nexusmarket.users.controller;
 
-import com.nexusmarket.users.dto.SellerCreateRequest;
-import com.nexusmarket.users.dto.SellerResponse;
+import com.nexusmarket.users.dto.request.SellerCreateRequest;
+import com.nexusmarket.users.dto.response.SellerResponse;
 import com.nexusmarket.users.service.SellerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

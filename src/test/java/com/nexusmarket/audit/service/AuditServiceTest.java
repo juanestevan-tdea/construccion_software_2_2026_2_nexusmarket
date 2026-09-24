@@ -3,7 +3,7 @@ package com.nexusmarket.audit.service;
 import com.nexusmarket.audit.domain.model.AuditLog;
 import com.nexusmarket.audit.domain.repository.AuditLogRepository;
 import com.nexusmarket.audit.dto.AuditLogResponse;
-import com.nexusmarket.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

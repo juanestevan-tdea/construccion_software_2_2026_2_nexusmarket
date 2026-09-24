@@ -1,9 +1,9 @@
 package com.nexusmarket.catalog.controller;
 
 import com.nexusmarket.catalog.domain.model.WarehouseType;
-import com.nexusmarket.catalog.dto.WarehouseCreateRequest;
-import com.nexusmarket.catalog.dto.WarehouseResponse;
-import com.nexusmarket.catalog.dto.WarehouseUpdateRequest;
+import com.nexusmarket.catalog.dto.request.WarehouseCreateRequest;
+import com.nexusmarket.catalog.dto.response.WarehouseResponse;
+import com.nexusmarket.catalog.dto.request.WarehouseUpdateRequest;
 import com.nexusmarket.catalog.service.WarehouseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,14 +1,14 @@
 package com.nexusmarket.users.service;
 
-import com.nexusmarket.exception.BusinessRuleException;
-import com.nexusmarket.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.BuyerRepository;
-import com.nexusmarket.users.dto.BuyerCreateRequest;
-import com.nexusmarket.users.dto.BuyerResponse;
+import com.nexusmarket.users.dto.request.BuyerCreateRequest;
+import com.nexusmarket.users.dto.response.BuyerResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

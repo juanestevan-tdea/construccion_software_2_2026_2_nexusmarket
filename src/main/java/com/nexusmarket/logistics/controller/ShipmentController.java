@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.nexusmarket.logistics.dto.ShipmentCreateRequest;
-import com.nexusmarket.logistics.dto.ShipmentResponse;
-import com.nexusmarket.logistics.dto.ShipmentStatusUpdateRequest;
+import com.nexusmarket.logistics.dto.request.ShipmentCreateRequest;
+import com.nexusmarket.logistics.dto.response.ShipmentResponse;
+import com.nexusmarket.logistics.dto.request.ShipmentStatusUpdateRequest;
 import com.nexusmarket.logistics.service.ShipmentService;
 
 import jakarta.validation.Valid;

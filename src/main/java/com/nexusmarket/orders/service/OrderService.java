@@ -9,15 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.exception.BusinessRuleException;
-import com.nexusmarket.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderItem;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;
-import com.nexusmarket.orders.dto.OrderCreateRequest;
-import com.nexusmarket.orders.dto.OrderItemRequest;
-import com.nexusmarket.orders.dto.OrderResponse;
+import com.nexusmarket.orders.dto.request.OrderCreateRequest;
+import com.nexusmarket.orders.dto.request.OrderItemRequest;
+import com.nexusmarket.orders.dto.response.OrderResponse;
 import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.repository.BuyerRepository;
@@ -112,6 +112,13 @@ public class OrderService {
     public Order confirmPayment(Long id) {
         Order order = getByIdOrThrow(id);
         order.confirmPayment();
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public Order checkout(Long id) {
+        Order order = getByIdOrThrow(id);
+        order.checkout();
         return orderRepository.save(order);
     }
 

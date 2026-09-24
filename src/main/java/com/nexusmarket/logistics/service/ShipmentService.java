@@ -2,13 +2,13 @@ package com.nexusmarket.logistics.service;
 
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
-import com.nexusmarket.exception.*;
+import com.nexusmarket.common.exception.*;
 import com.nexusmarket.logistics.domain.model.Shipment;
 import com.nexusmarket.logistics.domain.model.ShipmentStatus;
 import com.nexusmarket.logistics.domain.repository.ShipmentRepository;
-import com.nexusmarket.logistics.dto.ShipmentCreateRequest;
-import com.nexusmarket.logistics.dto.ShipmentResponse;
-import com.nexusmarket.logistics.dto.ShipmentStatusUpdateRequest;
+import com.nexusmarket.logistics.dto.request.ShipmentCreateRequest;
+import com.nexusmarket.logistics.dto.response.ShipmentResponse;
+import com.nexusmarket.logistics.dto.request.ShipmentStatusUpdateRequest;
 import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;

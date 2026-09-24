@@ -22,7 +22,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping({"/api/inventory", "/api/inventories"})
+@RequestMapping("/api/inventories")
 @RequiredArgsConstructor
 public class InventoryController {
 
@@ -71,12 +71,12 @@ public class InventoryController {
     }
 
     @PatchMapping("/{id}/confirm-payment")
-    public ResponseEntity<InventoryResponse> confirmPayment(@PathVariable Long id, @RequestParam int amount) {
-        Inventory inventory = inventoryService.confirmPayment(id, amount);
+    public ResponseEntity<InventoryResponse> confirmPayment(@PathVariable Long id) {
+        Inventory inventory = inventoryService.confirmPayment(id);
         return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));
     }
 
-    @PatchMapping({"/{id}/damage", "/{id}/mark-damaged"})
+    @PatchMapping("/{id}/mark-damaged")
     public ResponseEntity<InventoryResponse> markAsDamaged(@PathVariable Long id) {
         Inventory inventory = inventoryService.markAsDamaged(id);
         return ResponseEntity.ok(InventoryResponse.fromEntity(inventory));

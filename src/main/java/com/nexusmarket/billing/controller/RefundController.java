@@ -1,7 +1,7 @@
 package com.nexusmarket.billing.controller;
 
-import com.nexusmarket.billing.dto.RefundCreateRequest;
-import com.nexusmarket.billing.dto.RefundResponse;
+import com.nexusmarket.billing.dto.request.RefundCreateRequest;
+import com.nexusmarket.billing.dto.response.RefundResponse;
 import com.nexusmarket.billing.service.RefundService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

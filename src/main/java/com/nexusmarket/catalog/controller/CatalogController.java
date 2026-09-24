@@ -1,7 +1,7 @@
 package com.nexusmarket.catalog.controller;
 
-import com.nexusmarket.catalog.dto.CatalogOverviewResponse;
-import com.nexusmarket.catalog.dto.ProductResponse;
+import com.nexusmarket.catalog.dto.response.CatalogOverviewResponse;
+import com.nexusmarket.catalog.dto.response.ProductResponse;
 import com.nexusmarket.catalog.service.CatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

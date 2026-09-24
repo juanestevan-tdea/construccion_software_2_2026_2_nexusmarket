@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.nexusmarket.orders.dto.OrderCreateRequest;
-import com.nexusmarket.orders.dto.OrderItemRequest;
-import com.nexusmarket.orders.dto.OrderResponse;
+import com.nexusmarket.orders.dto.request.OrderCreateRequest;
+import com.nexusmarket.orders.dto.request.OrderItemRequest;
+import com.nexusmarket.orders.dto.response.OrderResponse;
 import com.nexusmarket.orders.service.OrderService;
 
 import jakarta.validation.Valid;
@@ -66,6 +66,12 @@ public class OrderController {
     @DeleteMapping("/{id}/items/{itemId}")
     public ResponseEntity<OrderResponse> removeItem(@PathVariable Long id, @PathVariable Long itemId) {
         OrderResponse order = orderService.removeItem(id, itemId);
+        return ResponseEntity.ok(order);
+    }
+
+    @PatchMapping("/{id}/checkout")
+    public ResponseEntity<OrderResponse> checkout(@PathVariable Long id) {
+        OrderResponse order = OrderResponse.fromEntity(orderService.checkout(id));
         return ResponseEntity.ok(order);
     }
 

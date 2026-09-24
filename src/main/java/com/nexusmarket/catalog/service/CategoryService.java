@@ -3,12 +3,13 @@ package com.nexusmarket.catalog.service;
 import com.nexusmarket.catalog.domain.model.Category;
 import com.nexusmarket.catalog.domain.repository.CategoryRepository;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.dto.CategoryCreateRequest;
-import com.nexusmarket.catalog.dto.CategoryResponse;
-import com.nexusmarket.catalog.dto.CategoryUpdateRequest;
-import com.nexusmarket.exception.CategoryHasProductsException;
-import com.nexusmarket.exception.DuplicateResourceException;
-import com.nexusmarket.exception.ResourceNotFoundException;
+import com.nexusmarket.catalog.dto.request.CategoryCreateRequest;
+import com.nexusmarket.catalog.dto.response.CategoryResponse;
+import com.nexusmarket.catalog.dto.request.CategoryUpdateRequest;
+import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.common.exception.CategoryHasProductsException;
+import com.nexusmarket.common.exception.DuplicateResourceException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,7 +88,7 @@ public class CategoryService {
 
         if (request.getParentId() != null) {
             if (request.getParentId().equals(id)) {
-                throw new IllegalArgumentException("A category cannot be its own parent");
+                throw new BusinessRuleException("A category cannot be its own parent");
             }
             Category parent = categoryRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Category", request.getParentId()));

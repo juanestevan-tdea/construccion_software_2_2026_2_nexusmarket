@@ -1,13 +1,13 @@
 package com.nexusmarket.users.service;
 
-import com.nexusmarket.exception.DuplicateResourceException;
-import com.nexusmarket.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.DuplicateResourceException;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.model.UserStatus;
 import com.nexusmarket.users.domain.repository.UserRepository;
-import com.nexusmarket.users.dto.UserCreateRequest;
-import com.nexusmarket.users.dto.UserResponse;
+import com.nexusmarket.users.dto.request.UserCreateRequest;
+import com.nexusmarket.users.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

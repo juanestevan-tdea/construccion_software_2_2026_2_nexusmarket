@@ -1,8 +1,8 @@
 package com.nexusmarket.users.controller;
 
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
-import com.nexusmarket.users.dto.BuyerCreateRequest;
-import com.nexusmarket.users.dto.BuyerResponse;
+import com.nexusmarket.users.dto.request.BuyerCreateRequest;
+import com.nexusmarket.users.dto.response.BuyerResponse;
 import com.nexusmarket.users.service.BuyerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

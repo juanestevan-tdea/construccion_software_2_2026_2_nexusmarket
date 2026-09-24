@@ -1,19 +1,8 @@
 package com.nexusmarket.orders.service;
 
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import static org.mockito.Mockito.when;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.exception.BusinessRuleException;
-import com.nexusmarket.exception.InvalidStatusTransitionException;
+import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.common.exception.InvalidStatusTransitionException;
 import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;
@@ -21,6 +10,18 @@ import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.repository.BuyerRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -41,6 +42,22 @@ class OrderServiceTest {
     void setUp() {
         User user = User.builder().id(2L).email("buyer@test.com").status(com.nexusmarket.users.domain.model.UserStatus.ACTIVE).build();
         buyer = Buyer.builder().id(1L).user(user).commercialStatus(BuyerCommercialStatus.ACTIVE).build();
+    }
+
+    @Test
+    void createOrder_Success() {
+        when(buyerRepository.findById(1L)).thenReturn(Optional.of(buyer));
+        when(orderRepository.save(any(Order.class))).thenAnswer(i -> {
+            Order o = i.getArgument(0);
+            o.setId(10L);
+            return o;
+        });
+
+        Order created = orderService.createOrder(1L);
+
+        assertNotNull(created);
+        assertEquals(OrderStatus.CART, created.getStatus());
+        assertEquals(buyer, created.getBuyer());
     }
 
     @Test

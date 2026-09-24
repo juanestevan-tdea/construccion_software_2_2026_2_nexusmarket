@@ -1,8 +1,8 @@
 package com.nexusmarket.users.controller;
 
 import com.nexusmarket.users.domain.model.UserRole;
-import com.nexusmarket.users.dto.UserCreateRequest;
-import com.nexusmarket.users.dto.UserResponse;
+import com.nexusmarket.users.dto.request.UserCreateRequest;
+import com.nexusmarket.users.dto.response.UserResponse;
 import com.nexusmarket.users.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

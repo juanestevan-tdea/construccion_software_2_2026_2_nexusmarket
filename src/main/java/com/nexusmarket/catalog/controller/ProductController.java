@@ -1,8 +1,8 @@
 package com.nexusmarket.catalog.controller;
 
-import com.nexusmarket.catalog.dto.ProductCreateRequest;
-import com.nexusmarket.catalog.dto.ProductResponse;
-import com.nexusmarket.catalog.dto.ProductUpdateRequest;
+import com.nexusmarket.catalog.dto.request.ProductCreateRequest;
+import com.nexusmarket.catalog.dto.response.ProductResponse;
+import com.nexusmarket.catalog.dto.request.ProductUpdateRequest;
 import com.nexusmarket.catalog.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

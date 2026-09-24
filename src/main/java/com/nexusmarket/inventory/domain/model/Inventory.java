@@ -2,7 +2,7 @@ package com.nexusmarket.inventory.domain.model;
 
 import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.model.Warehouse;
-import com.nexusmarket.exception.BusinessRuleException;
+import com.nexusmarket.common.exception.BusinessRuleException;
 import jakarta.persistence.*;
 
 @Entity
@@ -51,8 +51,8 @@ public class Inventory {
         this.status = InventoryStatus.DAMAGED;
     }
 
-    public void confirmPayment(int amount) {
-        // En un flujo de pago/salida de inventario, se descuenta o confirma la reserva
+    public void confirmPayment() {
+        // La reserva ya descontó las unidades; confirmar el pago solo libera el estado
         if (this.status == InventoryStatus.DAMAGED) {
             throw new BusinessRuleException("Cannot confirm payment for damaged inventory");
         }
