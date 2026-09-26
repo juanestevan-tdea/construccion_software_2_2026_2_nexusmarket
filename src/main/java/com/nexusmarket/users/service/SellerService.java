@@ -8,6 +8,7 @@ import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.SellerRepository;
 import com.nexusmarket.users.dto.request.SellerCreateRequest;
+import com.nexusmarket.users.dto.request.SellerUpdateRequest;
 import com.nexusmarket.users.dto.response.SellerResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -118,14 +119,16 @@ public class SellerService {
 
     // Actualizar información del vendedor
     @Transactional
-    public Seller updateSeller(Long id, String companyName, String taxId) {
+    public Seller updateSeller(Long id, SellerUpdateRequest request) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
 
+        String companyName = request.getCompanyName();
         if (companyName != null && !companyName.isEmpty()) {
             seller.setCompanyName(companyName);
         }
 
+        String taxId = request.getTaxId();
         if (taxId != null && !taxId.isEmpty()) {
             // Validar que el nuevo taxId no esté en uso por otro vendedor
             if (sellerRepository.findByTaxId(taxId).filter(s -> !s.getId().equals(id)).isPresent()) {

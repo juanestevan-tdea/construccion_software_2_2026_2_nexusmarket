@@ -4,9 +4,19 @@ import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "inventario")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Inventory {
 
     @Id
@@ -27,8 +37,6 @@ public class Inventory {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InventoryStatus status;
-
-    public Inventory() {}
 
     // Métodos de negocio
     public void reserve(int amount) {
@@ -65,16 +73,4 @@ public class Inventory {
         }
         this.quantity += amount;
     }
-
-    // Getters y Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
-    public Warehouse getWarehouse() { return warehouse; }
-    public void setWarehouse(Warehouse warehouse) { this.warehouse = warehouse; }
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
-    public InventoryStatus getStatus() { return status; }
-    public void setStatus(InventoryStatus status) { this.status = status; }
 }

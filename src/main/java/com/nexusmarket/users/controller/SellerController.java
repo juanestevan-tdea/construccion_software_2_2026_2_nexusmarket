@@ -1,6 +1,7 @@
 package com.nexusmarket.users.controller;
 
 import com.nexusmarket.users.dto.request.SellerCreateRequest;
+import com.nexusmarket.users.dto.request.SellerUpdateRequest;
 import com.nexusmarket.users.dto.response.SellerResponse;
 import com.nexusmarket.users.service.SellerService;
 import jakarta.validation.Valid;
@@ -65,9 +66,8 @@ public class SellerController {
     // Actualizar información de un vendedor
     @PatchMapping("/{id}/update")
     public ResponseEntity<SellerResponse> updateSeller(@PathVariable Long id,
-                                                       @RequestParam(required = false) String companyName,
-                                                       @RequestParam(required = false) String taxId) {
-        SellerResponse updatedSeller = SellerResponse.fromEntity(sellerService.updateSeller(id, companyName, taxId));
+                                                       @Valid @RequestBody SellerUpdateRequest request) {
+        SellerResponse updatedSeller = SellerResponse.fromEntity(sellerService.updateSeller(id, request));
         return ResponseEntity.ok(updatedSeller);
     }
 }
