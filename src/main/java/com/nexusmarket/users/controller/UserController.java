@@ -1,5 +1,6 @@
 package com.nexusmarket.users.controller;
 
+import com.nexusmarket.security.UserDetailsAdapter;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.dto.request.UserCreateRequest;
 import com.nexusmarket.users.dto.response.UserResponse;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,13 @@ public class UserController {
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
         UserResponse newUser = userService.createUser(request);
         return new ResponseEntity<>(newUser, HttpStatus.CREATED);
+    }
+
+    // Obtener el perfil del usuario autenticado (cualquier rol)
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal UserDetailsAdapter principal) {
+        UserResponse user = UserResponse.fromEntity(principal.getUser());
+        return ResponseEntity.ok(user);
     }
 
     // Obtener usuario por ID

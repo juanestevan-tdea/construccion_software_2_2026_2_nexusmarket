@@ -9,6 +9,7 @@ import com.nexusmarket.users.domain.repository.UserRepository;
 import com.nexusmarket.users.dto.request.UserCreateRequest;
 import com.nexusmarket.users.dto.response.UserResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Crear un nuevo usuario a partir de un DTO
     @Transactional
@@ -39,7 +41,7 @@ public class UserService {
         User user = User.builder()
                 .email(email)
                 .fullName(fullName)
-                .password(password) // En producción, esto debe estar encriptado con BCrypt
+                .password(passwordEncoder.encode(password))
                 .role(role)
                 .status(UserStatus.ACTIVE)
                 .build();
