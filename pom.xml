@@ -141,6 +141,21 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+            <!--
+                Surefire: the test JVM runs on JDK 26 while Byte Buddy (pulled in by
+                Mockito) officially supports up to Java 24 (class file format 68).
+                Without this flag, @MockitoBean cannot generate mock classes and the
+                @WebMvcTest context fails to start.
+                Remove once Mockito ships Byte Buddy with JDK 26 support.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
