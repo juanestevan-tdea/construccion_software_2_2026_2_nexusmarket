@@ -1,4 +1,4 @@
-﻿﻿# 📘 Documentación Técnica - NexusMarket
+﻿# 📘 Documentación Técnica - NexusMarket
 
 ## 🏗️ Proceso de Construcción del Software
 
@@ -155,8 +155,13 @@ Todas son capturadas por el `GlobalExceptionHandler` (`@RestControllerAdvice`), 
 
 ### 8. Endpoints de la API REST
 
+#### Módulo Auth (nuevo)
+- `POST /api/auth/register` - **Público.** Autorregistro de BUYER o SELLER (crea User + perfil). Devuelve JWT.
+- `POST /api/auth/login` - **Público.** Valida credenciales y devuelve JWT.
+
 #### Módulo Users
-- `POST /api/users` - Crear usuario con DTO validado
+- `GET /api/users/me` - **Autenticado (cualquier rol).** Perfil del usuario del token.
+- `POST /api/users` - Crear usuario con DTO validado. **Solo ADMIN.**
 - `GET /api/users/{id}` - Obtener usuario por ID
 - `GET /api/users/email` - Obtener usuario por email
 - `GET /api/users` - Listar usuarios
@@ -257,3 +262,182 @@ Todas son capturadas por el `GlobalExceptionHandler` (`@RestControllerAdvice`), 
 #### Módulo Audit
 - `GET /api/audit` - Consultar logs de auditoría (con filtros por usuario, entidad y rango de fechas)
 - `GET /api/audit/{id}` - Obtener log de auditoría por ID
+
+---
+
+### 9. Seguridad: Autenticación y Autorización (JWT)
+
+> **Todos los endpoints exigen un JWT válido salvo los dos de `/api/auth/**`, Swagger y `/actuator/health`.**
+
+#### 9.1 Flujo de autenticación
+
+```
+1. POST /api/auth/register  → crea el usuario (BCrypt) + perfil → devuelve un JWT
+        (o)
+   POST /api/auth/login     → valida credenciales → devuelve un JWT
+
+2. El cliente guarda el token y lo envía en cada petición:
+   Authorization: Bearer <token>
+
+3. JwtAuthenticationFilter valida el token en cada request y puebla el
+   SecurityContext. Si el token falta o es inválido, la petición llega
+   sin autenticar y la API responde 401.
+```
+
+#### 9.2 Ejemplos con curl
+
+**Registrar un comprador**
+```bash
+curl -i -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "buyer1@test.com",
+        "fullName": "Juan Perez",
+        "password": "secret123",
+        "role": "BUYER",
+        "primaryAddress": "Calle 123 #45-67"
+      }'
+# 201 Created → {"tokenType":"Bearer","token":"eyJ...","expiresIn":86400000,...}
+```
+
+**Registrar un vendedor**
+```bash
+curl -i -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "seller1@test.com",
+        "fullName": "Tienda SA",
+        "password": "secret123",
+        "role": "SELLER",
+        "taxId": "900123456-7",
+        "companyName": "Tienda Nexus"
+      }'
+```
+
+**Iniciar sesión**
+```bash
+curl -i -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "buyer1@test.com", "password": "secret123"}'
+# 200 OK → {"tokenType":"Bearer","token":"eyJ...","expiresIn":86400000,...}
+```
+
+**Usar el token**
+```bash
+TOKEN="eyJhbGciOiJIUzI1NiJ9..."
+
+curl -i http://localhost:8080/api/users/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### 9.3 Formato del JWT
+
+Algoritmo **HS256** (HMAC-SHA256). Payload de ejemplo:
+
+```json
+{
+  "roles": ["ROLE_BUYER"],
+  "sub": "buyer1@test.com",
+  "iat": 1759100000,
+  "exp": 1759186400
+}
+```
+
+| Claim | Significado |
+|-------|-------------|
+| `sub` | Email del usuario (el "username" del sistema). |
+| `roles` | Autoridades concedidas, con prefijo `ROLE_`. |
+| `iat` | Momento de emisión (issued at). |
+| `exp` | Momento de expiración. |
+
+**TTL del token: 24 horas** (`jwt.expiration=86400000` ms). Pasado ese tiempo, cualquier petición devuelve 401 y el cliente debe volver a hacer login.
+
+#### 9.4 Cómo registrar un rol privilegiado
+
+`ADMIN`, `SUPERVISOR` y `WAREHOUSE_OPERATOR` **no pueden autorregistrarse**. Intentar `role=ADMIN` en `/api/auth/register` devuelve **422** con el mensaje *"Self-registration is only allowed for BUYER and SELLER roles"*. Se crean exclusivamente por un administrador:
+
+```bash
+curl -i -X POST http://localhost:8080/api/users \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin2@test.com","fullName":"Admin Dos","password":"secret123","role":"ADMIN"}'
+```
+
+#### 9.5 Mapa de roles → endpoints permitidos
+
+| Rol | Puede acceder a |
+|-----|-----------------|
+| *(anónimo)* | `POST /api/auth/register`, `POST /api/auth/login`, `/swagger-ui/**`, `/v3/api-docs/**`, `/actuator/health` |
+| `ADMIN` | Todo. En particular `/api/users/**` (salvo `/api/users/me`, que es de todos), `/api/audit/**` |
+| `SUPERVISOR` | `/api/audit/**` + el resto de endpoints autenticados |
+| `BUYER` | `/api/users/me`, lecturas de catálogo, órdenes, facturas, devoluciones propias |
+| `SELLER` | `/api/users/me`, lecturas de catálogo, sus productos, envíos de sus órdenes |
+| `WAREHOUSE_OPERATOR` | `/api/users/me`, `/api/inventory/**`, `/api/shipments/**`, `/api/warehouses/**` |
+
+#### 9.6 Códigos HTTP de seguridad
+
+| Código | Cuándo | Body |
+|--------|--------|------|
+| **401 Unauthorized** | Sin token, token malformado, firma inválida o token expirado | `ErrorResponse` JSON |
+| **403 Forbidden** | Token **válido** pero el rol no tiene permiso para la ruta | `ErrorResponse` JSON |
+
+Ambos devuelven el formato estándar de error del proyecto:
+
+```json
+{
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Authentication is required to access this resource",
+  "path": "/api/users/me",
+  "timestamp": "2026-09-29T10:15:30",
+  "details": null
+}
+```
+
+```json
+{
+  "status": 403,
+  "error": "Forbidden",
+  "message": "You do not have permission to access this resource",
+  "path": "/api/users/1",
+  "timestamp": "2026-09-29T10:15:30",
+  "details": null
+}
+```
+
+#### 9.7 Gestión de secretos (variables de entorno)
+
+Los secretos se leen de variables de entorno con **fallback de desarrollo** en `application.properties`:
+
+| Propiedad | Variable de entorno | Fallback de dev |
+|-----------|---------------------|-----------------|
+| `spring.datasource.username` | `DB_USERNAME` | `root` |
+| `spring.datasource.password` | `DB_PASSWORD` | `root` |
+| `spring.data.mongodb.uri` | `MONGODB_URI` | cadena de Atlas |
+| `jwt.secret` | `JWT_SECRET` | clave de 64 chars |
+
+**PowerShell (desarrollo local):**
+```powershell
+$env:JWT_SECRET = "<nuevo-secreto-de-64-caracteres>"
+$env:DB_PASSWORD = "<password-mysql>"
+$env:MONGODB_URI = "mongodb+srv://..."
+```
+
+**Docker:**
+```bash
+docker run -e JWT_SECRET="..." -e DB_PASSWORD="..." -e MONGODB_URI="..." nexusmarket
+```
+
+**Producción:** usar un secrets manager (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault) o los secrets nativos del orquestador (Kubernetes Secrets), nunca el repositorio.
+
+#### 9.8 Cómo rotar el `jwt.secret`
+
+1. Generar un valor nuevo de al menos 32 bytes (`openssl rand -base64 48`).
+2. Actualizar la variable `JWT_SECRET` y reiniciar la aplicación.
+3. **Efecto inmediato:** todos los tokens emitidos con el secreto anterior dejan de validar → logout global forzado. Los clientes deben hacer login otra vez.
+
+#### 9.9 Notas importantes y limitaciones conocidas
+
+- **Usuarios antiguos en texto plano**: los usuarios creados **antes** de la Fase 2 tienen la contraseña en texto plano en MySQL y **ya no pueden iniciar sesión** (BCrypt nunca hará match contra texto plano). Deben recrearse vía `POST /api/auth/register` o `POST /api/users`.
+- **JWT stateless sin refresh token**: no hay refresh token ni blacklist. Consecuencia práctica: un usuario **bloqueado** que ya tenga un token válido lo conservará hasta que expire (máximo 24 h). Mitigación futura: refresh tokens + blacklist.
+- **Aviso de seguridad**: los secretos siguen teniendo un fallback literal en `application.properties`, que **está en git**, para no romper el desarrollo local. En producción es obligatorio inyectar las variables de entorno y eliminar los fallbacks.

@@ -21,4 +21,9 @@ Thumbs.db
 
 # Application specific
 application-local.yml
+application-local.properties
 application-dev.yml
+
+# Local environment files (never commit real secrets)
+.env
+.env.local
