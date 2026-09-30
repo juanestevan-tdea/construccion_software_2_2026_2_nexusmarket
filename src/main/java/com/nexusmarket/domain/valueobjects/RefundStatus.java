@@ -1,4 +1,4 @@
-package com.nexusmarket.billing.domain.model;
+package com.nexusmarket.domain.valueobjects;
 
 public enum RefundStatus {
     PENDING,

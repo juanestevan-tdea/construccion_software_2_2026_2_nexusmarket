@@ -1,4 +1,4 @@
-package com.nexusmarket.billing.dto.request;
+package com.nexusmarket.adapters.rest.dtos.requests;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RefundCreateRequest {
+public class RefundCreateRequestDTO {
 
     @NotNull(message = "Invoice ID is required")
     private Long invoiceId;

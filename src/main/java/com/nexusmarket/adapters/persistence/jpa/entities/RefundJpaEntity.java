@@ -1,5 +1,6 @@
-package com.nexusmarket.billing.domain.model;
+package com.nexusmarket.adapters.persistence.jpa.entities;
 
+import com.nexusmarket.domain.valueobjects.RefundStatus;
 import com.nexusmarket.logistics.domain.model.Return;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,17 +14,17 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Refund {
+public class RefundJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id", nullable = false)
-    private Invoice invoice;
+    private InvoiceJpaEntity invoice;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "return_id")
     private Return returnRequest;
 

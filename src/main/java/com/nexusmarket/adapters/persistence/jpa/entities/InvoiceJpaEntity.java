@@ -1,4 +1,4 @@
-package com.nexusmarket.billing.domain.model;
+package com.nexusmarket.adapters.persistence.jpa.entities;
 
 import com.nexusmarket.orders.domain.model.Order;
 import jakarta.persistence.*;
@@ -14,13 +14,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Invoice {
+public class InvoiceJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
