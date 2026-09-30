@@ -1,4 +1,4 @@
-package com.nexusmarket.logistics.dto.request;
+package com.nexusmarket.adapters.rest.dtos.requests;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShipmentCreateRequest {
+public class ShipmentCreateRequestDTO {
 
     @NotNull(message = "Order ID is required")
     private Long orderId;

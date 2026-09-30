@@ -1,6 +1,7 @@
-package com.nexusmarket.logistics.domain.model;
+package com.nexusmarket.adapters.persistence.jpa.entities;
 
 import com.nexusmarket.catalog.domain.model.Warehouse;
+import com.nexusmarket.domain.valueobjects.ShipmentStatus;
 import com.nexusmarket.orders.domain.model.Order;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,17 +15,17 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Shipment {
+public class ShipmentJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "warehouse_id", nullable = false)
     private Warehouse warehouse;
 

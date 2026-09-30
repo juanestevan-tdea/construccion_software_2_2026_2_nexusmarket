@@ -8,10 +8,10 @@ import com.nexusmarket.domain.models.Refund;
 import com.nexusmarket.domain.ports.in.RefundUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
+import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
 import com.nexusmarket.domain.services.RefundApproveService;
 import com.nexusmarket.domain.services.RefundProcessService;
 import com.nexusmarket.domain.valueobjects.RefundStatus;
-import com.nexusmarket.logistics.domain.repository.ReturnRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +34,7 @@ class RefundServiceTest {
     @Mock
     private InvoiceRepositoryPort invoiceRepositoryPort;
     @Mock
-    private ReturnRepository returnRepository;
+    private ReturnRepositoryPort returnRepositoryPort;
 
     private RefundUseCasePort refundUseCase;
 
@@ -49,7 +49,7 @@ class RefundServiceTest {
                 .active(true)
                 .build();
 
-        RefundProcessService processService = new RefundProcessService(refundRepositoryPort, invoiceRepositoryPort, returnRepository);
+        RefundProcessService processService = new RefundProcessService(refundRepositoryPort, invoiceRepositoryPort, returnRepositoryPort);
         RefundApproveService approveService = new RefundApproveService(refundRepositoryPort);
         refundUseCase = new RefundUseCaseImpl(processService, approveService, refundRepositoryPort, invoiceRepositoryPort);
     }

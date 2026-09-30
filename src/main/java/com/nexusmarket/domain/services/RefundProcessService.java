@@ -1,5 +1,11 @@
 package com.nexusmarket.domain.services;
 
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.common.exception.RefundAmountExceededException;
 import com.nexusmarket.common.exception.RefundNotAllowedException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
@@ -7,14 +13,10 @@ import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Refund;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
+import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
 import com.nexusmarket.domain.valueobjects.RefundStatus;
-import com.nexusmarket.logistics.domain.repository.ReturnRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +24,7 @@ public class RefundProcessService {
 
     private final RefundRepositoryPort refundRepositoryPort;
     private final InvoiceRepositoryPort invoiceRepositoryPort;
-    private final ReturnRepository returnRepository;
+    private final ReturnRepositoryPort returnRepositoryPort;
 
     @Transactional
     public Refund createRefund(Long invoiceId, Long returnRequestId, BigDecimal amount) {
@@ -49,7 +51,7 @@ public class RefundProcessService {
                             currentRefunded, amount, invoice.getAmount()));
         }
 
-        if (returnRequestId != null && !returnRepository.existsById(returnRequestId)) {
+        if (returnRequestId != null && !returnRepositoryPort.existsById(returnRequestId)) {
             throw new ResourceNotFoundException("Return", returnRequestId);
         }
 

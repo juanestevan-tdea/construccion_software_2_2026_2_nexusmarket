@@ -1,4 +1,4 @@
-package com.nexusmarket.logistics.domain.model;
+package com.nexusmarket.domain.valueobjects;
 
 public enum ReturnStatus {
     REQUESTED,

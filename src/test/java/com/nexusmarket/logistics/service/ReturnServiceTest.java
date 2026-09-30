@@ -1,21 +1,20 @@
 package com.nexusmarket.logistics.service;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.adapters.useCases.ReturnUseCaseImpl;
 import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
 import com.nexusmarket.common.exception.ReturnNotAllowedException;
 import com.nexusmarket.common.exception.ReturnWindowExpiredException;
-import com.nexusmarket.logistics.domain.model.Return;
-import com.nexusmarket.logistics.domain.model.ReturnStatus;
-import com.nexusmarket.logistics.domain.repository.ReturnRepository;
-import com.nexusmarket.logistics.dto.request.ReturnCreateRequest;
-import com.nexusmarket.logistics.dto.response.ReturnResponse;
+import com.nexusmarket.domain.models.Return;
+import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
+import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
+import com.nexusmarket.domain.services.ReturnProcessService;
+import com.nexusmarket.domain.valueobjects.ReturnStatus;
 import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,13 +31,12 @@ import static org.mockito.Mockito.*;
 class ReturnServiceTest {
 
     @Mock
-    private ReturnRepository returnRepository;
+    private ReturnRepositoryPort returnRepositoryPort;
 
     @Mock
     private OrderRepository orderRepository;
 
-    @InjectMocks
-    private ReturnService returnService;
+    private ReturnUseCasePort returnUseCase;
 
     private Order order;
 
@@ -48,24 +46,22 @@ class ReturnServiceTest {
         order.setId(1L);
         order.setStatus(OrderStatus.DELIVERED);
         order.setOrderDate(LocalDateTime.now().minusDays(5));
+
+        ReturnProcessService returnProcessService = new ReturnProcessService(returnRepositoryPort, orderRepository);
+        returnUseCase = new ReturnUseCaseImpl(returnProcessService, returnRepositoryPort, orderRepository);
     }
 
     @Test
     void createReturn_Success() {
-        ReturnCreateRequest request = ReturnCreateRequest.builder()
-                .orderId(1L)
-                .reason("Defective product")
-                .build();
-
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        when(returnRepository.findByOrder(order)).thenReturn(Collections.emptyList());
-        when(returnRepository.save(any(Return.class))).thenAnswer(i -> {
+        when(returnRepositoryPort.findByOrderId(1L)).thenReturn(Collections.emptyList());
+        when(returnRepositoryPort.save(any(Return.class))).thenAnswer(i -> {
             Return ret = i.getArgument(0);
             ret.setId(10L);
             return ret;
         });
 
-        ReturnResponse response = returnService.createReturn(request);
+        Return response = returnUseCase.createReturn(1L, "Defective product");
 
         assertNotNull(response);
         assertEquals("Defective product", response.getReason());
@@ -75,48 +71,37 @@ class ReturnServiceTest {
     @Test
     void createReturn_ThrowsReturnNotAllowedException_WhenOrderNotDeliveredOrFinished() {
         order.setStatus(OrderStatus.PAID);
-        ReturnCreateRequest request = ReturnCreateRequest.builder()
-                .orderId(1L)
-                .reason("Defective")
-                .build();
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThrows(ReturnNotAllowedException.class, () -> returnService.createReturn(request));
+        assertThrows(ReturnNotAllowedException.class, () -> returnUseCase.createReturn(1L, "Defective"));
     }
 
     @Test
     void createReturn_ThrowsReturnWindowExpiredException_WhenOver30Days() {
         order.setOrderDate(LocalDateTime.now().minusDays(35));
-        ReturnCreateRequest request = ReturnCreateRequest.builder()
-                .orderId(1L)
-                .reason("Too late")
-                .build();
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
-        assertThrows(ReturnWindowExpiredException.class, () -> returnService.createReturn(request));
+        assertThrows(ReturnWindowExpiredException.class, () -> returnUseCase.createReturn(1L, "Too late"));
     }
 
     @Test
     void createReturn_ThrowsReturnAlreadyProcessedException_WhenPendingReturnExists() {
         Return existing = Return.builder().id(2L).status(ReturnStatus.REQUESTED).build();
-        ReturnCreateRequest request = ReturnCreateRequest.builder()
-                .orderId(1L)
-                .reason("Defective")
-                .build();
 
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        when(returnRepository.findByOrder(order)).thenReturn(List.of(existing));
+        when(returnRepositoryPort.findByOrderId(1L)).thenReturn(List.of(existing));
 
-        assertThrows(ReturnAlreadyProcessedException.class, () -> returnService.createReturn(request));
+        assertThrows(ReturnAlreadyProcessedException.class, () -> returnUseCase.createReturn(1L, "Defective"));
     }
 
     @Test
     void completeReturn_ThrowsReturnNotAllowedException_WhenNotApproved() {
         Return ret = Return.builder().id(5L).status(ReturnStatus.REQUESTED).build();
-        when(returnRepository.findById(5L)).thenReturn(Optional.of(ret));
+        when(returnRepositoryPort.findById(5L)).thenReturn(Optional.of(ret));
 
-        assertThrows(ReturnNotAllowedException.class, () -> returnService.completeReturn(5L));
+        assertThrows(ReturnNotAllowedException.class, () -> returnUseCase.completeReturn(5L));
     }
 }
+

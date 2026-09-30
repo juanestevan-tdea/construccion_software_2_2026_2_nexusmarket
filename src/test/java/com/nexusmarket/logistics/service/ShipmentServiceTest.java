@@ -1,15 +1,19 @@
 package com.nexusmarket.logistics.service;
 
+import com.nexusmarket.adapters.useCases.ShipmentUseCaseImpl;
+import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
 import com.nexusmarket.common.exception.InvalidStatusTransitionException;
 import com.nexusmarket.common.exception.TrackingNotFoundException;
-import com.nexusmarket.logistics.domain.model.Shipment;
-import com.nexusmarket.logistics.domain.model.ShipmentStatus;
-import com.nexusmarket.logistics.domain.repository.ShipmentRepository;
-import com.nexusmarket.logistics.dto.response.ShipmentResponse;
-import com.nexusmarket.logistics.dto.request.ShipmentStatusUpdateRequest;
+import com.nexusmarket.domain.models.Shipment;
+import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
+import com.nexusmarket.domain.services.ShipmentCreateService;
+import com.nexusmarket.domain.services.ShipmentStatusService;
+import com.nexusmarket.domain.valueobjects.ShipmentStatus;
+import com.nexusmarket.orders.domain.repository.OrderRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,16 +26,28 @@ import static org.mockito.Mockito.*;
 class ShipmentServiceTest {
 
     @Mock
-    private ShipmentRepository shipmentRepository;
+    private ShipmentRepositoryPort shipmentRepositoryPort;
 
-    @InjectMocks
-    private ShipmentService shipmentService;
+    @Mock
+    private OrderRepository orderRepository;
+
+    @Mock
+    private WarehouseRepository warehouseRepository;
+
+    private ShipmentUseCasePort shipmentUseCase;
+
+    @BeforeEach
+    void setUp() {
+        ShipmentCreateService createService = new ShipmentCreateService(shipmentRepositoryPort, orderRepository, warehouseRepository);
+        ShipmentStatusService statusService = new ShipmentStatusService(shipmentRepositoryPort);
+        shipmentUseCase = new ShipmentUseCaseImpl(createService, statusService, shipmentRepositoryPort, orderRepository);
+    }
 
     @Test
     void findByTracking_ThrowsException_WhenNotFound() {
-        when(shipmentRepository.findByTrackingNumber("TRK-UNKNOWN")).thenReturn(Optional.empty());
+        when(shipmentRepositoryPort.findByTrackingNumber("TRK-UNKNOWN")).thenReturn(Optional.empty());
 
-        assertThrows(TrackingNotFoundException.class, () -> shipmentService.findByTracking("TRK-UNKNOWN"));
+        assertThrows(TrackingNotFoundException.class, () -> shipmentUseCase.findByTracking("TRK-UNKNOWN"));
     }
 
     @Test
@@ -40,13 +56,9 @@ class ShipmentServiceTest {
                 .id(1L)
                 .status(ShipmentStatus.DELIVERED)
                 .build();
-        when(shipmentRepository.findById(1L)).thenReturn(Optional.of(shipment));
+        when(shipmentRepositoryPort.findById(1L)).thenReturn(Optional.of(shipment));
 
-        ShipmentStatusUpdateRequest request = ShipmentStatusUpdateRequest.builder()
-                .status(ShipmentStatus.CANCELLED)
-                .build();
-
-        assertThrows(InvalidStatusTransitionException.class, () -> shipmentService.updateStatus(1L, request));
+        assertThrows(InvalidStatusTransitionException.class, () -> shipmentUseCase.updateStatus(1L, ShipmentStatus.CANCELLED));
     }
 
     @Test
@@ -55,16 +67,13 @@ class ShipmentServiceTest {
                 .id(1L)
                 .status(ShipmentStatus.PENDING)
                 .build();
-        when(shipmentRepository.findById(1L)).thenReturn(Optional.of(shipment));
-        when(shipmentRepository.save(any(Shipment.class))).thenAnswer(i -> i.getArgument(0));
+        when(shipmentRepositoryPort.findById(1L)).thenReturn(Optional.of(shipment));
+        when(shipmentRepositoryPort.save(any(Shipment.class))).thenAnswer(i -> i.getArgument(0));
 
-        ShipmentStatusUpdateRequest request = ShipmentStatusUpdateRequest.builder()
-                .status(ShipmentStatus.IN_TRANSIT)
-                .build();
-
-        ShipmentResponse response = shipmentService.updateStatus(1L, request);
+        Shipment response = shipmentUseCase.updateStatus(1L, ShipmentStatus.IN_TRANSIT);
 
         assertNotNull(response);
         assertEquals(ShipmentStatus.IN_TRANSIT, response.getStatus());
     }
 }
+

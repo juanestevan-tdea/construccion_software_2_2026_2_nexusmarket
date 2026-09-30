@@ -1,21 +1,23 @@
 package com.nexusmarket.adapters.persistence.jpa.mappers;
 
+import org.springframework.stereotype.Component;
+
 import com.nexusmarket.adapters.persistence.jpa.entities.InvoiceJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.RefundJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.ReturnJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.InvoiceJpaRepository;
+import com.nexusmarket.adapters.persistence.jpa.repositories.ReturnJpaRepository;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Refund;
-import com.nexusmarket.logistics.domain.model.Return;
-import com.nexusmarket.logistics.domain.repository.ReturnRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class RefundJpaMapper {
 
     private final InvoiceJpaRepository invoiceJpaRepository;
-    private final ReturnRepository returnRepository;
+    private final ReturnJpaRepository returnJpaRepository;
 
     public Refund toDomain(RefundJpaEntity entity) {
         if (entity == null) {
@@ -41,9 +43,9 @@ public class RefundJpaMapper {
                     .orElseThrow(() -> new ResourceNotFoundException("Invoice", domain.getInvoiceId()));
         }
 
-        Return returnRequest = null;
+        ReturnJpaEntity returnRequest = null;
         if (domain.getReturnRequestId() != null) {
-            returnRequest = returnRepository.findById(domain.getReturnRequestId())
+            returnRequest = returnJpaRepository.findById(domain.getReturnRequestId())
                     .orElseThrow(() -> new ResourceNotFoundException("Return", domain.getReturnRequestId()));
         }
 

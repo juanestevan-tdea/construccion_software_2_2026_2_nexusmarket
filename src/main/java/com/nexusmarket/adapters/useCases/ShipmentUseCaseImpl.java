@@ -1,0 +1,61 @@
+package com.nexusmarket.adapters.useCases;
+
+import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.TrackingNotFoundException;
+import com.nexusmarket.domain.models.Shipment;
+import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
+import com.nexusmarket.domain.services.ShipmentCreateService;
+import com.nexusmarket.domain.services.ShipmentStatusService;
+import com.nexusmarket.domain.valueobjects.ShipmentStatus;
+import com.nexusmarket.orders.domain.repository.OrderRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ShipmentUseCaseImpl implements ShipmentUseCasePort {
+
+    private final ShipmentCreateService shipmentCreateService;
+    private final ShipmentStatusService shipmentStatusService;
+    private final ShipmentRepositoryPort shipmentRepositoryPort;
+    private final OrderRepository orderRepository;
+
+    @Override
+    public Shipment createShipment(Long orderId, Long warehouseId, String trackingNumber) {
+        return shipmentCreateService.createShipment(orderId, warehouseId, trackingNumber);
+    }
+
+    @Override
+    public Shipment getByIdOrThrow(Long id) {
+        return shipmentRepositoryPort.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment", id));
+    }
+
+    @Override
+    public Shipment findByTracking(String trackingNumber) {
+        return shipmentRepositoryPort.findByTrackingNumber(trackingNumber)
+                .orElseThrow(() -> new TrackingNotFoundException("Shipment", "trackingNumber", trackingNumber));
+    }
+
+    @Override
+    public Shipment findByOrder(Long orderId) {
+        if (!orderRepository.existsById(orderId)) {
+            throw new ResourceNotFoundException("Order", orderId);
+        }
+        return shipmentRepositoryPort.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment for order", orderId));
+    }
+
+    @Override
+    public List<Shipment> findAll() {
+        return shipmentRepositoryPort.findAll();
+    }
+
+    @Override
+    public Shipment updateStatus(Long id, ShipmentStatus status) {
+        return shipmentStatusService.updateStatus(id, status);
+    }
+}

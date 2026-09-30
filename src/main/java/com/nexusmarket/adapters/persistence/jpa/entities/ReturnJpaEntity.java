@@ -1,5 +1,6 @@
-package com.nexusmarket.logistics.domain.model;
+package com.nexusmarket.adapters.persistence.jpa.entities;
 
+import com.nexusmarket.domain.valueobjects.ReturnStatus;
 import com.nexusmarket.orders.domain.model.Order;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,13 +14,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Return {
+public class ReturnJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 

@@ -1,11 +1,12 @@
-package com.nexusmarket.logistics.service;
+package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.*;
-import com.nexusmarket.logistics.domain.model.Return;
-import com.nexusmarket.logistics.domain.model.ReturnStatus;
-import com.nexusmarket.logistics.domain.repository.ReturnRepository;
-import com.nexusmarket.logistics.dto.request.ReturnCreateRequest;
-import com.nexusmarket.logistics.dto.response.ReturnResponse;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
+import com.nexusmarket.common.exception.ReturnNotAllowedException;
+import com.nexusmarket.common.exception.ReturnWindowExpiredException;
+import com.nexusmarket.domain.models.Return;
+import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
+import com.nexusmarket.domain.valueobjects.ReturnStatus;
 import com.nexusmarket.orders.domain.model.Order;
 import com.nexusmarket.orders.domain.model.OrderStatus;
 import com.nexusmarket.orders.domain.repository.OrderRepository;
@@ -18,29 +19,26 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ReturnService {
+public class ReturnProcessService {
 
-    private final ReturnRepository returnRepository;
+    private final ReturnRepositoryPort returnRepositoryPort;
     private final OrderRepository orderRepository;
 
     @Transactional
-    public ReturnResponse createReturn(ReturnCreateRequest request) {
-        Order order = orderRepository.findById(request.getOrderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Order", request.getOrderId()));
+    public Return createReturn(Long orderId, String reason) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
-        // Solo devolver órdenes en DELIVERED o FINISHED
         if (order.getStatus() != OrderStatus.DELIVERED && order.getStatus() != OrderStatus.FINISHED) {
             throw new ReturnNotAllowedException("Order", "status",
                     "Returns are only allowed for DELIVERED or FINISHED orders. Current: " + order.getStatus());
         }
 
-        // Ventana de devolución no expirada (30 días desde la fecha de orden/entrega)
         if (order.getOrderDate() != null && order.getOrderDate().plusDays(30).isBefore(LocalDateTime.now())) {
             throw new ReturnWindowExpiredException("Order", "orderDate", order.getOrderDate());
         }
 
-        // No permitir duplicar retorno pendiente
-        List<Return> existingReturns = returnRepository.findByOrder(order);
+        List<Return> existingReturns = returnRepositoryPort.findByOrderId(orderId);
         boolean hasPendingOrApproved = existingReturns.stream()
                 .anyMatch(r -> r.getStatus() == ReturnStatus.REQUESTED || r.getStatus() == ReturnStatus.APPROVED);
         if (hasPendingOrApproved) {
@@ -48,66 +46,39 @@ public class ReturnService {
         }
 
         Return returnEntity = Return.builder()
-                .order(order)
-                .reason(request.getReason())
+                .orderId(order.getId())
+                .reason(reason)
                 .status(ReturnStatus.REQUESTED)
                 .requestedAt(LocalDateTime.now())
                 .build();
 
-        return ReturnResponse.fromEntity(returnRepository.save(returnEntity));
-    }
-
-    @Transactional(readOnly = true)
-    public Return getByIdOrThrow(Long id) {
-        return returnRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Return", id));
-    }
-
-    @Transactional(readOnly = true)
-    public ReturnResponse getReturnResponseById(Long id) {
-        return ReturnResponse.fromEntity(getByIdOrThrow(id));
-    }
-
-    @Transactional(readOnly = true)
-    public List<ReturnResponse> findByOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
-        return returnRepository.findByOrder(order).stream()
-                .map(ReturnResponse::fromEntity)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ReturnResponse> findAll() {
-        return returnRepository.findAll().stream()
-                .map(ReturnResponse::fromEntity)
-                .toList();
+        return returnRepositoryPort.save(returnEntity);
     }
 
     @Transactional
-    public ReturnResponse approveReturn(Long id) {
+    public Return approveReturn(Long id) {
         Return returnEntity = getByIdOrThrow(id);
         if (returnEntity.getStatus() == ReturnStatus.COMPLETED || returnEntity.getStatus() == ReturnStatus.PROCESSED) {
             throw new ReturnAlreadyProcessedException("Return", "id", id);
         }
         returnEntity.setStatus(ReturnStatus.APPROVED);
         returnEntity.setResolvedAt(LocalDateTime.now());
-        return ReturnResponse.fromEntity(returnRepository.save(returnEntity));
+        return returnRepositoryPort.save(returnEntity);
     }
 
     @Transactional
-    public ReturnResponse rejectReturn(Long id) {
+    public Return rejectReturn(Long id) {
         Return returnEntity = getByIdOrThrow(id);
         if (returnEntity.getStatus() == ReturnStatus.COMPLETED || returnEntity.getStatus() == ReturnStatus.PROCESSED) {
             throw new ReturnAlreadyProcessedException("Return", "id", id);
         }
         returnEntity.setStatus(ReturnStatus.REJECTED);
         returnEntity.setResolvedAt(LocalDateTime.now());
-        return ReturnResponse.fromEntity(returnRepository.save(returnEntity));
+        return returnRepositoryPort.save(returnEntity);
     }
 
     @Transactional
-    public ReturnResponse completeReturn(Long id) {
+    public Return completeReturn(Long id) {
         Return returnEntity = getByIdOrThrow(id);
         if (returnEntity.getStatus() == ReturnStatus.COMPLETED || returnEntity.getStatus() == ReturnStatus.PROCESSED) {
             throw new ReturnAlreadyProcessedException("Return", "id", id);
@@ -117,6 +88,11 @@ public class ReturnService {
         }
         returnEntity.setStatus(ReturnStatus.COMPLETED);
         returnEntity.setResolvedAt(LocalDateTime.now());
-        return ReturnResponse.fromEntity(returnRepository.save(returnEntity));
+        return returnRepositoryPort.save(returnEntity);
+    }
+
+    private Return getByIdOrThrow(Long id) {
+        return returnRepositoryPort.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Return", id));
     }
 }
