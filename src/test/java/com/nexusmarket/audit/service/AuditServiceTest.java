@@ -1,12 +1,14 @@
 package com.nexusmarket.audit.service;
 
-import com.nexusmarket.audit.domain.model.AuditLog;
-import com.nexusmarket.audit.domain.repository.AuditLogRepository;
-import com.nexusmarket.audit.dto.AuditLogResponse;
+import com.nexusmarket.adapters.useCases.AuditUseCaseImpl;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.models.AuditLog;
+import com.nexusmarket.domain.ports.out.AuditLogRepositoryPort;
+import com.nexusmarket.domain.services.ConsultAuditLogsService;
+import com.nexusmarket.domain.services.RegisterAuditLogService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,10 +24,16 @@ import static org.mockito.Mockito.*;
 class AuditServiceTest {
 
     @Mock
-    private AuditLogRepository auditLogRepository;
+    private AuditLogRepositoryPort auditLogRepositoryPort;
 
-    @InjectMocks
-    private AuditService auditService;
+    private AuditUseCaseImpl auditUseCase;
+
+    @BeforeEach
+    void setUp() {
+        RegisterAuditLogService registerAuditLogService = new RegisterAuditLogService(auditLogRepositoryPort);
+        ConsultAuditLogsService consultAuditLogsService = new ConsultAuditLogsService(auditLogRepositoryPort);
+        auditUseCase = new AuditUseCaseImpl(registerAuditLogService, consultAuditLogsService);
+    }
 
     @Test
     void log_Success() {
@@ -40,9 +48,9 @@ class AuditServiceTest {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        when(auditLogRepository.save(any(AuditLog.class))).thenReturn(saved);
+        when(auditLogRepositoryPort.save(any(AuditLog.class))).thenReturn(saved);
 
-        AuditLogResponse response = auditService.log(10L, "admin@test.com", "Product", "5", "CREATE", "Created product");
+        AuditLog response = auditUseCase.log(10L, "admin@test.com", "Product", "5", "CREATE", "Created product");
 
         assertNotNull(response);
         assertEquals("AUD-1", response.getId());
@@ -52,9 +60,9 @@ class AuditServiceTest {
     @Test
     void findByUser_Success() {
         AuditLog log = AuditLog.builder().id("1").userId(10L).action("LOGIN").build();
-        when(auditLogRepository.findByUserId(10L)).thenReturn(List.of(log));
+        when(auditLogRepositoryPort.findByUserId(10L)).thenReturn(List.of(log));
 
-        List<AuditLogResponse> logs = auditService.findByUser(10L);
+        List<AuditLog> logs = auditUseCase.findByUser(10L);
 
         assertNotNull(logs);
         assertEquals(1, logs.size());
@@ -63,8 +71,9 @@ class AuditServiceTest {
 
     @Test
     void getByIdOrThrow_ThrowsResourceNotFoundException_WhenNotFound() {
-        when(auditLogRepository.findById("UNKNOWN")).thenReturn(Optional.empty());
+        when(auditLogRepositoryPort.findById("UNKNOWN")).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> auditService.getByIdOrThrow("UNKNOWN"));
+        assertThrows(ResourceNotFoundException.class, () -> auditUseCase.getByIdOrThrow("UNKNOWN"));
     }
 }
+
