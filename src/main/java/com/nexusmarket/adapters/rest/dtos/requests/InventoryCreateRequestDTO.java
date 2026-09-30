@@ -1,4 +1,4 @@
-package com.nexusmarket.inventory.dto;
+package com.nexusmarket.adapters.rest.dtos.requests;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InventoryCreateRequest {
+public class InventoryCreateRequestDTO {
 
     @NotNull(message = "Product ID is required")
     private Long productId;

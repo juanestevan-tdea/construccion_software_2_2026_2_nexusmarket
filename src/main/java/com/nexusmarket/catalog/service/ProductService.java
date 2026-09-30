@@ -11,9 +11,9 @@ import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.DuplicateResourceException;
 import com.nexusmarket.common.exception.ProductNotAvailableException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
-import com.nexusmarket.inventory.domain.model.Inventory;
-import com.nexusmarket.inventory.domain.model.InventoryStatus;
-import com.nexusmarket.inventory.domain.repository.InventoryRepository;
+import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
+import com.nexusmarket.domain.valueobjects.InventoryStatus;
 import com.nexusmarket.users.domain.model.Seller;
 import com.nexusmarket.users.domain.model.UserRole;
 import com.nexusmarket.users.domain.repository.SellerRepository;
@@ -31,7 +31,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SellerRepository sellerRepository;
-    private final InventoryRepository inventoryRepository;
+    private final InventoryRepositoryPort inventoryRepositoryPort;
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
@@ -147,7 +147,7 @@ public class ProductService {
         Product product = getProductByIdOrThrow(id);
 
         // Validar que no tenga stock reservado en inventario
-        List<Inventory> inventories = inventoryRepository.findByProduct(product);
+        List<Inventory> inventories = inventoryRepositoryPort.findByProduct(product);
         boolean hasReservedStock = inventories.stream()
                 .anyMatch(inv -> inv.getStatus() == InventoryStatus.RESERVED);
 

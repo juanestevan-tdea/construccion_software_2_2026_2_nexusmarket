@@ -1,17 +1,13 @@
-package com.nexusmarket.inventory.domain.model;
+package com.nexusmarket.domain.models;
 
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.common.exception.BusinessRuleException;
-import jakarta.persistence.*;
+import com.nexusmarket.domain.valueobjects.InventoryStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity
-@Table(name = "inventario")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,26 +15,15 @@ import lombok.Setter;
 @Builder
 public class Inventory {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
-
-    @ManyToOne
-    @JoinColumn(name = "warehouse_id", nullable = false)
-    private Warehouse warehouse;
-
-    @Column(nullable = false)
+    private Long productId;
+    private String productName;
+    private String productSku;
+    private Long warehouseId;
+    private String warehouseName;
     private Integer quantity;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private InventoryStatus status;
 
-    // Métodos de negocio
     public void reserve(int amount) {
         if (this.status == InventoryStatus.DAMAGED) {
             throw new BusinessRuleException("Cannot reserve damaged inventory");
@@ -60,7 +45,6 @@ public class Inventory {
     }
 
     public void confirmPayment() {
-        // La reserva ya descontó las unidades; confirmar el pago solo libera el estado
         if (this.status == InventoryStatus.DAMAGED) {
             throw new BusinessRuleException("Cannot confirm payment for damaged inventory");
         }

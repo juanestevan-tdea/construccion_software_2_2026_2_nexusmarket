@@ -1,4 +1,4 @@
-package com.nexusmarket.inventory.domain.model;
+package com.nexusmarket.domain.valueobjects;
 
 public enum InventoryStatus {
     AVAILABLE,

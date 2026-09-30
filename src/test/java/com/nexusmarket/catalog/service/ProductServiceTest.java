@@ -10,9 +10,9 @@ import com.nexusmarket.catalog.dto.response.ProductResponse;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.DuplicateResourceException;
 import com.nexusmarket.common.exception.ProductNotAvailableException;
-import com.nexusmarket.inventory.domain.model.Inventory;
-import com.nexusmarket.inventory.domain.model.InventoryStatus;
-import com.nexusmarket.inventory.domain.repository.InventoryRepository;
+import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
+import com.nexusmarket.domain.valueobjects.InventoryStatus;
 import com.nexusmarket.users.domain.model.Seller;
 import com.nexusmarket.users.domain.model.User;
 import com.nexusmarket.users.domain.model.UserRole;
@@ -42,7 +42,7 @@ class ProductServiceTest {
     @Mock
     private SellerRepository sellerRepository;
     @Mock
-    private InventoryRepository inventoryRepository;
+    private InventoryRepositoryPort inventoryRepositoryPort;
 
     @InjectMocks
     private ProductService productService;
@@ -122,7 +122,7 @@ class ProductServiceTest {
         Inventory inventory = new Inventory();
         inventory.setStatus(InventoryStatus.RESERVED);
         inventory.setQuantity(5);
-        when(inventoryRepository.findByProduct(product)).thenReturn(List.of(inventory));
+        when(inventoryRepositoryPort.findByProduct(product)).thenReturn(List.of(inventory));
 
         assertThrows(ProductNotAvailableException.class, () -> productService.deactivateProduct(5L));
     }

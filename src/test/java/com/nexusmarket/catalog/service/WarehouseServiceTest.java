@@ -24,8 +24,8 @@ import com.nexusmarket.catalog.dto.request.WarehouseUpdateRequest;
 import com.nexusmarket.common.exception.DuplicateResourceException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
-import com.nexusmarket.inventory.domain.model.Inventory;
-import com.nexusmarket.inventory.domain.repository.InventoryRepository;
+import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 
 @ExtendWith(MockitoExtension.class)
 class WarehouseServiceTest {
@@ -34,7 +34,7 @@ class WarehouseServiceTest {
     private WarehouseRepository warehouseRepository;
 
     @Mock
-    private InventoryRepository inventoryRepository;
+    private InventoryRepositoryPort inventoryRepositoryPort;
 
     @InjectMocks
     private WarehouseService warehouseService;
@@ -88,7 +88,7 @@ class WarehouseServiceTest {
 
         Inventory inventory = new Inventory();
         inventory.setQuantity(600);
-        when(inventoryRepository.findByWarehouse(warehouse)).thenReturn(List.of(inventory));
+        when(inventoryRepositoryPort.findByWarehouse(warehouse)).thenReturn(List.of(inventory));
 
         WarehouseUpdateRequest request = WarehouseUpdateRequest.builder()
                 .capacity(400)

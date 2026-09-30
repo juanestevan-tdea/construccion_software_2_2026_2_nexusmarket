@@ -9,8 +9,8 @@ import com.nexusmarket.catalog.dto.request.WarehouseUpdateRequest;
 import com.nexusmarket.common.exception.DuplicateResourceException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
-import com.nexusmarket.inventory.domain.model.Inventory;
-import com.nexusmarket.inventory.domain.repository.InventoryRepository;
+import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ import java.util.List;
 public class WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
-    private final InventoryRepository inventoryRepository;
+    private final InventoryRepositoryPort inventoryRepositoryPort;
 
     @Transactional
     public WarehouseResponse createWarehouse(WarehouseCreateRequest request) {
@@ -88,7 +88,7 @@ public class WarehouseService {
 
         if (request.getCapacity() != null) {
             // Validar que la nueva capacidad no sea menor al total de ítems almacenados
-            int currentStored = inventoryRepository.findByWarehouse(warehouse).stream()
+            int currentStored = inventoryRepositoryPort.findByWarehouse(warehouse).stream()
                     .mapToInt(Inventory::getQuantity)
                     .sum();
             if (request.getCapacity() < currentStored) {
