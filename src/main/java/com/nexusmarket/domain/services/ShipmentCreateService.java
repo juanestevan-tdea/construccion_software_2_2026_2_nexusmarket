@@ -6,9 +6,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
-import com.nexusmarket.common.exception.ShipmentAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ShipmentAlreadyExistsException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.models.Warehouse;
@@ -63,3 +63,4 @@ public class ShipmentCreateService {
         return shipmentRepositoryPort.save(shipment);
     }
 }
+

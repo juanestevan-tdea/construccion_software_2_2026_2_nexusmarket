@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.models;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -58,3 +58,4 @@ public class Inventory {
         this.quantity += amount;
     }
 }
+

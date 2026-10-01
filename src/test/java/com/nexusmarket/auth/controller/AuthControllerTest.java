@@ -5,7 +5,7 @@ import com.nexusmarket.adapters.rest.controllers.AuthController;
 import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
-import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -294,4 +294,5 @@ class AuthControllerTest {
         verify(authenticationUseCasePort, never()).login(any(LoginRequestDTO.class));
     }
 }
+
 

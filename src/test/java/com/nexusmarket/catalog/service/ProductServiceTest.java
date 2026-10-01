@@ -1,9 +1,9 @@
 package com.nexusmarket.catalog.service;
 
 import com.nexusmarket.adapters.useCases.ProductUseCaseImpl;
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ProductNotAvailableException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
@@ -109,3 +109,4 @@ class ProductServiceTest {
         assertThrows(ProductNotAvailableException.class, () -> productUseCase.deactivateProduct(5L));
     }
 }
+

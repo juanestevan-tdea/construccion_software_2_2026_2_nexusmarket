@@ -1,8 +1,8 @@
 package com.nexusmarket.users.service;
 
 import com.nexusmarket.adapters.useCases.UserUseCaseImpl;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
@@ -176,3 +176,4 @@ class UserServiceTest {
         assertThat(result.getPassword()).isEqualTo(HASHED_PASSWORD);
     }
 }
+

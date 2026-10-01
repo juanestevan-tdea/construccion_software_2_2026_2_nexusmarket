@@ -6,7 +6,7 @@ import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.ports.in.CatalogUseCasePort;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,4 +72,5 @@ class CatalogServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> catalogUseCase.getProductDetail(99L));
     }
 }
+
 

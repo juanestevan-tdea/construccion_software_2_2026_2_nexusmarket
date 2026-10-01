@@ -1,7 +1,7 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.InvalidStatusTransitionException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
@@ -34,3 +34,4 @@ public class ShipmentStatusService {
         return shipmentRepositoryPort.save(shipment);
     }
 }
+

@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
-import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
@@ -91,3 +91,4 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
         sellerUseCasePort.createSeller(user.getId(), taxId, companyName);
     }
 }
+

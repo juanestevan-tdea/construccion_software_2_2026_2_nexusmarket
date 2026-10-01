@@ -1,8 +1,8 @@
 package com.nexusmarket.billing.service;
 
 import com.nexusmarket.adapters.useCases.RefundUseCaseImpl;
-import com.nexusmarket.common.exception.RefundAmountExceededException;
-import com.nexusmarket.common.exception.RefundNotAllowedException;
+import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
+import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Refund;
 import com.nexusmarket.domain.ports.in.RefundUseCasePort;
@@ -87,4 +87,5 @@ class RefundServiceTest {
         assertThrows(RefundAmountExceededException.class, () -> refundUseCase.createRefund(1L, null, BigDecimal.valueOf(150.00)));
     }
 }
+
 

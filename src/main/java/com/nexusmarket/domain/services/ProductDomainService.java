@@ -1,9 +1,9 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ProductNotAvailableException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
@@ -130,3 +130,4 @@ public class ProductDomainService {
         return productRepositoryPort.save(product);
     }
 }
+

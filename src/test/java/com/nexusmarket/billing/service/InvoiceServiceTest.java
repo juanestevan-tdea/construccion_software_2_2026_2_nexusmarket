@@ -1,9 +1,9 @@
 package com.nexusmarket.billing.service;
 
 import com.nexusmarket.adapters.useCases.InvoiceUseCaseImpl;
-import com.nexusmarket.common.exception.InvoiceAlreadyExistsException;
-import com.nexusmarket.common.exception.InvoiceNotPayableException;
-import com.nexusmarket.common.exception.RefundNotAllowedException;
+import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
+import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
@@ -99,4 +99,5 @@ class InvoiceServiceTest {
         assertThrows(RefundNotAllowedException.class, () -> invoiceUseCase.voidInvoice(5L));
     }
 }
+
 

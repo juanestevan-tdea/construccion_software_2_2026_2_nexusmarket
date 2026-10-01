@@ -1,7 +1,7 @@
 package com.nexusmarket.audit.service;
 
 import com.nexusmarket.adapters.useCases.AuditUseCaseImpl;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.AuditLog;
 import com.nexusmarket.domain.ports.out.AuditLogRepositoryPort;
 import com.nexusmarket.domain.services.ConsultAuditLogsService;
@@ -76,4 +76,5 @@ class AuditServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> auditUseCase.getByIdOrThrow("UNKNOWN"));
     }
 }
+
 

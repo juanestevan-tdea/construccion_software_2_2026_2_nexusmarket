@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
@@ -53,3 +53,4 @@ public class InvoiceUseCaseImpl implements InvoiceUseCasePort {
         return invoiceVoidService.voidInvoice(id);
     }
 }
+

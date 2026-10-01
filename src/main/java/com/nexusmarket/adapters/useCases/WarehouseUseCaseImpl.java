@@ -1,6 +1,6 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.in.WarehouseUseCasePort;
 import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
@@ -44,3 +44,4 @@ public class WarehouseUseCaseImpl implements WarehouseUseCasePort {
         return warehouseDomainService.updateWarehouse(id, name, location, type, capacity);
     }
 }
+

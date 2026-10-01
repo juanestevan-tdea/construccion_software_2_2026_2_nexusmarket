@@ -3,7 +3,7 @@ package com.nexusmarket.adapters.persistence.jpa.mappers;
 import com.nexusmarket.adapters.persistence.jpa.entities.BuyerJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.UserJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.UserJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Buyer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -48,3 +48,4 @@ public class BuyerJpaMapper {
                 .build();
     }
 }
+

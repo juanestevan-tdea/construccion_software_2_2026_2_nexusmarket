@@ -5,7 +5,7 @@ import com.nexusmarket.adapters.persistence.jpa.entities.ProductJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.CategoryJpaRepository;
 import com.nexusmarket.adapters.persistence.jpa.repositories.SellerJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Product;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -66,3 +66,4 @@ public class ProductJpaMapper {
                 .build();
     }
 }
+

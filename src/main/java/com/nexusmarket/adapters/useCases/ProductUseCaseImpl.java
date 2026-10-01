@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.ports.in.ProductUseCasePort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
@@ -64,3 +64,4 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
         return productDomainService.deactivateProduct(id);
     }
 }
+

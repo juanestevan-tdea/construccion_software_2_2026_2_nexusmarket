@@ -6,10 +6,10 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
-import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
-import com.nexusmarket.common.exception.ReturnNotAllowedException;
-import com.nexusmarket.common.exception.ReturnWindowExpiredException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ReturnAlreadyProcessedException;
+import com.nexusmarket.domain.exceptions.ReturnNotAllowedException;
+import com.nexusmarket.domain.exceptions.ReturnWindowExpiredException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
@@ -98,3 +98,4 @@ public class ReturnProcessService {
                 .orElseThrow(() -> new ResourceNotFoundException("Return", id));
     }
 }
+

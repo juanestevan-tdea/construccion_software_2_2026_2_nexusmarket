@@ -7,9 +7,9 @@ import com.nexusmarket.domain.ports.in.CategoryUseCasePort;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.domain.services.CategoryDomainService;
-import com.nexusmarket.common.exception.CategoryHasProductsException;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -91,4 +91,5 @@ class CategoryServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> categoryUseCase.getCategoryByIdOrThrow(99L));
     }
 }
+
 

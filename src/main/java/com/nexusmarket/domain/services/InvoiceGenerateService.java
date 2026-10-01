@@ -6,9 +6,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.common.exception.InvoiceAlreadyExistsException;
-import com.nexusmarket.common.exception.InvoiceNotPayableException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
@@ -55,3 +55,4 @@ public class InvoiceGenerateService {
         return invoiceRepositoryPort.save(invoice);
     }
 }
+

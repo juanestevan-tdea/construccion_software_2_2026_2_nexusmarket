@@ -1,9 +1,5 @@
-package com.nexusmarket.common.exception;
+package com.nexusmarket.domain.exceptions;
 
-/**
- * Thrown when a requested resource does not exist in the system.
- * Maps to HTTP 404 (Not Found).
- */
 public class ResourceNotFoundException extends RuntimeException {
 
     public ResourceNotFoundException(String message) {

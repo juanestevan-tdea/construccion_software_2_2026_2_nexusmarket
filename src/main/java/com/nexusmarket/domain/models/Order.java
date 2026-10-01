@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.models;
 
-import com.nexusmarket.common.exception.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.valueobjects.OrderStatus;
 import lombok.*;
 
@@ -94,3 +94,4 @@ public class Order {
         this.status = OrderStatus.CANCELLED;
     }
 }
+

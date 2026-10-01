@@ -1,6 +1,6 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.ports.in.CatalogUseCasePort;
@@ -42,3 +42,4 @@ public class CatalogUseCaseImpl implements CatalogUseCasePort {
                 .orElseThrow(() -> new ResourceNotFoundException("Product", id));
     }
 }
+

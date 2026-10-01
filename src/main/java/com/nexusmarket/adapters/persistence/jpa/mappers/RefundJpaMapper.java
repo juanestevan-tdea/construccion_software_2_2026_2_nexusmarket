@@ -7,7 +7,7 @@ import com.nexusmarket.adapters.persistence.jpa.entities.RefundJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.ReturnJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.InvoiceJpaRepository;
 import com.nexusmarket.adapters.persistence.jpa.repositories.ReturnJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Refund;
 
 import lombok.RequiredArgsConstructor;
@@ -58,3 +58,4 @@ public class RefundJpaMapper {
                 .build();
     }
 }
+

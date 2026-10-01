@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.AuditLog;
 import com.nexusmarket.domain.ports.out.AuditLogRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -36,3 +36,4 @@ public class ConsultAuditLogsService {
                 .orElseThrow(() -> new ResourceNotFoundException("AuditLog", id));
     }
 }
+

@@ -1,7 +1,7 @@
 package com.nexusmarket.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexusmarket.common.exception.ErrorResponse;
+import com.nexusmarket.adapters.rest.dtos.responses.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,3 +37,4 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }
+

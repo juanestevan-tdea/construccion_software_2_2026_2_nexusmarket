@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.in.OrderUseCasePort;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
@@ -89,3 +89,4 @@ public class OrderUseCaseImpl implements OrderUseCasePort {
         return orderLifecycleService.cancel(id);
     }
 }
+

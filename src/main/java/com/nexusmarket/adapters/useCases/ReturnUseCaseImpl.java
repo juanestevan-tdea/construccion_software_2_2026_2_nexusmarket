@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
@@ -60,3 +60,4 @@ public class ReturnUseCaseImpl implements ReturnUseCasePort {
         return returnProcessService.completeReturn(id);
     }
 }
+

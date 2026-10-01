@@ -1,7 +1,7 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.RefundNotAllowedException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Refund;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
@@ -37,3 +37,4 @@ public class InvoiceVoidService {
         return invoiceRepositoryPort.save(invoice);
     }
 }
+

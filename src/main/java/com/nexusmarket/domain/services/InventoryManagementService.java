@@ -3,9 +3,9 @@ package com.nexusmarket.domain.services;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
-import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.models.Warehouse;
@@ -91,3 +91,4 @@ public class InventoryManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory", id));
     }
 }
+

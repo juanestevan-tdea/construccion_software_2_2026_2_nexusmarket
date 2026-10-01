@@ -3,8 +3,8 @@ package com.nexusmarket.domain.services;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.OrderItem;
 import com.nexusmarket.domain.models.Product;
@@ -52,3 +52,4 @@ public class OrderCalculationService {
         return orderRepositoryPort.save(order);
     }
 }
+

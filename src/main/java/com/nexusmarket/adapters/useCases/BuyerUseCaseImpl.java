@@ -1,6 +1,6 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
@@ -60,3 +60,4 @@ public class BuyerUseCaseImpl implements BuyerUseCasePort {
         return buyerDomainService.changeCommercialStatus(id, newStatus);
     }
 }
+

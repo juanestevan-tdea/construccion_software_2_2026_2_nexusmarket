@@ -1,8 +1,8 @@
 package com.nexusmarket.logistics.service;
 
 import com.nexusmarket.adapters.useCases.ShipmentUseCaseImpl;
-import com.nexusmarket.common.exception.InvalidStatusTransitionException;
-import com.nexusmarket.common.exception.TrackingNotFoundException;
+import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
@@ -76,4 +76,5 @@ class ShipmentServiceTest {
         assertEquals(ShipmentStatus.IN_TRANSIT, response.getStatus());
     }
 }
+
 

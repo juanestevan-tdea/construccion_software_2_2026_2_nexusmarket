@@ -1,9 +1,9 @@
 package com.nexusmarket.catalog.service;
 
 import com.nexusmarket.adapters.useCases.WarehouseUseCaseImpl;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
-import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.in.WarehouseUseCasePort;
@@ -88,4 +88,5 @@ class WarehouseServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> warehouseUseCase.getWarehouseByIdOrThrow(99L));
     }
 }
+
 

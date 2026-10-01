@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusmarket.adapters.rest.controllers.UserController;
 import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.UserResponseDTO;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.infrastructure.security.CustomUserDetailsService;
 import com.nexusmarket.infrastructure.security.JwtAuthenticationFilter;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -350,3 +350,4 @@ class UserControllerTest {
         verify(userUseCasePort, never()).findAll();
     }
 }
+

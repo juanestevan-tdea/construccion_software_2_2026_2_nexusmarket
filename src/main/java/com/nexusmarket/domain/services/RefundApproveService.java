@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Refund;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
 import com.nexusmarket.domain.valueobjects.RefundStatus;
@@ -30,3 +30,4 @@ public class RefundApproveService {
         return refundRepositoryPort.save(refund);
     }
 }
+

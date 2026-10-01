@@ -1,6 +1,6 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Refund;
 import com.nexusmarket.domain.ports.in.RefundUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
@@ -56,3 +56,4 @@ public class RefundUseCaseImpl implements RefundUseCasePort {
         return refundApproveService.rejectRefund(id);
     }
 }
+

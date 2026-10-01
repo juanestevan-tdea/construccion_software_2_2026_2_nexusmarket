@@ -1,9 +1,9 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.CategoryHasProductsException;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
@@ -83,3 +83,4 @@ public class CategoryDomainService {
         categoryRepositoryPort.delete(category);
     }
 }
+

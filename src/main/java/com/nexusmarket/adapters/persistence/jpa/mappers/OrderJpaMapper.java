@@ -10,7 +10,7 @@ import com.nexusmarket.adapters.persistence.jpa.entities.BuyerJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.OrderItemJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.BuyerJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.OrderItem;
 
@@ -73,3 +73,4 @@ public class OrderJpaMapper {
         return entity;
     }
 }
+

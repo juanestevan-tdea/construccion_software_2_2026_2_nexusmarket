@@ -7,7 +7,7 @@ import com.nexusmarket.adapters.persistence.jpa.entities.ShipmentJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.WarehouseJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.OrderJpaRepository;
 import com.nexusmarket.adapters.persistence.jpa.repositories.WarehouseJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
 
 import lombok.RequiredArgsConstructor;
@@ -63,3 +63,4 @@ public class ShipmentJpaMapper {
                 .build();
     }
 }
+

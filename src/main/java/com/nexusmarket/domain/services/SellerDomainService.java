@@ -1,8 +1,8 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
@@ -81,3 +81,4 @@ public class SellerDomainService {
         return sellerRepositoryPort.save(seller);
     }
 }
+

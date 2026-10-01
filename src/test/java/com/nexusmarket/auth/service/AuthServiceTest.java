@@ -4,8 +4,8 @@ import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.adapters.useCases.AuthenticationUseCaseImpl;
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
@@ -371,4 +371,5 @@ class AuthServiceTest {
         verifyNoInteractions(jwtService, userUseCasePort, buyerUseCasePort, sellerUseCasePort);
     }
 }
+
 

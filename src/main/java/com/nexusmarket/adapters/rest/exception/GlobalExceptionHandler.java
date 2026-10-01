@@ -1,4 +1,4 @@
-package com.nexusmarket.common.exception;
+package com.nexusmarket.adapters.rest.exception;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,11 +26,25 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Centralized exception handling for the whole REST API. Every controller
- * exception is translated here into a consistent {@link ErrorResponse} JSON
- * body.
- */
+import com.nexusmarket.adapters.rest.dtos.responses.ErrorResponse;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
+import com.nexusmarket.domain.exceptions.PaymentGatewayException;
+import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
+import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
+import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ReturnAlreadyProcessedException;
+import com.nexusmarket.domain.exceptions.ReturnNotAllowedException;
+import com.nexusmarket.domain.exceptions.ReturnWindowExpiredException;
+import com.nexusmarket.domain.exceptions.ShipmentAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
+import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -219,7 +233,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthentication(
             AuthenticationException ex, HttpServletRequest request) {
-        // Deliberately generic: never reveal whether the email exists (user enumeration).
         log.warn("Authentication failure at {}: {}", request.getRequestURI(), ex.getMessage());
         return build(HttpStatus.UNAUTHORIZED, "Invalid email or password", request, null);
     }

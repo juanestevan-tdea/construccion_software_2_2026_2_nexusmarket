@@ -1,6 +1,6 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
@@ -75,3 +75,4 @@ public class SellerUseCaseImpl implements SellerUseCasePort {
         return sellerDomainService.updateSeller(id, companyName, taxId);
     }
 }
+

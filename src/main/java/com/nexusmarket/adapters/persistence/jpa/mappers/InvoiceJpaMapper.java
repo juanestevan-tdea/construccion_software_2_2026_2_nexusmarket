@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import com.nexusmarket.adapters.persistence.jpa.entities.InvoiceJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.OrderJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 
 import lombok.RequiredArgsConstructor;
@@ -54,3 +54,4 @@ public class InvoiceJpaMapper {
                 .build();
     }
 }
+

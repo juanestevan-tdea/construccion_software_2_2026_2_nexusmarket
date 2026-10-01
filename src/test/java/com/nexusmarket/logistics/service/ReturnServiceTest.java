@@ -1,9 +1,9 @@
 package com.nexusmarket.logistics.service;
 
 import com.nexusmarket.adapters.useCases.ReturnUseCaseImpl;
-import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
-import com.nexusmarket.common.exception.ReturnNotAllowedException;
-import com.nexusmarket.common.exception.ReturnWindowExpiredException;
+import com.nexusmarket.domain.exceptions.ReturnAlreadyProcessedException;
+import com.nexusmarket.domain.exceptions.ReturnNotAllowedException;
+import com.nexusmarket.domain.exceptions.ReturnWindowExpiredException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
@@ -104,4 +104,5 @@ class ReturnServiceTest {
         assertThrows(ReturnNotAllowedException.class, () -> returnUseCase.completeReturn(5L));
     }
 }
+
 

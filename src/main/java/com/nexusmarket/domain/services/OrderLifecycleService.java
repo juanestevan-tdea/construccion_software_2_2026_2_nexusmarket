@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -60,3 +60,4 @@ public class OrderLifecycleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order", id));
     }
 }
+

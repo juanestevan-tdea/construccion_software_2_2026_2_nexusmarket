@@ -1,8 +1,8 @@
 package com.nexusmarket.orders.service;
 
 import com.nexusmarket.adapters.useCases.OrderUseCaseImpl;
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.User;
@@ -102,4 +102,5 @@ class OrderServiceTest {
         assertThrows(InvalidStatusTransitionException.class, () -> orderUseCase.cancel(10L));
     }
 }
+
 

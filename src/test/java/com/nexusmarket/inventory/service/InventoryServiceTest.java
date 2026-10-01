@@ -1,8 +1,8 @@
 package com.nexusmarket.inventory.service;
 
 import com.nexusmarket.adapters.useCases.InventoryUseCaseImpl;
-import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.models.Warehouse;
@@ -131,4 +131,5 @@ class InventoryServiceTest {
         assertEquals(InventoryStatus.DAMAGED, result.getStatus());
     }
 }
+
 

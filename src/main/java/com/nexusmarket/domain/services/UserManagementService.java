@@ -1,7 +1,7 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.common.exception.DuplicateResourceException;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.valueobjects.UserRole;
@@ -59,3 +59,4 @@ public class UserManagementService {
         return userRepositoryPort.save(user);
     }
 }
+

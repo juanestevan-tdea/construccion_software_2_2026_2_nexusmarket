@@ -7,7 +7,7 @@ import com.nexusmarket.adapters.persistence.jpa.entities.ProductJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.WarehouseJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.ProductJpaRepository;
 import com.nexusmarket.adapters.persistence.jpa.repositories.WarehouseJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
 
 import lombok.RequiredArgsConstructor;
@@ -61,4 +61,5 @@ public class InventoryJpaMapper {
                 .build();
     }
 }
+
 

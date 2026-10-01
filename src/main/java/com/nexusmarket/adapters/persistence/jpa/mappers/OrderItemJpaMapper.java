@@ -6,7 +6,7 @@ import com.nexusmarket.adapters.persistence.jpa.entities.OrderItemJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.ProductJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.repositories.ProductJpaRepository;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.OrderItem;
 
 import lombok.RequiredArgsConstructor;
@@ -51,3 +51,4 @@ public class OrderItemJpaMapper {
                 .build();
     }
 }
+

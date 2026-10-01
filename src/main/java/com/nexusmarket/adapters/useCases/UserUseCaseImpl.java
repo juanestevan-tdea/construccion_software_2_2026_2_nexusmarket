@@ -1,6 +1,6 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
@@ -71,3 +71,4 @@ public class UserUseCaseImpl implements UserUseCasePort {
         return userManagementService.changeRole(id, newRole);
     }
 }
+
