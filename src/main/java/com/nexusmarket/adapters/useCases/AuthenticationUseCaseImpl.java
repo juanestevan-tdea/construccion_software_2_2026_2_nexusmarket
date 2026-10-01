@@ -1,12 +1,11 @@
-package com.nexusmarket.auth.service;
+package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.auth.dto.AuthResponse;
-import com.nexusmarket.auth.dto.LoginRequest;
-import com.nexusmarket.auth.dto.RegisterRequest;
+import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
+import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
+import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.domain.models.Buyer;
-import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
@@ -21,19 +20,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Orchestrates authentication: self-registration, credential validation and JWT
- * issuance.
- *
- * <p>
- * Password hashing itself lives in {@link UserUseCasePort}, which is the single
- * write path for the {@code usuarios} table. This service only decides
- * <em>what</em> to create (user plus its role-specific profile) and
- * <em>who</em> is allowed in.</p>
- */
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
     private final UserUseCasePort userUseCasePort;
     private final BuyerUseCasePort buyerUseCasePort;
@@ -44,29 +33,15 @@ public class AuthService {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    /**
-     * Registers a new BUYER or SELLER together with its role-specific profile.
-     *
-     * <p>
-     * The whole operation runs in a single transaction: if the profile cannot
-     * be created, the user row is rolled back. A {@code User} with role
-     * {@code BUYER} and no {@code Buyer} row would be an inconsistent state
-     * that breaks the ordering flow.</p>
-     *
-     * @param request the registration payload
-     * @return the created user plus a freshly issued token
-     * @throws BusinessRuleException when the role cannot self-register or a
-     * required profile field is missing
-     */
+    @Override
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponseDTO register(RegisterRequestDTO request) {
         UserRole role = request.getRole();
 
         if (role != UserRole.BUYER && role != UserRole.SELLER) {
             throw new BusinessRuleException("Self-registration is only allowed for BUYER and SELLER roles");
         }
 
-        // userUseCasePort hashes the password before persisting.
         User user = userUseCasePort.createUser(
                 request.getEmail(),
                 request.getFullName(),
@@ -80,17 +55,11 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(new UserDetailsAdapter(user));
-        return AuthResponse.fromEntity(user, token, jwtExpiration);
+        return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
     }
 
-    /**
-     * Validates credentials through the {@link AuthenticationManager} and
-     * issues a JWT.
-     *
-     * @param request email and plain-text password
-     * @return the authenticated user plus a freshly issued token
-     */
-    public AuthResponse login(LoginRequest request) {
+    @Override
+    public AuthResponseDTO login(LoginRequestDTO request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
@@ -98,7 +67,7 @@ public class AuthService {
         User user = principal.getUser();
 
         String token = jwtService.generateToken(principal);
-        return AuthResponse.fromEntity(user, token, jwtExpiration);
+        return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
     }
 
     private void createBuyerProfile(User user, String primaryAddress) {
@@ -120,4 +89,3 @@ public class AuthService {
         sellerUseCasePort.createSeller(user.getId(), taxId, companyName);
     }
 }
-

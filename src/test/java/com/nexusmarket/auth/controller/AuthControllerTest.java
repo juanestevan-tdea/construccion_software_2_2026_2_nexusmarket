@@ -1,11 +1,12 @@
 package com.nexusmarket.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexusmarket.auth.dto.AuthResponse;
-import com.nexusmarket.auth.dto.LoginRequest;
-import com.nexusmarket.auth.dto.RegisterRequest;
-import com.nexusmarket.auth.service.AuthService;
+import com.nexusmarket.adapters.rest.controllers.AuthController;
+import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
+import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
+import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.common.exception.BusinessRuleException;
+import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,22 +26,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * MVC slice tests for {@link AuthController}.
- *
- * <p>
- * {@code @WebMvcTest} instantiates only the web layer: the controller, the JSON
- * converters and MockMvc. It does <b>not</b> build the security filter chain
- * ({@code SecurityConfig} is not imported here), so these tests deliberately cover
- * only the controller contract: routing, bean validation and JSON serialization.
- * Real 401/403 behaviour is exercised in {@code UserControllerTest}, which imports
- * the security configuration on purpose.</p>
- *
- * <p>Security filters are switched off with {@code addFilters = false} on purpose.
- * With them enabled, Spring Boot's default CSRF protection (which is <em>not</em> part
- * of the production configuration) would answer 403 to every POST, and the tests
- * would be validating a filter that does not exist in the real application.</p>
- */
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
@@ -52,13 +37,13 @@ class AuthControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private AuthService authService;
+    private AuthenticationUseCasePort authenticationUseCasePort;
 
     // ---------- POST /api/auth/register ----------
     @Test
     @DisplayName("register_BuyerRole_Returns201WithAuthResponse")
     void register_buyerRole_returns201WithAuthResponse() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("buyer1@test.com")
                 .fullName("Juan Perez")
                 .password("secret123")
@@ -66,7 +51,7 @@ class AuthControllerTest {
                 .primaryAddress("Calle 123 #45-67")
                 .build();
 
-        AuthResponse response = AuthResponse.builder()
+        AuthResponseDTO response = AuthResponseDTO.builder()
                 .tokenType("Bearer")
                 .token("fake.jwt.token")
                 .expiresIn(86400000L)
@@ -76,7 +61,7 @@ class AuthControllerTest {
                 .role(UserRole.BUYER)
                 .build();
 
-        when(authService.register(any(RegisterRequest.class))).thenReturn(response);
+        when(authenticationUseCasePort.register(any(RegisterRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -90,13 +75,13 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.fullName").value("Juan Perez"))
                 .andExpect(jsonPath("$.role").value("BUYER"));
 
-        verify(authService).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
     }
 
     @Test
     @DisplayName("register_SellerRole_Returns201WithAuthResponse")
     void register_sellerRole_returns201WithAuthResponse() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("seller1@test.com")
                 .fullName("Tienda SA")
                 .password("secret123")
@@ -105,7 +90,7 @@ class AuthControllerTest {
                 .companyName("Tienda Nexus")
                 .build();
 
-        AuthResponse response = AuthResponse.builder()
+        AuthResponseDTO response = AuthResponseDTO.builder()
                 .tokenType("Bearer")
                 .token("fake.jwt.token.seller")
                 .expiresIn(86400000L)
@@ -115,7 +100,7 @@ class AuthControllerTest {
                 .role(UserRole.SELLER)
                 .build();
 
-        when(authService.register(any(RegisterRequest.class))).thenReturn(response);
+        when(authenticationUseCasePort.register(any(RegisterRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -124,20 +109,20 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("seller1@test.com"))
                 .andExpect(jsonPath("$.role").value("SELLER"));
 
-        verify(authService).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
     }
 
     @Test
     @DisplayName("register_AdminRole_PropagatesBusinessRuleException")
     void register_adminRole_propagatesBusinessRuleException() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("hacker@test.com")
                 .fullName("Evil User")
                 .password("secret123")
                 .role(UserRole.ADMIN)
                 .build();
 
-        when(authService.register(any(RegisterRequest.class)))
+        when(authenticationUseCasePort.register(any(RegisterRequestDTO.class)))
                 .thenThrow(new BusinessRuleException(
                         "Self-registration is only allowed for BUYER and SELLER roles"));
 
@@ -146,13 +131,13 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnprocessableEntity());
 
-        verify(authService).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
     }
 
     @Test
     @DisplayName("register_InvalidEmail_Returns400AndNeverCallsService")
     void register_invalidEmail_returns400AndNeverCallsService() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("not-an-email")
                 .fullName("Juan Perez")
                 .password("secret123")
@@ -165,13 +150,13 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
     }
 
     @Test
     @DisplayName("register_BlankPassword_Returns400AndNeverCallsService")
     void register_blankPassword_returns400AndNeverCallsService() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("buyer1@test.com")
                 .fullName("Juan Perez")
                 .password("")
@@ -184,13 +169,13 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
     }
 
     @Test
     @DisplayName("register_ShortPassword_Returns400AndNeverCallsService")
     void register_shortPassword_returns400AndNeverCallsService() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("buyer1@test.com")
                 .fullName("Juan Perez")
                 .password("123")
@@ -203,13 +188,13 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
     }
 
     @Test
     @DisplayName("register_NullRole_Returns400AndNeverCallsService")
     void register_nullRole_returns400AndNeverCallsService() throws Exception {
-        RegisterRequest request = RegisterRequest.builder()
+        RegisterRequestDTO request = RegisterRequestDTO.builder()
                 .email("buyer1@test.com")
                 .fullName("Juan Perez")
                 .password("secret123")
@@ -222,19 +207,19 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).register(any(RegisterRequest.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
     }
 
     // ---------- POST /api/auth/login ----------
     @Test
     @DisplayName("login_ValidCredentials_Returns200WithToken")
     void login_validCredentials_returns200WithToken() throws Exception {
-        LoginRequest request = LoginRequest.builder()
+        LoginRequestDTO request = LoginRequestDTO.builder()
                 .email("buyer1@test.com")
                 .password("secret123")
                 .build();
 
-        AuthResponse response = AuthResponse.builder()
+        AuthResponseDTO response = AuthResponseDTO.builder()
                 .tokenType("Bearer")
                 .token("fake.jwt.token")
                 .expiresIn(86400000L)
@@ -244,7 +229,7 @@ class AuthControllerTest {
                 .role(UserRole.BUYER)
                 .build();
 
-        when(authService.login(any(LoginRequest.class))).thenReturn(response);
+        when(authenticationUseCasePort.login(any(LoginRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -255,18 +240,18 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("buyer1@test.com"))
                 .andExpect(jsonPath("$.role").value("BUYER"));
 
-        verify(authService).login(any(LoginRequest.class));
+        verify(authenticationUseCasePort).login(any(LoginRequestDTO.class));
     }
 
     @Test
     @DisplayName("login_InvalidCredentials_PropagatesBadCredentialsException")
     void login_invalidCredentials_propagatesBadCredentialsException() throws Exception {
-        LoginRequest request = LoginRequest.builder()
+        LoginRequestDTO request = LoginRequestDTO.builder()
                 .email("buyer1@test.com")
                 .password("wrong-password")
                 .build();
 
-        when(authService.login(any(LoginRequest.class)))
+        when(authenticationUseCasePort.login(any(LoginRequestDTO.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
         mockMvc.perform(post("/api/auth/login")
@@ -274,13 +259,13 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
 
-        verify(authService).login(any(LoginRequest.class));
+        verify(authenticationUseCasePort).login(any(LoginRequestDTO.class));
     }
 
     @Test
     @DisplayName("login_BlankEmail_Returns400AndNeverCallsService")
     void login_blankEmail_returns400AndNeverCallsService() throws Exception {
-        LoginRequest request = LoginRequest.builder()
+        LoginRequestDTO request = LoginRequestDTO.builder()
                 .email("")
                 .password("secret123")
                 .build();
@@ -290,13 +275,13 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).login(any(LoginRequest.class));
+        verify(authenticationUseCasePort, never()).login(any(LoginRequestDTO.class));
     }
 
     @Test
     @DisplayName("login_InvalidEmailFormat_Returns400AndNeverCallsService")
     void login_invalidEmailFormat_returns400AndNeverCallsService() throws Exception {
-        LoginRequest request = LoginRequest.builder()
+        LoginRequestDTO request = LoginRequestDTO.builder()
                 .email("not-an-email")
                 .password("secret123")
                 .build();
@@ -306,6 +291,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).login(any(LoginRequest.class));
+        verify(authenticationUseCasePort, never()).login(any(LoginRequestDTO.class));
     }
 }
+
