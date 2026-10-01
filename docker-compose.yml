@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: nexusmarket-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: nexusmarket
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - nexusmarket-net
+
+  mongodb:
+    image: mongo:7
+    container_name: nexusmarket-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - nexusmarket-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexusmarket-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/nexusmarket?useSSL=false&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      MONGODB_URI: mongodb://mongodb:27017/nexusmarket_audit
+    depends_on:
+      - mysql
+      - mongodb
+    networks:
+      - nexusmarket-net
+
+volumes:
+  mysql_data:
+  mongodb_data:
+
+networks:
+  nexusmarket-net:
+    driver: bridge
