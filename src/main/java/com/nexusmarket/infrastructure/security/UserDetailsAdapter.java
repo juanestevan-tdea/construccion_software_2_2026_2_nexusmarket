@@ -1,4 +1,4 @@
-package com.nexusmarket.security;
+package com.nexusmarket.infrastructure.security;
 
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.valueobjects.UserStatus;
@@ -9,16 +9,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * Adapts the {@link User} JPA entity to the Spring Security {@link UserDetails}
- * contract, so the domain model stays free of any security framework
- * dependency.
- *
- * <p>
- * Spring Security resolves the principal from this wrapper:
- * {@code getUsername()} returns the email (which is also the JWT subject) and
- * {@code getAuthorities()} exposes the role as a {@code ROLE_*} authority.</p>
- */
 public class UserDetailsAdapter implements UserDetails {
 
     private final transient User user;
@@ -27,12 +17,6 @@ public class UserDetailsAdapter implements UserDetails {
         this.user = user;
     }
 
-    /**
-     * Exposes the wrapped entity so controllers and services can recover the
-     * domain object from the authenticated principal.
-     *
-     * @return the underlying {@link User}
-     */
     public User getUser() {
         return user;
     }

@@ -1,5 +1,12 @@
 package com.nexusmarket.adapters.useCases;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
@@ -10,15 +17,10 @@ import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
 import com.nexusmarket.domain.valueobjects.UserRole;
-import com.nexusmarket.security.JwtService;
-import com.nexusmarket.security.UserDetailsAdapter;
+import com.nexusmarket.infrastructure.security.JwtService;
+import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

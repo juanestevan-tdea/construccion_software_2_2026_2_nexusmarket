@@ -1,4 +1,4 @@
-package com.nexusmarket.security;
+package com.nexusmarket.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusmarket.common.exception.ErrorResponse;
@@ -14,16 +14,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Answers unauthenticated requests with the project's standard
- * {@link ErrorResponse} JSON body instead of Spring Security's empty 403.
- *
- * <p>
- * Without this bean, Spring Security 6 falls back to
- * {@code Http403ForbiddenEntryPoint}, which replies 403 with no body. That is
- * both semantically wrong (missing credentials is 401, not 403) and useless to
- * API clients, which would receive an empty payload.</p>
- */
 @Component
 @RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {

@@ -1,4 +1,4 @@
-package com.nexusmarket.security;
+package com.nexusmarket.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusmarket.common.exception.ErrorResponse;
@@ -14,14 +14,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Answers authenticated-but-not-authorized requests with the project's standard
- * {@link ErrorResponse} JSON body.
- *
- * <p>
- * This covers the 403 case: a valid JWT whose role is not allowed to reach the
- * requested route (for example a BUYER calling an ADMIN-only endpoint).</p>
- */
 @Component
 @RequiredArgsConstructor
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
