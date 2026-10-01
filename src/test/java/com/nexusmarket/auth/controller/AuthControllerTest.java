@@ -6,7 +6,7 @@ import com.nexusmarket.auth.dto.LoginRequest;
 import com.nexusmarket.auth.dto.RegisterRequest;
 import com.nexusmarket.auth.service.AuthService;
 import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.users.domain.model.UserRole;
+import com.nexusmarket.domain.valueobjects.UserRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

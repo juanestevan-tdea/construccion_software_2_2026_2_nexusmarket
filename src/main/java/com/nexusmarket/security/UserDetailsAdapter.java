@@ -1,7 +1,7 @@
 package com.nexusmarket.security;
 
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.model.UserStatus;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.valueobjects.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

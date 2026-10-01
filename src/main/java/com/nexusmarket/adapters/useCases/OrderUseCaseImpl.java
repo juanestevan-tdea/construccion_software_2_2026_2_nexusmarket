@@ -1,17 +1,19 @@
 package com.nexusmarket.adapters.useCases;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.in.OrderUseCasePort;
+import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.services.OrderCalculationService;
 import com.nexusmarket.domain.services.OrderCreateService;
 import com.nexusmarket.domain.services.OrderLifecycleService;
-import com.nexusmarket.users.domain.repository.BuyerRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class OrderUseCaseImpl implements OrderUseCasePort {
     private final OrderCalculationService orderCalculationService;
     private final OrderLifecycleService orderLifecycleService;
     private final OrderRepositoryPort orderRepositoryPort;
-    private final BuyerRepository buyerRepository;
+    private final BuyerRepositoryPort buyerRepositoryPort;
 
     @Override
     public Order createOrder(Long buyerId) {
@@ -41,7 +43,7 @@ public class OrderUseCaseImpl implements OrderUseCasePort {
 
     @Override
     public List<Order> findByBuyer(Long buyerId) {
-        if (!buyerRepository.existsById(buyerId)) {
+        if (!buyerRepositoryPort.existsById(buyerId)) {
             throw new ResourceNotFoundException("Buyer", buyerId);
         }
         return orderRepositoryPort.findByBuyerId(buyerId);

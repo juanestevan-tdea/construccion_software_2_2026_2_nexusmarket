@@ -1,6 +1,6 @@
 package com.nexusmarket.catalog.domain.model;
 
-import com.nexusmarket.users.domain.model.Seller;
+import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,7 +40,7 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "seller_id")
-    private Seller seller;
+    private SellerJpaEntity seller;
 
     @ManyToOne
     @JoinColumn(name = "category_id")

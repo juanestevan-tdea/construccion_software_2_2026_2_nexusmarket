@@ -1,5 +1,7 @@
 package com.nexusmarket.catalog.service;
 
+import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.repositories.SellerJpaRepository;
 import com.nexusmarket.catalog.domain.model.Category;
 import com.nexusmarket.catalog.domain.model.Product;
 import com.nexusmarket.catalog.domain.repository.CategoryRepository;
@@ -14,9 +16,7 @@ import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
-import com.nexusmarket.users.domain.model.Seller;
-import com.nexusmarket.users.domain.model.UserRole;
-import com.nexusmarket.users.domain.repository.SellerRepository;
+import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +30,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final SellerRepository sellerRepository;
+    private final SellerJpaRepository sellerJpaRepository;
     private final InventoryRepositoryPort inventoryRepositoryPort;
 
     @Transactional
@@ -46,7 +46,7 @@ public class ProductService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
 
-        Seller seller = sellerRepository.findById(request.getSellerId())
+        SellerJpaEntity seller = sellerJpaRepository.findById(request.getSellerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", request.getSellerId()));
 
         if (seller.getUser() == null || seller.getUser().getRole() != UserRole.SELLER) {
@@ -100,7 +100,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductResponse> findBySeller(Long sellerId) {
-        Seller seller = sellerRepository.findById(sellerId)
+        SellerJpaEntity seller = sellerJpaRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", sellerId));
         return productRepository.findBySeller(seller).stream()
                 .map(ProductResponse::fromEntity)

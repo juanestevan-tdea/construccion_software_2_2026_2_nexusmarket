@@ -4,17 +4,19 @@ import com.nexusmarket.adapters.useCases.OrderUseCaseImpl;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.InvalidStatusTransitionException;
+import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
+import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.OrderUseCasePort;
+import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
+import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.services.OrderCalculationService;
 import com.nexusmarket.domain.services.OrderCreateService;
 import com.nexusmarket.domain.services.OrderLifecycleService;
+import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
 import com.nexusmarket.domain.valueobjects.OrderStatus;
-import com.nexusmarket.users.domain.model.Buyer;
-import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.repository.BuyerRepository;
+import com.nexusmarket.domain.valueobjects.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,28 +35,32 @@ class OrderServiceTest {
     @Mock
     private OrderRepositoryPort orderRepositoryPort;
     @Mock
-    private BuyerRepository buyerRepository;
+    private BuyerRepositoryPort buyerRepositoryPort;
+    @Mock
+    private UserRepositoryPort userRepositoryPort;
     @Mock
     private ProductRepository productRepository;
 
     private OrderUseCasePort orderUseCase;
 
     private Buyer buyer;
+    private User user;
 
     @BeforeEach
     void setUp() {
-        User user = User.builder().id(2L).email("buyer@test.com").status(com.nexusmarket.users.domain.model.UserStatus.ACTIVE).build();
-        buyer = Buyer.builder().id(1L).user(user).commercialStatus(BuyerCommercialStatus.ACTIVE).build();
+        user = User.builder().id(2L).email("buyer@test.com").status(UserStatus.ACTIVE).build();
+        buyer = Buyer.builder().id(1L).userId(2L).commercialStatus(BuyerCommercialStatus.ACTIVE).build();
 
-        OrderCreateService createService = new OrderCreateService(orderRepositoryPort, buyerRepository);
+        OrderCreateService createService = new OrderCreateService(orderRepositoryPort, buyerRepositoryPort, userRepositoryPort);
         OrderCalculationService calculationService = new OrderCalculationService(orderRepositoryPort, productRepository);
         OrderLifecycleService lifecycleService = new OrderLifecycleService(orderRepositoryPort);
-        orderUseCase = new OrderUseCaseImpl(createService, calculationService, lifecycleService, orderRepositoryPort, buyerRepository);
+        orderUseCase = new OrderUseCaseImpl(createService, calculationService, lifecycleService, orderRepositoryPort, buyerRepositoryPort);
     }
 
     @Test
     void createOrder_Success() {
-        when(buyerRepository.findById(1L)).thenReturn(Optional.of(buyer));
+        when(buyerRepositoryPort.findById(1L)).thenReturn(Optional.of(buyer));
+        when(userRepositoryPort.findById(2L)).thenReturn(Optional.of(user));
         when(orderRepositoryPort.save(any(Order.class))).thenAnswer(i -> {
             Order o = i.getArgument(0);
             o.setId(10L);
@@ -71,7 +77,7 @@ class OrderServiceTest {
     @Test
     void createOrder_ThrowsException_WhenBuyerNotActive() {
         buyer.setCommercialStatus(BuyerCommercialStatus.INACTIVE);
-        when(buyerRepository.findById(1L)).thenReturn(Optional.of(buyer));
+        when(buyerRepositoryPort.findById(1L)).thenReturn(Optional.of(buyer));
 
         assertThrows(BusinessRuleException.class, () -> orderUseCase.createOrder(1L));
     }

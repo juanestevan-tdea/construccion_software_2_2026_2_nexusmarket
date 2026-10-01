@@ -1,6 +1,9 @@
 package com.nexusmarket.users.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nexusmarket.adapters.rest.controllers.UserController;
+import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
+import com.nexusmarket.adapters.rest.dtos.responses.UserResponseDTO;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.security.CustomUserDetailsService;
 import com.nexusmarket.security.JwtAuthenticationFilter;
@@ -9,12 +12,11 @@ import com.nexusmarket.security.RestAccessDeniedHandler;
 import com.nexusmarket.security.RestAuthenticationEntryPoint;
 import com.nexusmarket.security.UserDetailsAdapter;
 import com.nexusmarket.config.SecurityConfig;
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.model.UserRole;
-import com.nexusmarket.users.domain.model.UserStatus;
-import com.nexusmarket.users.dto.request.UserCreateRequest;
-import com.nexusmarket.users.dto.response.UserResponse;
-import com.nexusmarket.users.service.UserService;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.ports.out.UserRepositoryPort;
+import com.nexusmarket.domain.valueobjects.UserRole;
+import com.nexusmarket.domain.valueobjects.UserStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,24 +41,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * MVC slice tests for {@link UserController} exercising the <b>real</b>
- * security chain.
- *
- * <p>
- * Unlike {@code AuthControllerTest}, this class imports the production security
- * configuration on purpose, so the assertions genuinely cover authentication
- * (401) and authorization (403) behaviour, including the JSON bodies produced
- * by {@link RestAuthenticationEntryPoint} and
- * {@link RestAccessDeniedHandler}.</p>
- *
- * <p>
- * {@code @WithMockUser} is not used for {@code /api/users/me}: it injects a
- * plain Spring {@code User} as the principal, which is not a
- * {@link UserDetailsAdapter}, and the controller would NPE on
- * {@code principal.getUser()}. A custom {@link RequestPostProcessor} places a
- * real {@code UserDetailsAdapter} in the context instead.</p>
- */
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc
 @Import({
@@ -75,7 +59,10 @@ class UserControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private UserService userService;
+    private UserUseCasePort userUseCasePort;
+
+    @MockitoBean
+    private UserRepositoryPort userRepositoryPort;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -124,7 +111,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.role").value("BUYER"))
                 .andExpect(jsonPath("$.password").doesNotExist());
 
-        verify(userService, never()).getUserByIdOrThrow(anyLong());
+        verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
 
     @Test
@@ -143,7 +130,7 @@ class UserControllerTest {
     @DisplayName("getUserById_Returns200_WhenAdmin")
     void getUserById_returns200_whenAdmin() throws Exception {
         User user = sampleUser(1L, "target@test.com", "Target User", UserRole.SELLER);
-        when(userService.getUserByIdOrThrow(1L)).thenReturn(user);
+        when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user);
 
         mockMvc.perform(get("/api/users/1")
                 .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN))))
@@ -152,7 +139,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.email").value("target@test.com"))
                 .andExpect(jsonPath("$.role").value("SELLER"));
 
-        verify(userService).getUserByIdOrThrow(1L);
+        verify(userUseCasePort).getUserByIdOrThrow(1L);
     }
 
     @Test
@@ -166,7 +153,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.message").value("You do not have permission to access this resource"))
                 .andExpect(jsonPath("$.path").value("/api/users/1"));
 
-        verify(userService, never()).getUserByIdOrThrow(anyLong());
+        verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
 
     @Test
@@ -179,13 +166,13 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.error").value("Forbidden"))
                 .andExpect(jsonPath("$.path").value("/api/users/1"));
 
-        verify(userService, never()).getUserByIdOrThrow(anyLong());
+        verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
 
     @Test
     @DisplayName("getUserById_Returns404_WhenAdminAndUserMissing")
     void getUserById_returns404_whenAdminAndUserMissing() throws Exception {
-        when(userService.getUserByIdOrThrow(404L))
+        when(userUseCasePort.getUserByIdOrThrow(404L))
                 .thenThrow(new ResourceNotFoundException("User", 404L));
 
         mockMvc.perform(get("/api/users/404")
@@ -193,29 +180,23 @@ class UserControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
 
-        verify(userService).getUserByIdOrThrow(404L);
+        verify(userUseCasePort).getUserByIdOrThrow(404L);
     }
 
     // ---------- POST /api/users ----------
     @Test
     @DisplayName("createUser_Returns201_WhenAdminAndValidDto")
     void createUser_returns201_whenAdminAndValidDto() throws Exception {
-        UserCreateRequest request = UserCreateRequest.builder()
+        UserCreateRequestDTO request = UserCreateRequestDTO.builder()
                 .email("newuser@test.com")
                 .fullName("New User")
                 .password("secret123")
                 .role(UserRole.SELLER)
                 .build();
 
-        UserResponse response = UserResponse.builder()
-                .id(10L)
-                .email("newuser@test.com")
-                .fullName("New User")
-                .role(UserRole.SELLER)
-                .status(UserStatus.ACTIVE)
-                .build();
+        User user = sampleUser(10L, "newuser@test.com", "New User", UserRole.SELLER);
 
-        when(userService.createUser(any(UserCreateRequest.class))).thenReturn(response);
+        when(userUseCasePort.createUser("newuser@test.com", "New User", "secret123", UserRole.SELLER)).thenReturn(user);
 
         mockMvc.perform(post("/api/users")
                 .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN)))
@@ -226,13 +207,13 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.email").value("newuser@test.com"))
                 .andExpect(jsonPath("$.role").value("SELLER"));
 
-        verify(userService).createUser(any(UserCreateRequest.class));
+        verify(userUseCasePort).createUser("newuser@test.com", "New User", "secret123", UserRole.SELLER);
     }
 
     @Test
     @DisplayName("createUser_Returns403_WhenBuyer")
     void createUser_returns403_whenBuyer() throws Exception {
-        UserCreateRequest request = UserCreateRequest.builder()
+        UserCreateRequestDTO request = UserCreateRequestDTO.builder()
                 .email("newuser@test.com")
                 .fullName("New User")
                 .password("secret123")
@@ -246,13 +227,13 @@ class UserControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
 
-        verify(userService, never()).createUser(any(UserCreateRequest.class));
+        verify(userUseCasePort, never()).createUser(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("createUser_Returns403_WhenSeller")
     void createUser_returns403_whenSeller() throws Exception {
-        UserCreateRequest request = UserCreateRequest.builder()
+        UserCreateRequestDTO request = UserCreateRequestDTO.builder()
                 .email("newuser@test.com")
                 .fullName("New User")
                 .password("secret123")
@@ -266,13 +247,13 @@ class UserControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
 
-        verify(userService, never()).createUser(any(UserCreateRequest.class));
+        verify(userUseCasePort, never()).createUser(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("createUser_Returns400_WhenDtoInvalid")
     void createUser_returns400_whenDtoInvalid() throws Exception {
-        UserCreateRequest request = UserCreateRequest.builder()
+        UserCreateRequestDTO request = UserCreateRequestDTO.builder()
                 .email("not-an-email")
                 .fullName("")
                 .password("123")
@@ -286,13 +267,13 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
 
-        verify(userService, never()).createUser(any(UserCreateRequest.class));
+        verify(userUseCasePort, never()).createUser(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("createUser_Returns401_WhenNoToken")
     void createUser_returns401_whenNoToken() throws Exception {
-        UserCreateRequest request = UserCreateRequest.builder()
+        UserCreateRequestDTO request = UserCreateRequestDTO.builder()
                 .email("newuser@test.com")
                 .fullName("New User")
                 .password("secret123")
@@ -305,7 +286,7 @@ class UserControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Unauthorized"));
 
-        verify(userService, never()).createUser(any(UserCreateRequest.class));
+        verify(userUseCasePort, never()).createUser(any(), any(), any(), any());
     }
 
     // ---------- WAREHOUSE_OPERATOR / SUPERVISOR boundary ----------
@@ -318,7 +299,7 @@ class UserControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
 
-        verify(userService, never()).getUserByIdOrThrow(anyLong());
+        verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
 
     @Test
@@ -330,7 +311,7 @@ class UserControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
 
-        verify(userService, never()).getUserByIdOrThrow(anyLong());
+        verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
 
     // ---------- @WithMockUser control test ----------
@@ -341,13 +322,13 @@ class UserControllerTest {
                 .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("plain@test.com")))
                 .andExpect(status().isForbidden());
 
-        verify(userService, never()).getUserByIdOrThrow(anyLong());
+        verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
 
     @Test
     @DisplayName("getUsersByRole_Returns200_WhenAdmin")
     void getUsersByRole_returns200_whenAdmin() throws Exception {
-        when(userService.findByRole(UserRole.SELLER))
+        when(userUseCasePort.findByRole(UserRole.SELLER))
                 .thenReturn(List.of(sampleUser(1L, "s@test.com", "Seller", UserRole.SELLER)));
 
         mockMvc.perform(get("/api/users/role/SELLER")
@@ -355,7 +336,7 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].email").value("s@test.com"));
 
-        verify(userService).findByRole(UserRole.SELLER);
+        verify(userUseCasePort).findByRole(UserRole.SELLER);
     }
 
     @Test
@@ -366,6 +347,6 @@ class UserControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
 
-        verify(userService, never()).findAll();
+        verify(userUseCasePort, never()).findAll();
     }
 }

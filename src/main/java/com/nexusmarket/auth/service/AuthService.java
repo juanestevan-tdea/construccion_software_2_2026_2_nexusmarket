@@ -4,16 +4,15 @@ import com.nexusmarket.auth.dto.AuthResponse;
 import com.nexusmarket.auth.dto.LoginRequest;
 import com.nexusmarket.auth.dto.RegisterRequest;
 import com.nexusmarket.common.exception.BusinessRuleException;
-import com.nexusmarket.security.UserDetailsAdapter;
-import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
-import com.nexusmarket.users.domain.model.Buyer;
-import com.nexusmarket.users.domain.model.Seller;
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.model.UserRole;
-import com.nexusmarket.users.domain.repository.BuyerRepository;
-import com.nexusmarket.users.domain.repository.SellerRepository;
-import com.nexusmarket.users.service.UserService;
+import com.nexusmarket.domain.models.Buyer;
+import com.nexusmarket.domain.models.Seller;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
+import com.nexusmarket.domain.ports.in.SellerUseCasePort;
+import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.security.JwtService;
+import com.nexusmarket.security.UserDetailsAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * issuance.
  *
  * <p>
- * Password hashing itself lives in {@link UserService}, which is the single
+ * Password hashing itself lives in {@link UserUseCasePort}, which is the single
  * write path for the {@code usuarios} table. This service only decides
  * <em>what</em> to create (user plus its role-specific profile) and
  * <em>who</em> is allowed in.</p>
@@ -36,9 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserService userService;
-    private final BuyerRepository buyerRepository;
-    private final SellerRepository sellerRepository;
+    private final UserUseCasePort userUseCasePort;
+    private final BuyerUseCasePort buyerUseCasePort;
+    private final SellerUseCasePort sellerUseCasePort;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
@@ -67,8 +66,8 @@ public class AuthService {
             throw new BusinessRuleException("Self-registration is only allowed for BUYER and SELLER roles");
         }
 
-        // UserService hashes the password before persisting.
-        User user = userService.createUser(
+        // userUseCasePort hashes the password before persisting.
+        User user = userUseCasePort.createUser(
                 request.getEmail(),
                 request.getFullName(),
                 request.getPassword(),
@@ -107,13 +106,7 @@ public class AuthService {
             throw new BusinessRuleException("primaryAddress is required for BUYER registration");
         }
 
-        Buyer buyer = Buyer.builder()
-                .user(user)
-                .primaryAddress(primaryAddress)
-                .commercialStatus(BuyerCommercialStatus.ACTIVE)
-                .build();
-
-        buyerRepository.save(buyer);
+        buyerUseCasePort.createBuyer(user.getId(), primaryAddress);
     }
 
     private void createSellerProfile(User user, String taxId, String companyName) {
@@ -124,13 +117,7 @@ public class AuthService {
             throw new BusinessRuleException("companyName is required for SELLER registration");
         }
 
-        Seller seller = Seller.builder()
-                .user(user)
-                .taxId(taxId)
-                .companyName(companyName)
-                .active(true)
-                .build();
-
-        sellerRepository.save(seller);
+        sellerUseCasePort.createSeller(user.getId(), taxId, companyName);
     }
 }
+

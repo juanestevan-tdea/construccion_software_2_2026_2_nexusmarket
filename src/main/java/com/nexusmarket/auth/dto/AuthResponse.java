@@ -1,7 +1,7 @@
 package com.nexusmarket.auth.dto;
 
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.model.UserRole;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

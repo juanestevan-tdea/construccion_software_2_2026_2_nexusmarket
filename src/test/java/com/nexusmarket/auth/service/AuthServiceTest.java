@@ -5,22 +5,21 @@ import com.nexusmarket.auth.dto.LoginRequest;
 import com.nexusmarket.auth.dto.RegisterRequest;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.DuplicateResourceException;
+import com.nexusmarket.domain.models.Buyer;
+import com.nexusmarket.domain.models.Seller;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
+import com.nexusmarket.domain.ports.in.SellerUseCasePort;
+import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
+import com.nexusmarket.domain.valueobjects.UserRole;
+import com.nexusmarket.domain.valueobjects.UserStatus;
 import com.nexusmarket.security.JwtService;
 import com.nexusmarket.security.UserDetailsAdapter;
-import com.nexusmarket.users.domain.model.Buyer;
-import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
-import com.nexusmarket.users.domain.model.Seller;
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.model.UserRole;
-import com.nexusmarket.users.domain.model.UserStatus;
-import com.nexusmarket.users.domain.repository.BuyerRepository;
-import com.nexusmarket.users.domain.repository.SellerRepository;
-import com.nexusmarket.users.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -47,7 +46,7 @@ import static org.mockito.Mockito.when;
  * No Spring context is started: {@code @ExtendWith(MockitoExtension.class)}
  * builds the class under test from mocks. Note that {@code AuthService}
  * delegates user creation (and therefore password hashing) to
- * {@link UserService}, so the hashing itself is verified in
+ * {@link UserUseCasePort}, so the hashing itself is verified in
  * {@code UserServiceTest}, not here.</p>
  */
 @ExtendWith(MockitoExtension.class)
@@ -56,13 +55,13 @@ class AuthServiceTest {
     private static final long ONE_DAY_MS = 86400000L;
 
     @Mock
-    private UserService userService;
+    private UserUseCasePort userUseCasePort;
 
     @Mock
-    private BuyerRepository buyerRepository;
+    private BuyerUseCasePort buyerUseCasePort;
 
     @Mock
-    private SellerRepository sellerRepository;
+    private SellerUseCasePort sellerUseCasePort;
 
     @Mock
     private JwtService jwtService;
@@ -123,7 +122,7 @@ class AuthServiceTest {
         RegisterRequest request = buyerRequest();
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
 
-        when(userService.createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER))
+        when(userUseCasePort.createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER))
                 .thenReturn(saved);
         when(jwtService.generateToken(any(UserDetailsAdapter.class))).thenReturn("fake.jwt.token");
 
@@ -137,15 +136,8 @@ class AuthServiceTest {
         assertThat(response.getEmail()).isEqualTo("buyer1@test.com");
         assertThat(response.getRole()).isEqualTo(UserRole.BUYER);
 
-        ArgumentCaptor<Buyer> buyerCaptor = ArgumentCaptor.forClass(Buyer.class);
-        verify(buyerRepository).save(buyerCaptor.capture());
-
-        Buyer captured = buyerCaptor.getValue();
-        assertThat(captured.getUser()).isSameAs(saved);
-        assertThat(captured.getPrimaryAddress()).isEqualTo("Calle 123 #45-67");
-        assertThat(captured.getCommercialStatus()).isEqualTo(BuyerCommercialStatus.ACTIVE);
-
-        verify(sellerRepository, never()).save(any(Seller.class));
+        verify(buyerUseCasePort).createBuyer(1L, "Calle 123 #45-67");
+        verify(sellerUseCasePort, never()).createSeller(any(), any(), any());
         verify(jwtService).generateToken(any(UserDetailsAdapter.class));
     }
 
@@ -155,7 +147,7 @@ class AuthServiceTest {
         RegisterRequest request = sellerRequest();
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
 
-        when(userService.createUser("seller1@test.com", "Tienda SA", "secret123", UserRole.SELLER))
+        when(userUseCasePort.createUser("seller1@test.com", "Tienda SA", "secret123", UserRole.SELLER))
                 .thenReturn(saved);
         when(jwtService.generateToken(any(UserDetailsAdapter.class))).thenReturn("fake.jwt.token.seller");
 
@@ -165,16 +157,8 @@ class AuthServiceTest {
         assertThat(response.getRole()).isEqualTo(UserRole.SELLER);
         assertThat(response.getEmail()).isEqualTo("seller1@test.com");
 
-        ArgumentCaptor<Seller> sellerCaptor = ArgumentCaptor.forClass(Seller.class);
-        verify(sellerRepository).save(sellerCaptor.capture());
-
-        Seller captured = sellerCaptor.getValue();
-        assertThat(captured.getUser()).isSameAs(saved);
-        assertThat(captured.getTaxId()).isEqualTo("900123456-7");
-        assertThat(captured.getCompanyName()).isEqualTo("Tienda Nexus");
-        assertThat(captured.getActive()).isTrue();
-
-        verify(buyerRepository, never()).save(any(Buyer.class));
+        verify(sellerUseCasePort).createSeller(2L, "900123456-7", "Tienda Nexus");
+        verify(buyerUseCasePort, never()).createBuyer(any(), any());
     }
 
     // ---------- register: forbidden roles ----------
@@ -188,7 +172,7 @@ class AuthServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Self-registration is only allowed for BUYER and SELLER roles");
 
-        verifyNoInteractions(userService, buyerRepository, sellerRepository, jwtService);
+        verifyNoInteractions(userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService);
     }
 
     @Test
@@ -201,7 +185,7 @@ class AuthServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Self-registration is only allowed for BUYER and SELLER roles");
 
-        verifyNoInteractions(userService, buyerRepository, sellerRepository, jwtService);
+        verifyNoInteractions(userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService);
     }
 
     @Test
@@ -214,7 +198,7 @@ class AuthServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Self-registration is only allowed for BUYER and SELLER roles");
 
-        verifyNoInteractions(userService, buyerRepository, sellerRepository, jwtService);
+        verifyNoInteractions(userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService);
     }
 
     @Test
@@ -227,7 +211,7 @@ class AuthServiceTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("Self-registration is only allowed for BUYER and SELLER roles");
 
-        verifyNoInteractions(userService, buyerRepository, sellerRepository, jwtService);
+        verifyNoInteractions(userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService);
     }
 
     // ---------- register: missing conditional fields ----------
@@ -238,14 +222,14 @@ class AuthServiceTest {
         request.setPrimaryAddress(null);
 
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
-        when(userService.createUser(anyString(), anyString(), anyString(), eq(UserRole.BUYER)))
+        when(userUseCasePort.createUser(anyString(), anyString(), anyString(), eq(UserRole.BUYER)))
                 .thenReturn(saved);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("primaryAddress is required for BUYER registration");
 
-        verify(buyerRepository, never()).save(any(Buyer.class));
+        verify(buyerUseCasePort, never()).createBuyer(any(), any());
         verifyNoInteractions(jwtService);
     }
 
@@ -256,14 +240,14 @@ class AuthServiceTest {
         request.setPrimaryAddress("   ");
 
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
-        when(userService.createUser(anyString(), anyString(), anyString(), eq(UserRole.BUYER)))
+        when(userUseCasePort.createUser(anyString(), anyString(), anyString(), eq(UserRole.BUYER)))
                 .thenReturn(saved);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("primaryAddress is required for BUYER registration");
 
-        verify(buyerRepository, never()).save(any(Buyer.class));
+        verify(buyerUseCasePort, never()).createBuyer(any(), any());
     }
 
     @Test
@@ -273,14 +257,14 @@ class AuthServiceTest {
         request.setTaxId(null);
 
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
-        when(userService.createUser(anyString(), anyString(), anyString(), eq(UserRole.SELLER)))
+        when(userUseCasePort.createUser(anyString(), anyString(), anyString(), eq(UserRole.SELLER)))
                 .thenReturn(saved);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("taxId is required for SELLER registration");
 
-        verify(sellerRepository, never()).save(any(Seller.class));
+        verify(sellerUseCasePort, never()).createSeller(any(), any(), any());
         verifyNoInteractions(jwtService);
     }
 
@@ -291,14 +275,14 @@ class AuthServiceTest {
         request.setCompanyName(null);
 
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
-        when(userService.createUser(anyString(), anyString(), anyString(), eq(UserRole.SELLER)))
+        when(userUseCasePort.createUser(anyString(), anyString(), anyString(), eq(UserRole.SELLER)))
                 .thenReturn(saved);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("companyName is required for SELLER registration");
 
-        verify(sellerRepository, never()).save(any(Seller.class));
+        verify(sellerUseCasePort, never()).createSeller(any(), any(), any());
         verifyNoInteractions(jwtService);
     }
 
@@ -309,14 +293,14 @@ class AuthServiceTest {
         request.setCompanyName("  ");
 
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
-        when(userService.createUser(anyString(), anyString(), anyString(), eq(UserRole.SELLER)))
+        when(userUseCasePort.createUser(anyString(), anyString(), anyString(), eq(UserRole.SELLER)))
                 .thenReturn(saved);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessage("companyName is required for SELLER registration");
 
-        verify(sellerRepository, never()).save(any(Seller.class));
+        verify(sellerUseCasePort, never()).createSeller(any(), any(), any());
     }
 
     // ---------- register: delegated duplicate detection ----------
@@ -325,13 +309,13 @@ class AuthServiceTest {
     void register_propagatesDuplicateResourceException_fromUserService() {
         RegisterRequest request = buyerRequest();
 
-        when(userService.createUser(anyString(), anyString(), anyString(), any(UserRole.class)))
+        when(userUseCasePort.createUser(anyString(), anyString(), anyString(), any(UserRole.class)))
                 .thenThrow(new DuplicateResourceException("User", "email", "buyer1@test.com"));
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(DuplicateResourceException.class);
 
-        verify(buyerRepository, never()).save(any(Buyer.class));
+        verify(buyerUseCasePort, never()).createBuyer(any(), any());
         verifyNoInteractions(jwtService);
     }
 
@@ -341,13 +325,13 @@ class AuthServiceTest {
         RegisterRequest request = buyerRequest();
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
 
-        when(userService.createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER))
+        when(userUseCasePort.createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER))
                 .thenReturn(saved);
         when(jwtService.generateToken(any(UserDetailsAdapter.class))).thenReturn("fake.jwt.token");
 
         authService.register(request);
 
-        verify(userService).createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER);
+        verify(userUseCasePort).createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER);
     }
 
     // ---------- login ----------
@@ -396,6 +380,6 @@ class AuthServiceTest {
                 .isInstanceOf(BadCredentialsException.class);
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verifyNoInteractions(jwtService, userService, buyerRepository, sellerRepository);
+        verifyNoInteractions(jwtService, userUseCasePort, buyerUseCasePort, sellerUseCasePort);
     }
 }

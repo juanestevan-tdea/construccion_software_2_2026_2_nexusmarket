@@ -1,8 +1,8 @@
 package com.nexusmarket.catalog.domain.repository;
 
+import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
 import com.nexusmarket.catalog.domain.model.Category;
 import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.users.domain.model.Seller;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,7 +17,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findBySku(String sku);
     boolean existsBySku(String sku);
     List<Product> findByCategory(Category category);
-    List<Product> findBySeller(Seller seller);
+    List<Product> findBySeller(SellerJpaEntity seller);
     List<Product> findByPriceBetween(BigDecimal min, BigDecimal max);
     List<Product> findByActiveTrue();
     List<Product> findByCategoryAndActiveTrue(Category category);

@@ -13,10 +13,10 @@ import com.nexusmarket.common.exception.ProductNotAvailableException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
-import com.nexusmarket.users.domain.model.Seller;
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.model.UserRole;
-import com.nexusmarket.users.domain.repository.SellerRepository;
+import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.UserJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.repositories.SellerJpaRepository;
+import com.nexusmarket.domain.valueobjects.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,20 +40,20 @@ class ProductServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
     @Mock
-    private SellerRepository sellerRepository;
+    private SellerJpaRepository sellerJpaRepository;
     @Mock
     private InventoryRepositoryPort inventoryRepositoryPort;
 
     @InjectMocks
     private ProductService productService;
 
-    private Seller activeSeller;
+    private SellerJpaEntity activeSeller;
     private Category category;
 
     @BeforeEach
     void setUp() {
-        User sellerUser = User.builder().id(1L).email("seller@test.com").role(UserRole.SELLER).build();
-        activeSeller = Seller.builder().id(1L).user(sellerUser).taxId("TAX123").active(true).build();
+        UserJpaEntity sellerUser = UserJpaEntity.builder().id(1L).email("seller@test.com").role(UserRole.SELLER).build();
+        activeSeller = SellerJpaEntity.builder().id(1L).user(sellerUser).taxId("TAX123").active(true).build();
         category = Category.builder().id(1L).name("Electronics").build();
     }
 
@@ -70,7 +70,7 @@ class ProductServiceTest {
 
         when(productRepository.existsBySku("SKU-100")).thenReturn(false);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(sellerRepository.findById(1L)).thenReturn(Optional.of(activeSeller));
+        when(sellerJpaRepository.findById(1L)).thenReturn(Optional.of(activeSeller));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
             Product p = invocation.getArgument(0);
             p.setId(10L);

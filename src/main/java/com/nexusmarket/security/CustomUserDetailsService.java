@@ -5,8 +5,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.nexusmarket.users.domain.model.User;
-import com.nexusmarket.users.domain.repository.UserRepository;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+    private final UserRepositoryPort userRepositoryPort;
 
     /**
      * @param email the user email sent as the JWT subject or login username
@@ -30,7 +30,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        User user = userRepositoryPort.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
         return new UserDetailsAdapter(user);
     }

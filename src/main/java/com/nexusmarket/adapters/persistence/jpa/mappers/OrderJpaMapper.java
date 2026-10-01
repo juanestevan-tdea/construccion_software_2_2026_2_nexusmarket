@@ -1,24 +1,26 @@
 package com.nexusmarket.adapters.persistence.jpa.mappers;
 
-import com.nexusmarket.adapters.persistence.jpa.entities.OrderItemJpaEntity;
-import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
-import com.nexusmarket.common.exception.ResourceNotFoundException;
-import com.nexusmarket.domain.models.Order;
-import com.nexusmarket.domain.models.OrderItem;
-import com.nexusmarket.users.domain.model.Buyer;
-import com.nexusmarket.users.domain.repository.BuyerRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.springframework.stereotype.Component;
+
+import com.nexusmarket.adapters.persistence.jpa.entities.BuyerJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.OrderItemJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.repositories.BuyerJpaRepository;
+import com.nexusmarket.common.exception.ResourceNotFoundException;
+import com.nexusmarket.domain.models.Order;
+import com.nexusmarket.domain.models.OrderItem;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 public class OrderJpaMapper {
 
-    private final BuyerRepository buyerRepository;
+    private final BuyerJpaRepository buyerJpaRepository;
     private final OrderItemJpaMapper orderItemJpaMapper;
 
     public Order toDomain(OrderJpaEntity entity) {
@@ -46,9 +48,9 @@ public class OrderJpaMapper {
             return null;
         }
 
-        Buyer buyer = null;
+        BuyerJpaEntity buyer = null;
         if (domain.getBuyerId() != null) {
-            buyer = buyerRepository.findById(domain.getBuyerId())
+            buyer = buyerJpaRepository.findById(domain.getBuyerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Buyer", domain.getBuyerId()));
         }
 
