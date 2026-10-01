@@ -1,26 +1,28 @@
 package com.nexusmarket.catalog.service;
 
-import com.nexusmarket.catalog.domain.model.Category;
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.ProductType;
-import com.nexusmarket.catalog.domain.repository.CategoryRepository;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.dto.request.ProductCreateRequest;
-import com.nexusmarket.catalog.dto.response.ProductResponse;
+import com.nexusmarket.adapters.useCases.ProductUseCaseImpl;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.DuplicateResourceException;
 import com.nexusmarket.common.exception.ProductNotAvailableException;
+import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.models.Product;
+import com.nexusmarket.domain.models.Seller;
+import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.ProductUseCasePort;
+import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
+import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
+import com.nexusmarket.domain.ports.out.UserRepositoryPort;
+import com.nexusmarket.domain.services.ProductDomainService;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
-import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
-import com.nexusmarket.adapters.persistence.jpa.entities.UserJpaEntity;
-import com.nexusmarket.adapters.persistence.jpa.repositories.SellerJpaRepository;
+import com.nexusmarket.domain.valueobjects.ProductType;
 import com.nexusmarket.domain.valueobjects.UserRole;
+import com.nexusmarket.domain.valueobjects.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -36,48 +38,46 @@ import static org.mockito.Mockito.*;
 class ProductServiceTest {
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductRepositoryPort productRepositoryPort;
     @Mock
-    private CategoryRepository categoryRepository;
+    private CategoryRepositoryPort categoryRepositoryPort;
     @Mock
-    private SellerJpaRepository sellerJpaRepository;
+    private SellerRepositoryPort sellerRepositoryPort;
+    @Mock
+    private UserRepositoryPort userRepositoryPort;
     @Mock
     private InventoryRepositoryPort inventoryRepositoryPort;
 
-    @InjectMocks
-    private ProductService productService;
+    private ProductUseCasePort productUseCase;
 
-    private SellerJpaEntity activeSeller;
+    private Seller activeSeller;
+    private User sellerUser;
     private Category category;
 
     @BeforeEach
     void setUp() {
-        UserJpaEntity sellerUser = UserJpaEntity.builder().id(1L).email("seller@test.com").role(UserRole.SELLER).build();
-        activeSeller = SellerJpaEntity.builder().id(1L).user(sellerUser).taxId("TAX123").active(true).build();
+        sellerUser = User.builder().id(1L).email("seller@test.com").role(UserRole.SELLER).status(UserStatus.ACTIVE).build();
+        activeSeller = Seller.builder().id(1L).userId(1L).companyName("Tienda Nexus").taxId("TAX123").active(true).build();
         category = Category.builder().id(1L).name("Electronics").build();
+
+        ProductDomainService domainService = new ProductDomainService(
+                productRepositoryPort, categoryRepositoryPort, sellerRepositoryPort, userRepositoryPort, inventoryRepositoryPort);
+        productUseCase = new ProductUseCaseImpl(domainService, productRepositoryPort);
     }
 
     @Test
     void createProduct_Success() {
-        ProductCreateRequest request = ProductCreateRequest.builder()
-                .sku("SKU-100")
-                .name("Smartphone")
-                .price(BigDecimal.valueOf(499.99))
-                .type(ProductType.PHYSICAL)
-                .sellerId(1L)
-                .categoryId(1L)
-                .build();
-
-        when(productRepository.existsBySku("SKU-100")).thenReturn(false);
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(sellerJpaRepository.findById(1L)).thenReturn(Optional.of(activeSeller));
-        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+        when(productRepositoryPort.existsBySku("SKU-100")).thenReturn(false);
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(category));
+        when(sellerRepositoryPort.findById(1L)).thenReturn(Optional.of(activeSeller));
+        when(userRepositoryPort.findById(1L)).thenReturn(Optional.of(sellerUser));
+        when(productRepositoryPort.save(any(Product.class))).thenAnswer(invocation -> {
             Product p = invocation.getArgument(0);
             p.setId(10L);
             return p;
         });
 
-        ProductResponse response = productService.createProduct(request);
+        Product response = productUseCase.createProduct("SKU-100", "Smartphone", null, BigDecimal.valueOf(499.99), ProductType.PHYSICAL, 1L, 1L);
 
         assertNotNull(response);
         assertEquals("SKU-100", response.getSku());
@@ -86,44 +86,26 @@ class ProductServiceTest {
 
     @Test
     void createProduct_ThrowsException_WhenPriceIsZeroOrNegative() {
-        ProductCreateRequest request = ProductCreateRequest.builder()
-                .sku("SKU-100")
-                .name("Smartphone")
-                .price(BigDecimal.ZERO)
-                .type(ProductType.PHYSICAL)
-                .sellerId(1L)
-                .categoryId(1L)
-                .build();
-
-        assertThrows(BusinessRuleException.class, () -> productService.createProduct(request));
+        assertThrows(BusinessRuleException.class, () -> productUseCase.createProduct("SKU-100", "Smartphone", null, BigDecimal.ZERO, ProductType.PHYSICAL, 1L, 1L));
     }
 
     @Test
     void createProduct_ThrowsException_WhenSkuExists() {
-        ProductCreateRequest request = ProductCreateRequest.builder()
-                .sku("SKU-100")
-                .name("Smartphone")
-                .price(BigDecimal.valueOf(100))
-                .type(ProductType.PHYSICAL)
-                .sellerId(1L)
-                .categoryId(1L)
-                .build();
+        when(productRepositoryPort.existsBySku("SKU-100")).thenReturn(true);
 
-        when(productRepository.existsBySku("SKU-100")).thenReturn(true);
-
-        assertThrows(DuplicateResourceException.class, () -> productService.createProduct(request));
+        assertThrows(DuplicateResourceException.class, () -> productUseCase.createProduct("SKU-100", "Smartphone", null, BigDecimal.valueOf(100), ProductType.PHYSICAL, 1L, 1L));
     }
 
     @Test
     void deactivateProduct_ThrowsException_WhenStockIsReserved() {
         Product product = Product.builder().id(5L).sku("SKU-5").active(true).build();
-        when(productRepository.findById(5L)).thenReturn(Optional.of(product));
+        when(productRepositoryPort.findById(5L)).thenReturn(Optional.of(product));
 
         Inventory inventory = new Inventory();
         inventory.setStatus(InventoryStatus.RESERVED);
         inventory.setQuantity(5);
-        when(inventoryRepositoryPort.findByProduct(product)).thenReturn(List.of(inventory));
+        when(inventoryRepositoryPort.findByProductId(5L)).thenReturn(List.of(inventory));
 
-        assertThrows(ProductNotAvailableException.class, () -> productService.deactivateProduct(5L));
+        assertThrows(ProductNotAvailableException.class, () -> productUseCase.deactivateProduct(5L));
     }
 }

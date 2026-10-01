@@ -1,21 +1,23 @@
 package com.nexusmarket.adapters.persistence.jpa.mappers;
 
+import org.springframework.stereotype.Component;
+
 import com.nexusmarket.adapters.persistence.jpa.entities.InventoryJpaEntity;
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.Warehouse;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
+import com.nexusmarket.adapters.persistence.jpa.entities.ProductJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.WarehouseJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.repositories.ProductJpaRepository;
+import com.nexusmarket.adapters.persistence.jpa.repositories.WarehouseJpaRepository;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class InventoryJpaMapper {
 
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
+    private final ProductJpaRepository productJpaRepository;
+    private final WarehouseJpaRepository warehouseJpaRepository;
 
     public Inventory toDomain(InventoryJpaEntity entity) {
         if (entity == null) {
@@ -38,15 +40,15 @@ public class InventoryJpaMapper {
             return null;
         }
 
-        Product product = null;
+        ProductJpaEntity product = null;
         if (domain.getProductId() != null) {
-            product = productRepository.findById(domain.getProductId())
+            product = productJpaRepository.findById(domain.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product", domain.getProductId()));
         }
 
-        Warehouse warehouse = null;
+        WarehouseJpaEntity warehouse = null;
         if (domain.getWarehouseId() != null) {
-            warehouse = warehouseRepository.findById(domain.getWarehouseId())
+            warehouse = warehouseJpaRepository.findById(domain.getWarehouseId())
                     .orElseThrow(() -> new ResourceNotFoundException("Warehouse", domain.getWarehouseId()));
         }
 
@@ -59,3 +61,4 @@ public class InventoryJpaMapper {
                 .build();
     }
 }
+

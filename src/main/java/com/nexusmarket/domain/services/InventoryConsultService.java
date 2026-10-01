@@ -1,22 +1,24 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
+import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class InventoryConsultService {
 
     private final InventoryRepositoryPort inventoryRepositoryPort;
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
+    private final ProductRepositoryPort productRepositoryPort;
+    private final WarehouseRepositoryPort warehouseRepositoryPort;
 
     public Inventory getByIdOrThrow(Long id) {
         return inventoryRepositoryPort.findById(id)
@@ -28,14 +30,14 @@ public class InventoryConsultService {
     }
 
     public List<Inventory> findByProduct(Long productId) {
-        if (!productRepository.existsById(productId)) {
+        if (!productRepositoryPort.existsById(productId)) {
             throw new ResourceNotFoundException("Product", productId);
         }
         return inventoryRepositoryPort.findByProductId(productId);
     }
 
     public List<Inventory> findByWarehouse(Long warehouseId) {
-        if (!warehouseRepository.existsById(warehouseId)) {
+        if (!warehouseRepositoryPort.existsById(warehouseId)) {
             throw new ResourceNotFoundException("Warehouse", warehouseId);
         }
         return inventoryRepositoryPort.findByWarehouseId(warehouseId);

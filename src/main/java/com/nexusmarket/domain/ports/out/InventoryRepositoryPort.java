@@ -3,8 +3,6 @@ package com.nexusmarket.domain.ports.out;
 import java.util.List;
 import java.util.Optional;
 
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.domain.models.Inventory;
 
 public interface InventoryRepositoryPort {
@@ -20,9 +18,5 @@ public interface InventoryRepositoryPort {
     List<Inventory> findByWarehouseId(Long warehouseId);
 
     Optional<Inventory> findByProductIdAndWarehouseId(Long productId, Long warehouseId);
-
-    List<Inventory> findByProduct(Product product);
-
-    List<Inventory> findByWarehouse(Warehouse warehouse);
 }
 

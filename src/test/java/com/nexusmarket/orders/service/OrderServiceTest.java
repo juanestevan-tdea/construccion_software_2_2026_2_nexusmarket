@@ -1,7 +1,6 @@
 package com.nexusmarket.orders.service;
 
 import com.nexusmarket.adapters.useCases.OrderUseCaseImpl;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.InvalidStatusTransitionException;
 import com.nexusmarket.domain.models.Buyer;
@@ -10,6 +9,7 @@ import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.OrderUseCasePort;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.services.OrderCalculationService;
 import com.nexusmarket.domain.services.OrderCreateService;
@@ -39,7 +39,7 @@ class OrderServiceTest {
     @Mock
     private UserRepositoryPort userRepositoryPort;
     @Mock
-    private ProductRepository productRepository;
+    private ProductRepositoryPort productRepositoryPort;
 
     private OrderUseCasePort orderUseCase;
 
@@ -52,7 +52,7 @@ class OrderServiceTest {
         buyer = Buyer.builder().id(1L).userId(2L).commercialStatus(BuyerCommercialStatus.ACTIVE).build();
 
         OrderCreateService createService = new OrderCreateService(orderRepositoryPort, buyerRepositoryPort, userRepositoryPort);
-        OrderCalculationService calculationService = new OrderCalculationService(orderRepositoryPort, productRepository);
+        OrderCalculationService calculationService = new OrderCalculationService(orderRepositoryPort, productRepositoryPort);
         OrderLifecycleService lifecycleService = new OrderLifecycleService(orderRepositoryPort);
         orderUseCase = new OrderUseCaseImpl(createService, calculationService, lifecycleService, orderRepositoryPort, buyerRepositoryPort);
     }

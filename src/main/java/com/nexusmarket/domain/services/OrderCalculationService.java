@@ -1,22 +1,24 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.OrderItem;
+import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class OrderCalculationService {
 
     private final OrderRepositoryPort orderRepositoryPort;
-    private final ProductRepository productRepository;
+    private final ProductRepositoryPort productRepositoryPort;
 
     @Transactional
     public Order addItem(Long orderId, Long productId, Integer quantity) {
@@ -27,7 +29,7 @@ public class OrderCalculationService {
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
-        Product product = productRepository.findById(productId)
+        Product product = productRepositoryPort.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
 
         OrderItem item = OrderItem.builder()

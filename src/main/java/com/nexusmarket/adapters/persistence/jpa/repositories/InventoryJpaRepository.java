@@ -1,24 +1,25 @@
 package com.nexusmarket.adapters.persistence.jpa.repositories;
 
-import com.nexusmarket.adapters.persistence.jpa.entities.InventoryJpaEntity;
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.Warehouse;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.nexusmarket.adapters.persistence.jpa.entities.InventoryJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.ProductJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.WarehouseJpaEntity;
 
 @Repository
 public interface InventoryJpaRepository extends JpaRepository<InventoryJpaEntity, Long> {
 
-    List<InventoryJpaEntity> findByProduct(Product product);
+    List<InventoryJpaEntity> findByProduct(ProductJpaEntity product);
 
-    List<InventoryJpaEntity> findByWarehouse(Warehouse warehouse);
+    List<InventoryJpaEntity> findByWarehouse(WarehouseJpaEntity warehouse);
 
-    Optional<InventoryJpaEntity> findByProductAndWarehouse(Product product, Warehouse warehouse);
+    Optional<InventoryJpaEntity> findByProductAndWarehouse(ProductJpaEntity product, WarehouseJpaEntity warehouse);
 
     @Query("SELECT i FROM InventoryJpaEntity i WHERE i.product.id = :productId")
     List<InventoryJpaEntity> findByProductId(@Param("productId") Long productId);

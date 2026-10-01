@@ -1,18 +1,18 @@
 package com.nexusmarket.catalog.service;
 
-import com.nexusmarket.catalog.domain.model.Category;
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.repository.CategoryRepository;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.dto.request.CategoryCreateRequest;
-import com.nexusmarket.catalog.dto.response.CategoryResponse;
+import com.nexusmarket.adapters.useCases.CategoryUseCaseImpl;
+import com.nexusmarket.domain.models.Category;
+import com.nexusmarket.domain.models.Product;
+import com.nexusmarket.domain.ports.in.CategoryUseCasePort;
+import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
+import com.nexusmarket.domain.services.CategoryDomainService;
 import com.nexusmarket.common.exception.CategoryHasProductsException;
 import com.nexusmarket.common.exception.DuplicateResourceException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,13 +28,12 @@ import static org.mockito.Mockito.*;
 class CategoryServiceTest {
 
     @Mock
-    private CategoryRepository categoryRepository;
+    private CategoryRepositoryPort categoryRepositoryPort;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductRepositoryPort productRepositoryPort;
 
-    @InjectMocks
-    private CategoryService categoryService;
+    private CategoryUseCasePort categoryUseCase;
 
     private Category category;
 
@@ -45,19 +44,17 @@ class CategoryServiceTest {
                 .name("Books")
                 .description("All kinds of books")
                 .build();
+
+        CategoryDomainService domainService = new CategoryDomainService(categoryRepositoryPort, productRepositoryPort);
+        categoryUseCase = new CategoryUseCaseImpl(domainService, categoryRepositoryPort);
     }
 
     @Test
     void createCategory_Success() {
-        CategoryCreateRequest request = CategoryCreateRequest.builder()
-                .name("Books")
-                .description("All kinds of books")
-                .build();
+        when(categoryRepositoryPort.existsByName("Books")).thenReturn(false);
+        when(categoryRepositoryPort.save(any(Category.class))).thenReturn(category);
 
-        when(categoryRepository.existsByName("Books")).thenReturn(false);
-        when(categoryRepository.save(any(Category.class))).thenReturn(category);
-
-        CategoryResponse response = categoryService.createCategory(request);
+        Category response = categoryUseCase.createCategory("Books", "All kinds of books", null);
 
         assertNotNull(response);
         assertEquals("Books", response.getName());
@@ -65,36 +62,33 @@ class CategoryServiceTest {
 
     @Test
     void createCategory_ThrowsDuplicateResourceException_WhenNameExists() {
-        CategoryCreateRequest request = CategoryCreateRequest.builder()
-                .name("Books")
-                .build();
+        when(categoryRepositoryPort.existsByName("Books")).thenReturn(true);
 
-        when(categoryRepository.existsByName("Books")).thenReturn(true);
-
-        assertThrows(DuplicateResourceException.class, () -> categoryService.createCategory(request));
+        assertThrows(DuplicateResourceException.class, () -> categoryUseCase.createCategory("Books", null, null));
     }
 
     @Test
     void deleteCategory_ThrowsCategoryHasProductsException_WhenCategoryHasProducts() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productRepository.findByCategory(category)).thenReturn(List.of(new Product()));
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepositoryPort.findByCategoryId(1L)).thenReturn(List.of(new Product()));
 
-        assertThrows(CategoryHasProductsException.class, () -> categoryService.deleteCategory(1L));
+        assertThrows(CategoryHasProductsException.class, () -> categoryUseCase.deleteCategory(1L));
     }
 
     @Test
     void deleteCategory_Success() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productRepository.findByCategory(category)).thenReturn(Collections.emptyList());
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepositoryPort.findByCategoryId(1L)).thenReturn(Collections.emptyList());
 
-        assertDoesNotThrow(() -> categoryService.deleteCategory(1L));
-        verify(categoryRepository).delete(category);
+        assertDoesNotThrow(() -> categoryUseCase.deleteCategory(1L));
+        verify(categoryRepositoryPort).delete(category);
     }
 
     @Test
     void getCategoryByIdOrThrow_ThrowsResourceNotFoundException_WhenNotFound() {
-        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+        when(categoryRepositoryPort.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> categoryService.getCategoryByIdOrThrow(99L));
+        assertThrows(ResourceNotFoundException.class, () -> categoryUseCase.getCategoryByIdOrThrow(99L));
     }
 }
+

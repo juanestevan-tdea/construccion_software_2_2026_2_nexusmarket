@@ -1,0 +1,25 @@
+package com.nexusmarket.adapters.rest.dtos.responses;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CategoryResponseDTO {
+
+    private Long id;
+    private String name;
+    private String description;
+    private Long parentId;
+    private String parentName;
+
+    @Builder.Default
+    private List<CategoryResponseDTO> subCategories = new ArrayList<>();
+}

@@ -2,7 +2,6 @@ package com.nexusmarket.adapters.persistence.jpa.entities;
 
 import java.time.LocalDateTime;
 
-import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
 
 import jakarta.persistence.Column;
@@ -42,7 +41,7 @@ public class ShipmentJpaEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "warehouse_id", nullable = false)
-    private Warehouse warehouse;
+    private WarehouseJpaEntity warehouse;
 
     @Column(nullable = false, unique = true)
     private String trackingNumber;

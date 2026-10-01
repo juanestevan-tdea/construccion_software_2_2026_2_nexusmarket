@@ -1,26 +1,28 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.Warehouse;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.models.Product;
+import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
+import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class InventoryManagementService {
 
     private final InventoryRepositoryPort inventoryRepositoryPort;
-    private final ProductRepository productRepository;
-    private final WarehouseRepository warehouseRepository;
+    private final ProductRepositoryPort productRepositoryPort;
+    private final WarehouseRepositoryPort warehouseRepositoryPort;
 
     @Transactional
     public Inventory createInventory(Long productId, Long warehouseId, Integer quantity) {
@@ -28,9 +30,9 @@ public class InventoryManagementService {
             throw new BusinessRuleException("Initial inventory quantity cannot be negative");
         }
 
-        Product product = productRepository.findById(productId)
+        Product product = productRepositoryPort.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
-        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+        Warehouse warehouse = warehouseRepositoryPort.findById(warehouseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse", warehouseId));
 
         int currentStored = inventoryRepositoryPort.findByWarehouseId(warehouseId).stream()

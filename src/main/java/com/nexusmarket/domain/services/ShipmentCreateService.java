@@ -6,15 +6,15 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.catalog.domain.model.Warehouse;
-import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.ShipmentAlreadyExistsException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Shipment;
+import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
+import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
 
@@ -26,7 +26,7 @@ public class ShipmentCreateService {
 
     private final ShipmentRepositoryPort shipmentRepositoryPort;
     private final OrderRepositoryPort orderRepositoryPort;
-    private final WarehouseRepository warehouseRepository;
+    private final WarehouseRepositoryPort warehouseRepositoryPort;
 
     @Transactional
     public Shipment createShipment(Long orderId, Long warehouseId, String trackingNumber) {
@@ -41,7 +41,7 @@ public class ShipmentCreateService {
             throw new ShipmentAlreadyExistsException("Shipment", "orderId", orderId);
         }
 
-        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+        Warehouse warehouse = warehouseRepositoryPort.findById(warehouseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse", warehouseId));
 
         String tracking = trackingNumber;

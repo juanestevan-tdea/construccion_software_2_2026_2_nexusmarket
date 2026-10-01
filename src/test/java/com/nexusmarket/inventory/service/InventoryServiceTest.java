@@ -1,15 +1,15 @@
 package com.nexusmarket.inventory.service;
 
 import com.nexusmarket.adapters.useCases.InventoryUseCaseImpl;
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.model.Warehouse;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
+import com.nexusmarket.domain.models.Product;
+import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.in.InventoryUseCasePort;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
+import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 import com.nexusmarket.domain.services.InventoryConsultService;
 import com.nexusmarket.domain.services.InventoryManagementService;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
@@ -35,10 +35,10 @@ class InventoryServiceTest {
     private InventoryRepositoryPort inventoryRepositoryPort;
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductRepositoryPort productRepositoryPort;
 
     @Mock
-    private WarehouseRepository warehouseRepository;
+    private WarehouseRepositoryPort warehouseRepositoryPort;
 
     private InventoryUseCasePort inventoryUseCase;
 
@@ -51,16 +51,16 @@ class InventoryServiceTest {
         warehouse = Warehouse.builder().id(1L).name("Main Warehouse").capacity(100).build();
 
         InventoryManagementService managementService = new InventoryManagementService(
-                inventoryRepositoryPort, productRepository, warehouseRepository);
+                inventoryRepositoryPort, productRepositoryPort, warehouseRepositoryPort);
         InventoryConsultService consultService = new InventoryConsultService(
-                inventoryRepositoryPort, productRepository, warehouseRepository);
+                inventoryRepositoryPort, productRepositoryPort, warehouseRepositoryPort);
         inventoryUseCase = new InventoryUseCaseImpl(managementService, consultService);
     }
 
     @Test
     void createInventory_Success() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(warehouse));
+        when(productRepositoryPort.findById(1L)).thenReturn(Optional.of(product));
+        when(warehouseRepositoryPort.findById(1L)).thenReturn(Optional.of(warehouse));
         when(inventoryRepositoryPort.findByWarehouseId(1L)).thenReturn(Collections.emptyList());
         when(inventoryRepositoryPort.save(any(Inventory.class))).thenAnswer(i -> {
             Inventory inv = i.getArgument(0);
@@ -83,8 +83,8 @@ class InventoryServiceTest {
 
     @Test
     void createInventory_ThrowsWarehouseCapacityExceededException_WhenCapacityExceeded() {
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(warehouse));
+        when(productRepositoryPort.findById(1L)).thenReturn(Optional.of(product));
+        when(warehouseRepositoryPort.findById(1L)).thenReturn(Optional.of(warehouse));
         when(inventoryRepositoryPort.findByWarehouseId(1L)).thenReturn(Collections.emptyList());
 
         assertThrows(WarehouseCapacityExceededException.class, ()

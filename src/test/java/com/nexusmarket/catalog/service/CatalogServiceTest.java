@@ -1,15 +1,15 @@
 package com.nexusmarket.catalog.service;
 
-import com.nexusmarket.catalog.domain.model.Category;
-import com.nexusmarket.catalog.domain.model.Product;
-import com.nexusmarket.catalog.domain.repository.CategoryRepository;
-import com.nexusmarket.catalog.domain.repository.ProductRepository;
-import com.nexusmarket.catalog.dto.response.CatalogOverviewResponse;
-import com.nexusmarket.catalog.dto.response.ProductResponse;
+import com.nexusmarket.adapters.useCases.CatalogUseCaseImpl;
+import com.nexusmarket.domain.models.Category;
+import com.nexusmarket.domain.models.Product;
+import com.nexusmarket.domain.ports.in.CatalogUseCasePort;
+import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
+import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -24,35 +24,41 @@ import static org.mockito.Mockito.*;
 class CatalogServiceTest {
 
     @Mock
-    private ProductRepository productRepository;
+    private ProductRepositoryPort productRepositoryPort;
 
     @Mock
-    private CategoryRepository categoryRepository;
+    private CategoryRepositoryPort categoryRepositoryPort;
 
-    @InjectMocks
-    private CatalogService catalogService;
+    private CatalogUseCasePort catalogUseCase;
+
+    @BeforeEach
+    void setUp() {
+        catalogUseCase = new CatalogUseCaseImpl(productRepositoryPort, categoryRepositoryPort);
+    }
 
     @Test
     void getCatalog_Success() {
         Product p = Product.builder().id(1L).name("Laptop").sku("LP-1").price(BigDecimal.valueOf(999)).active(true).build();
         Category c = Category.builder().id(1L).name("Tech").build();
 
-        when(productRepository.findByActiveTrue()).thenReturn(List.of(p));
-        when(categoryRepository.findByParentIsNull()).thenReturn(List.of(c));
+        when(productRepositoryPort.findByActiveTrue()).thenReturn(List.of(p));
+        when(categoryRepositoryPort.findByParentIsNull()).thenReturn(List.of(c));
 
-        CatalogOverviewResponse response = catalogService.getCatalog();
+        List<Product> products = catalogUseCase.getActiveProducts();
+        List<Category> categories = catalogUseCase.getRootCategories();
 
-        assertNotNull(response);
-        assertEquals(1, response.getTotalProducts());
-        assertEquals(1, response.getTotalCategories());
+        assertNotNull(products);
+        assertNotNull(categories);
+        assertEquals(1, products.size());
+        assertEquals(1, categories.size());
     }
 
     @Test
     void searchProducts_Success() {
         Product p = Product.builder().id(1L).name("Laptop").sku("LP-1").price(BigDecimal.valueOf(999)).active(true).build();
-        when(productRepository.searchProducts("lap")).thenReturn(List.of(p));
+        when(productRepositoryPort.searchProducts("lap")).thenReturn(List.of(p));
 
-        List<ProductResponse> results = catalogService.searchProducts("lap");
+        List<Product> results = catalogUseCase.searchProducts("lap");
 
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -61,8 +67,9 @@ class CatalogServiceTest {
 
     @Test
     void getProductDetail_ThrowsResourceNotFoundException_WhenNotFound() {
-        when(productRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productRepositoryPort.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> catalogService.getProductDetail(99L));
+        assertThrows(ResourceNotFoundException.class, () -> catalogUseCase.getProductDetail(99L));
     }
 }
+

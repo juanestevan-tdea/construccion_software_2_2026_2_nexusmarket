@@ -62,24 +62,4 @@ public class InventoryJpaAdapter implements InventoryRepositoryPort {
         return inventoryJpaRepository.findByProductIdAndWarehouseId(productId, warehouseId)
                 .map(inventoryJpaMapper::toDomain);
     }
-
-    @Override
-    public List<Inventory> findByProduct(com.nexusmarket.catalog.domain.model.Product product) {
-        if (product == null) {
-            return List.of();
-        }
-        return inventoryJpaRepository.findByProduct(product).stream()
-                .map(inventoryJpaMapper::toDomain)
-                .toList();
-    }
-
-    @Override
-    public List<Inventory> findByWarehouse(com.nexusmarket.catalog.domain.model.Warehouse warehouse) {
-        if (warehouse == null) {
-            return List.of();
-        }
-        return inventoryJpaRepository.findByWarehouse(warehouse).stream()
-                .map(inventoryJpaMapper::toDomain)
-                .toList();
-    }
 }
