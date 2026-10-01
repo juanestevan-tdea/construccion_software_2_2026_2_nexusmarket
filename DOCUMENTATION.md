@@ -1,443 +1,450 @@
-﻿# 📘 Documentación Técnica - NexusMarket
+﻿# 🛒 NexusMarket — Documentación Técnica del Sistema
 
-## 🏗️ Proceso de Construcción del Software
+## 1. INTRODUCCIÓN
 
-### 1. Configuración Inicial del Proyecto
+### 1.1 ¿Qué es NexusMarket?
 
-**1.1 Creación del Repositorio**
-- Se creó un repositorio público en GitHub.
-- Se clonó localmente usando `git clone`.
-- Se estableció la rama `main` como rama principal.
+**NexusMarket** es una plataforma backend para comercio electrónico (Marketplace) multiproveedor diseñada bajo principios de arquitectura limpia y hexagonal. Permite la interacción desacoplada entre compradores, vendedores, administradores y operadores logísticos, soportando la gestión integral del ciclo de vida comercial: autenticación y seguridad, catálogo jerárquico de productos, bodegas e inventarios, procesamiento transaccional de órdenes, facturación, reembolsos, envíos, devoluciones y auditoría centralizada.
 
-**1.2 Estructura de Carpetas**
-Se siguió el estándar de Maven para proyectos Spring Boot:
-- `src/main/java`: Código fuente.
-- `src/main/resources`: Archivos de configuración.
-- `src/test/java`: Pruebas.
-- `.mvn/wrapper`: Maven Wrapper.
+### 1.2 Stack Tecnológico
 
-**1.3 Configuración de Dependencias (pom.xml)**
-Se incluyeron las siguientes dependencias:
-- `spring-boot-starter-web`: Para la API REST.
-- `spring-boot-starter-data-jpa`: Para persistencia con MySQL.
-- `spring-boot-starter-data-mongodb`: Para persistencia con MongoDB.
-- `lombok`: Para reducir código boilerplate.
-- `spring-boot-starter-validation`: Para validaciones.
-- `spring-boot-starter-test`: Para pruebas.
+| Capa | Tecnología |
+|------|-----------|
+| Lenguaje | Java 17 |
+| Framework | Spring Boot 3.4, Spring MVC |
+| Seguridad | Spring Security + JWT (JJWT 0.12.6), BCrypt |
+| Persistencia relacional | Spring Data JPA / Hibernate → MySQL 8 |
+| Persistencia NoSQL | Spring Data MongoDB → MongoDB Atlas |
+| Validación | Jakarta Bean Validation |
+| Testing | JUnit 5 + Mockito + Spring Test |
+| Build | Maven 3.9+ |
 
-**1.4 Configuración de Bases de Datos (application.yml)**
-Se configuraron dos fuentes de datos:
-- **MySQL**: Para datos relacionales (usuarios, pedidos, inventario).
-- **MongoDB**: Para datos documentales (catálogo enriquecido, carritos, logs).
+### 1.3 Estado del Proyecto
 
-**1.5 Maven Wrapper**
-Se generó con `mvn wrapper:wrapper` para garantizar reproducibilidad del build.
+- ✅ Arquitectura hexagonal aplicada en los 8 módulos de negocio
+- ✅ 94 tests unitarios e integración en verde
+- ✅ Autenticación JWT con autorización por rol
+- ✅ Persistencia relacional (MySQL) + NoSQL (MongoDB)
 
 ---
 
-### 2. Modelo de Dominio (Construcción de Entidades)
+## 2. ARQUITECTURA HEXAGONAL (Ports & Adapters)
 
-**2.1 Entidad User (Usuario)**
-- **Propósito**: Representa a todos los usuarios del sistema.
-- **Atributos**: `id`, `email`, `fullName`, `password`, `role`, `status`, `createdAt`, `updatedAt`.
-- **Métodos de negocio**: `block()`, `activate()`, `isActive()`.
+El proyecto sigue el patrón **Ports & Adapters**, donde el **dominio** es el centro y no conoce ninguna tecnología externa.
++---------------------------------------------------------------------------------+
+| CAPA EXTERNA: ADAPTERS |
+| |
+| [ Driving Adapters / REST ] [ Security Infrastructure ] |
+| - AuthController - JwtAuthenticationFilter |
+| - ProductController, OrderController... - RestAuthenticationEntryPoint |
+| - DTOs (Requests/Responses) & Mappers - RestAccessDeniedHandler |
+| | |
+| | Invoca (Port In) |
+| v |
+| +-------------------------------------------------------------------------+ |
+| | CAPA DE CASOS DE USO / USE CASES | |
+| | - ProductUseCaseImpl, OrderUseCaseImpl, InventoryUseCaseImpl... | |
+| | (Implementan ports/in y coordinan Domain Services y Ports Out) | |
+| | | | |
+| | | Orquesta lógica pura | |
+| | v | |
+| | +-----------------------------------------------------------------+ | |
+| | | NÚCLEO DE DOMINIO (CORE) | | |
+| | | | | |
+| | | - Models (POJOs puros: User, Product, Order, Inventory...) | | |
+| | | - Value Objects / Enums (OrderStatus, UserRole...) | | |
+| | | - Domain Services (ProductDomainService, OrderCreateService) | | |
+| | | - Exceptions (17 excepciones de negocio específicas) | | |
+| | | - Ports In (15 interfaces de casos de uso) | | |
+| | | - Ports Out (13 interfaces de repositorios) | | |
+| | +-----------------------------------------------------------------+ | |
+| | ^ | |
+| | | Satisface contratos (Port Out) | |
+| +-------------------------------------------------------------------------+ |
+| | |
+| [ Driven Adapters / Persistence ] |
+| - JPA Relational: ProductJpaAdapter, OrderJpaAdapter... |
+| (Entities JPA + JpaRepositories + Mappers bidireccionales) |
+| - MongoDB NoSQL: AuditLogMongoAdapter |
+| (Documents MongoDB + MongoRepository + Mappers) |
++---------------------------------------------------------------------------------+
 
-**2.2 Entidad Buyer (Comprador)**
-- **Propósito**: Representa a los compradores.
-- **Relación**: `@OneToOne` con `User`.
-- **Atributos**: `primaryAddress`, `additionalAddresses`, `commercialStatus`.
+text
 
-**2.3 Entidad Seller (Vendedor)**
-- **Propósito**: Representa a los vendedores.
-- **Relación**: `@OneToOne` con `User`.
-- **Atributos**: `taxId`, `companyName`, `active`.
+### 2.3 Regla de Oro del Dominio
 
-**2.4 Entidad Product (Producto)**
-- **Propósito**: Representa los productos del catálogo.
-- **Atributos**: `name`, `description`, `price`, `type` (Físico/Digital).
-- **Relaciones**: `@ManyToOne` con `Seller` y `Category`.
-
-**2.5 Entidad Inventory (Inventario)**
-- **Propósito**: Controla el stock de productos en bodegas.
-- **Atributos**: `quantity`, `status`.
-- **Reglas de Negocio**:
-    - No se permiten existencias negativas.
-    - No se puede reservar inventario dañado.
-
-**2.6 Entidad Order (Pedido)**
-- **Propósito**: Gestionar las compras de los clientes.
-- **Ciclo de Vida**: `CART` → `PENDING_PAYMENT` → `PAID` → `DISPATCHED` → `DELIVERED` → `FINISHED`.
-- **Regla de Negocio**: Un pedido finalizado no puede modificarse.
-
----
-
-### 3. Convenciones de Código (Construcción Limpia)
-- **Lenguaje**: Todo el código está en inglés.
-- **Nombres de clases**: PascalCase (ej. `User`, `UserRepository`).
-- **Nombres de métodos**: camelCase (ej. `findByEmail`, `activate`).
-- **Anotaciones de JPA**: `@Entity`, `@Table`, `@Column`, `@Enumerated`, `@Id`, `@GeneratedValue`.
-
----
-
-### 4. Comandos Git Utilizados (Control de Versiones)
-| Comando | Propósito |
-|---------|-----------|
-| `git clone` | Descargar el repositorio remoto. |
-| `git status` | Ver el estado de los archivos. |
-| `git add .` | Agregar todos los archivos al staging. |
-| `git commit -m "mensaje"` | Guardar los cambios en el historial. |
-| `git push origin main` | Subir los cambios al repositorio remoto. |
-
----
-**Fecha de creación**: 30 de agosto de 2026  
-**Autor**: Juan Esteban T-DEA  
-**Curso**: Construcción de Software 2 - 2026-2
+> **La capa de dominio (`com.nexusmarket.domain.*`) es estrictamente pura.**
+> No conoce, no importa y no depende de Spring Boot, Spring Data JPA, Hibernate, MongoDB, Jackson ni especificaciones HTTP/Servlet. Toda la persistencia y transporte se comunican a través de los puertos mediante Entities/DTOs desacopladas y Mappers explícitos.
 
 ---
 
-### 5. Reglas de Negocio Extraídas (Del Documento Funcional)
-| ID | Regla de Negocio | Módulo | Excepción Asociada |
-|----|------------------|--------|--------------------|
-| RN-01 | Un pedido finalizado no puede modificarse. | orders | `InvalidStatusTransitionException` |
-| RN-02 | No se permiten existencias negativas en inventario. | inventory | `BusinessRuleException` |
-| RN-03 | No se puede reservar inventario dañado. | inventory | `BusinessRuleException` |
-| RN-04 | El ciclo de vida del pedido es: `CART` → `PENDING_PAYMENT` → `PAID` → `DISPATCHED` → `DELIVERED` → `FINISHED`. | orders | `InvalidStatusTransitionException` |
-| RN-05 | Un vendedor debe estar activo para publicar productos. | catalog | `BusinessRuleException` |
-| RN-06 | No se puede registrar un usuario con un email ya existente. | users | `DuplicateResourceException` |
-| RN-07 | Un comprador debe estar activo para realizar compras. | orders | `BusinessRuleException` |
-| RN-08 | Toda acción relevante (creación, modificación, eliminación) debe quedar auditada. | audit | - |
-| RN-09 | Un pedido debe estar en estado `PENDING_PAYMENT` para poder registrar el pago. | orders | `InvalidStatusTransitionException` |
-| RN-10 | No se puede despachar un pedido que no esté pagado. | logistics | `InvalidStatusTransitionException` |
+## 3. ESTRUCTURA DEL PROYECTO
+com.nexusmarket/
+├── NexusMarketApplication.java
+├── domain/ ← Núcleo puro (sin Spring/JPA/Mongo)
+│ ├── models/ ← 14 POJOs de dominio
+│ ├── valueobjects/ ← 10 enums y VOs de estado/tipo
+│ ├── exceptions/ ← 17 excepciones de negocio
+│ ├── ports/
+│ │ ├── in/ ← 15 interfaces de casos de uso
+│ │ └── out/ ← 13 interfaces de repositorios
+│ └── services/ ← 20 servicios de dominio
+├── adapters/
+│ ├── persistence/
+│ │ ├── jpa/ ← Persistencia SQL relacional
+│ │ │ ├── adapters/ ← Implementan ports/out
+│ │ │ ├── entities/ ← Entidades @Entity
+│ │ │ ├── mappers/ ← Entity ↔ Domain
+│ │ │ └── repositories/ ← Spring Data JpaRepository
+│ │ └── mongodb/ ← Persistencia NoSQL (auditoría)
+│ │ ├── adapters/ ← AuditLogMongoAdapter
+│ │ ├── documents/ ← AuditLogDocument (@Document)
+│ │ ├── mappers/ ← Document ↔ Domain
+│ │ └── repositories/ ← MongoRepository
+│ ├── rest/ ← Adaptadores de entrada API REST
+│ │ ├── controllers/ ← @RestController
+│ │ ├── dtos/
+│ │ │ ├── requests/ ← DTOs de entrada con @Valid
+│ │ │ └── responses/ ← DTOs de salida + ErrorResponse
+│ │ ├── mappers/ ← Domain ↔ DTO
+│ │ └── exception/ ← GlobalExceptionHandler
+│ └── useCases/ ← 15 implementaciones de ports/in
+└── infrastructure/
+└── security/ ← Spring Security + JWT
 
-### 6. Servicios Requeridos por Módulo
-| Módulo | Servicio | Responsabilidad Principal |
-|--------|----------|---------------------------|
-| users | `UserService` | Gestión de usuarios: creación, bloqueo, activación. |
-| users | `BuyerService` | Administración de compradores y direcciones. |
-| users | `SellerService` | Registro y administración de vendedores. |
-| catalog | `CatalogService` | Consulta pública del catálogo. |
-| catalog | `ProductService` | Gestión de productos (publicar, actualizar, descontinuar). |
-| catalog | `CategoryService` | Administración de categorías. |
-| catalog | `WarehouseService` | Control de información de bodegas. |
-| inventory | `InventoryService` | Control de stock, reservas y estados del inventario. |
-| orders | `OrderService` | Ciclo completo de vida del pedido. |
-| logistics | `ShipmentService` | Gestión de envíos y entregas. |
-| logistics | `ReturnService` | Gestión de devoluciones. |
-| billing | `InvoiceService` | Generación y consulta de facturas. |
-| billing | `RefundService` | Gestión de reembolsos. |
-| audit | `AuditService` | Registro de acciones en MongoDB. |
+text
 
-### 7. Estrategia de Excepciones Personalizadas
-| Excepción | HTTP | Cuándo se lanza |
-|-----------|------|-----------------|
-| `ResourceNotFoundException` | 404 | El recurso solicitado no existe. |
-| `BusinessRuleException` | 422 | Se viola una regla de negocio (RN-02, RN-03, RN-05, RN-07). |
-| `InvalidStatusTransitionException` | 409 | Transición de estado inválida (RN-01, RN-04, RN-09, RN-10). |
-| `DuplicateResourceException` | 409 | Se intenta crear un recurso que ya existe (RN-06). |
-| `ProductNotAvailableException` | 409 | Producto con stock reservado o no disponible para la operación. |
-| `CategoryHasProductsException` | 409 | Intento de eliminar una categoría con productos asignados. |
-| `WarehouseCapacityExceededException` | 422 | Capacidad de la bodega superada al asignar inventario. |
-| `InvoiceAlreadyExistsException` | 409 | Ya existe una factura activa para la orden. |
-| `InvoiceNotPayableException` | 422 | La orden no está en estado pagado para facturarse. |
-| `RefundAmountExceededException` | 422 | Monto a reembolsar excede el total facturado. |
-| `RefundNotAllowedException` | 422 | Reembolso o anulación no permitida según estado de la factura. |
-| `PaymentGatewayException` | 502 | Falla de pasarela de pagos. |
-| `ShipmentAlreadyExistsException` | 409 | Ya existe un envío para la orden o tracking repetido. |
-| `TrackingNotFoundException` | 404 | Número de rastreo de envío no encontrado. |
-| `ReturnWindowExpiredException` | 422 | La ventana de devolución (30 días) ha expirado. |
-| `ReturnNotAllowedException` | 422 | Retorno no permitido para órdenes no entregadas/finalizadas. |
-| `ReturnAlreadyProcessedException` | 409 | Devolución ya procesada o completada anteriormente. |
-| `ErrorResponse` | - | DTO estándar de respuesta de error (timestamp, status, message). |
+### Descripción de Componentes Principales
 
-Todas son capturadas por el `GlobalExceptionHandler` (`@RestControllerAdvice`), que garantiza respuestas de error consistentes en toda la API.
+- **`domain/models/`**: Entidades centrales como POJOs con métodos de comportamiento puro.
+- **`domain/valueobjects/`**: Tipos que encapsulan estado o enumeraciones del negocio.
+- **`domain/exceptions/`**: Excepciones de negocio tipadas para cada caso de fallo.
+- **`domain/ports/in/`**: Contratos de entrada que aíslan la lógica aplicativa de la capa web.
+- **`domain/ports/out/`**: Contratos de persistencia que desacoplan el motor de BD del negocio.
+- **`adapters/persistence/`**: Implementaciones JPA y MongoDB que satisfacen los ports/out.
+- **`adapters/rest/`**: Controllers, DTOs, mappers y manejador global de excepciones.
+- **`adapters/useCases/`**: Implementaciones de los ports/in que orquestan servicios de dominio.
+- **`infrastructure/security/`**: Configuración de Spring Security, JWT y filtros.
 
 ---
 
-### 8. Endpoints de la API REST
+## 4. FLUJO DE UNA PETICIÓN HTTP
 
-#### Módulo Auth (nuevo)
-- `POST /api/auth/register` - **Público.** Autorregistro de BUYER o SELLER (crea User + perfil). Devuelve JWT.
-- `POST /api/auth/login` - **Público.** Valida credenciales y devuelve JWT.
+Ejemplo: **`POST /api/products`**
+Cliente HTTP (Frontend / Postman)
+│
+│ 1. POST /api/products con JSON body + Header "Authorization: Bearer <token>"
+▼
+Security Filter Chain (JwtAuthenticationFilter)
+│ 2. Valida firma del JWT y extrae claims (roles y usuario)
+│ 3. Establece la autenticación en SecurityContextHolder
+▼
+ProductController (adapters/rest/controllers/ProductController.java)
+│ 4. Recibe @Valid ProductCreateRequestDTO
+│ 5. Invoca ProductUseCasePort.createProduct(...)
+▼
+ProductUseCaseImpl (adapters/useCases/ProductUseCaseImpl.java)
+│ 6. Implementa ProductUseCasePort
+│ 7. Delega la ejecución de reglas al ProductDomainService
+▼
+ProductDomainService (domain/services/ProductDomainService.java)
+│ 8. Ejecuta reglas de negocio puras:
+│ - Valida precio > 0 (si no, BusinessRuleException)
+│ - Verifica unicidad de SKU vía ProductRepositoryPort.existsBySku()
+│ - Valida existencia de categoría y vendedor
+│ 9. Instancia el modelo de dominio puro Product
+│ 10. Invoca ProductRepositoryPort.save(product)
+▼
+ProductJpaAdapter (adapters/persistence/jpa/adapters/ProductJpaAdapter.java)
+│ 11. Implementa ProductRepositoryPort
+│ 12. Convierte vía ProductJpaMapper.toEntity(product) → ProductJpaEntity
+│ 13. Invoca ProductJpaRepository.save(entity)
+▼
+Base de Datos (MySQL 8)
+│ 14. Ejecuta INSERT INTO productos (...)
+│ 15. Retorna la fila persistida con ID autogenerado
+▲
+ProductJpaAdapter
+│ 16. Recibe ProductJpaEntity con ID
+│ 17. Transforma vía ProductJpaMapper.toDomain(savedEntity) → Product
+▲
+ProductUseCaseImpl
+│ 18. Recibe el Product de dominio persistido
+▲
+ProductController
+│ 19. Transforma con ProductRestMapper.toResponseDTO(product)
+│ 20. Construye ResponseEntity<>(responseDTO, HttpStatus.CREATED)
+▲
+Cliente HTTP
 
-#### Módulo Users
-- `GET /api/users/me` - **Autenticado (cualquier rol).** Perfil del usuario del token.
-- `POST /api/users` - Crear usuario con DTO validado. **Solo ADMIN.**
-- `GET /api/users/{id}` - Obtener usuario por ID
-- `GET /api/users/email` - Obtener usuario por email
-- `GET /api/users` - Listar usuarios
-- `GET /api/users/role/{role}` - Filtrar usuarios por rol
-- `PATCH /api/users/{id}/block` - Bloquear usuario
-- `PATCH /api/users/{id}/activate` - Activar usuario
-- `PATCH /api/users/{id}/role` - Cambiar rol
-- `POST /api/buyers` - Crear comprador con DTO
-- `GET /api/buyers/{id}` - Obtener comprador
-- `GET /api/buyers` - Listar compradores
-- `GET /api/buyers/status/{status}` - Filtrar por estado comercial
-- `POST /api/buyers/{id}/addresses` - Añadir dirección adicional
-- `PATCH /api/buyers/{id}/status` - Cambiar estado comercial
-- `POST /api/sellers` - Crear vendedor con DTO
-- `GET /api/sellers/{id}` - Obtener vendedor
-- `GET /api/sellers/taxId` - Buscar vendedor por NIT/RUT
-- `GET /api/sellers` - Listar vendedores
-- `PATCH /api/sellers/{id}/activate` - Activar vendedor
-- `PATCH /api/sellers/{id}/deactivate` - Desactivar vendedor
-- `PATCH /api/sellers/{id}/update` - Actualizar información del vendedor
+Recibe HTTP 201 Created con el payload JSON del producto
 
-#### Módulo Catalog
-- `POST /api/products` - Crear producto (valida SKU único, rol SELLER activo, precio > 0)
-- `GET /api/products/{id}` - Detalle de producto por ID
-- `GET /api/products` - Listar todos los productos
-- `GET /api/products/category/{categoryId}` - Filtrar por categoría
-- `GET /api/products/seller/{sellerId}` - Filtrar por vendedor
-- `GET /api/products/price-range` - Filtrar por rango de precio
-- `PATCH /api/products/{id}` - Actualizar producto
-- `DELETE /api/products/{id}` - Desactivar producto (soft-delete, valida stock reservado)
-- `GET /api/catalog` - Vista general agregada del catálogo
-- `GET /api/catalog/search` - Búsqueda de productos en catálogo
-- `GET /api/catalog/products/{id}` - Detalle de producto en catálogo
-- `POST /api/categories` - Crear categoría con soporte de jerarquía
-- `GET /api/categories` - Listar todas las categorías
-- `GET /api/categories/roots` - Listar categorías raíz
-- `GET /api/categories/{id}` - Obtener categoría por ID
-- `PATCH /api/categories/{id}` - Actualizar categoría
-- `DELETE /api/categories/{id}` - Eliminar categoría (valida que no tenga productos)
-- `POST /api/warehouses` - Crear bodega
-- `GET /api/warehouses` - Listar bodegas
-- `GET /api/warehouses/{id}` - Obtener bodega por ID
-- `GET /api/warehouses/type/{type}` - Filtrar bodegas por tipo
-- `PATCH /api/warehouses/{id}` - Actualizar bodega (valida capacidad vs stock actual)
-
-#### Módulo Inventory
-- `POST /api/inventory` (y `/api/inventories`) - Crear inventario (valida capacidad de bodega)
-- `GET /api/inventory/{id}` - Obtener inventario por ID
-- `GET /api/inventory` - Listar inventarios
-- `GET /api/inventory/product/{productId}` - Filtrar inventario por producto
-- `GET /api/inventory/warehouse/{warehouseId}` - Filtrar inventario por bodega
-- `PATCH /api/inventory/{id}/reserve` - Reservar existencias
-- `PATCH /api/inventory/{id}/confirm-payment` - Confirmar pago/salida
-- `PATCH /api/inventory/{id}/damage` (o `/mark-damaged`) - Marcar inventario como dañado
-- `PATCH /api/inventory/{id}/adjust` - Ajustar cantidades
-
-#### Módulo Orders
-- `POST /api/orders` - Crear orden para un comprador activo
-- `GET /api/orders/{id}` - Obtener orden con sus items y montos calculados
-- `GET /api/orders` - Listar órdenes
-- `GET /api/orders/buyer/{buyerId}` - Listar órdenes por comprador
-- `POST /api/orders/{id}/items` - Añadir ítem a la orden (recalcula total)
-- `DELETE /api/orders/{id}/items/{itemId}` - Eliminar ítem de la orden (recalcula total)
-- `PATCH /api/orders/{id}/confirm-payment` - Confirmar pago (PENDING_PAYMENT -> PAID)
-- `PATCH /api/orders/{id}/dispatch` - Despachar orden (PAID -> DISPATCHED)
-- `PATCH /api/orders/{id}/deliver` - Registrar entrega (DISPATCHED -> DELIVERED)
-- `PATCH /api/orders/{id}/finish` - Finalizar orden (DELIVERED -> FINISHED)
-- `PATCH /api/orders/{id}/cancel` - Cancelar orden
-
-#### Módulo Billing
-- `POST /api/invoices` - Generar factura (valida orden pagada y factura única)
-- `GET /api/invoices/{id}` - Obtener factura por ID
-- `GET /api/invoices/order/{orderId}` - Obtener factura por orden
-- `GET /api/invoices` - Listar facturas
-- `PATCH /api/invoices/{id}/void` - Anular factura
-- `POST /api/refunds` - Solicitar reembolso (valida monto y factura pagada)
-- `GET /api/refunds/{id}` - Obtener reembolso por ID
-- `GET /api/refunds/invoice/{invoiceId}` - Listar reembolsos por factura
-- `GET /api/refunds` - Listar todos los reembolsos
-- `PATCH /api/refunds/{id}/approve` - Aprobar reembolso
-- `PATCH /api/refunds/{id}/reject` - Rechazar reembolso
-
-#### Módulo Logistics
-- `POST /api/shipments` - Crear envío (valida orden DISPATCHED y tracking único)
-- `GET /api/shipments/{id}` - Obtener envío por ID
-- `GET /api/shipments/tracking/{trackingNumber}` - Consultar por guía de rastreo
-- `GET /api/shipments/order/{orderId}` - Consultar envío por orden
-- `GET /api/shipments` - Listar envíos
-- `PATCH /api/shipments/{id}/status` - Actualizar estado de envío
-- `POST /api/returns` - Solicitar devolución (valida orden entregada y ventana de 30 días)
-- `GET /api/returns/{id}` - Obtener devolución por ID
-- `GET /api/returns/order/{orderId}` - Consultar devoluciones por orden
-- `GET /api/returns` - Listar devoluciones
-- `PATCH /api/returns/{id}/approve` - Aprobar devolución
-- `PATCH /api/returns/{id}/reject` - Rechazar devolución
-- `PATCH /api/returns/{id}/complete` - Completar devolución
-
-#### Módulo Audit
-- `GET /api/audit` - Consultar logs de auditoría (con filtros por usuario, entidad y rango de fechas)
-- `GET /api/audit/{id}` - Obtener log de auditoría por ID
+text
 
 ---
 
-### 9. Seguridad: Autenticación y Autorización (JWT)
+## 5. MÓDULOS Y PUERTOS
 
-> **Todos los endpoints exigen un JWT válido salvo los dos de `/api/auth/**`, Swagger y `/actuator/health`.**
+| Módulo | Port In (Casos de Uso) | Port Out (Persistencia) | Domain Services | Adapters |
+|--------|------------------------|-------------------------|-----------------|----------|
+| **Auth** | `AuthenticationUseCasePort` | — | — | `AuthController`, `AuthenticationUseCaseImpl` |
+| **Users** | `UserUseCasePort`, `BuyerUseCasePort`, `SellerUseCasePort` | `UserRepositoryPort`, `BuyerRepositoryPort`, `SellerRepositoryPort` | `UserManagementService`, `BuyerDomainService`, `SellerDomainService` | `UserController`, `BuyerController`, `SellerController` |
+| **Catalog** | `ProductUseCasePort`, `CategoryUseCasePort`, `WarehouseUseCasePort`, `CatalogUseCasePort` | `ProductRepositoryPort`, `CategoryRepositoryPort`, `WarehouseRepositoryPort` | `ProductDomainService`, `CategoryDomainService`, `WarehouseDomainService` | `ProductController`, `CategoryController`, `WarehouseController`, `CatalogController` |
+| **Inventory** | `InventoryUseCasePort` | `InventoryRepositoryPort` | `InventoryManagementService`, `InventoryConsultService` | `InventoryController`, `InventoryJpaAdapter` |
+| **Orders** | `OrderUseCasePort` | `OrderRepositoryPort` | `OrderCreateService`, `OrderCalculationService`, `OrderLifecycleService` | `OrderController`, `OrderJpaAdapter` |
+| **Billing** | `InvoiceUseCasePort`, `RefundUseCasePort` | `InvoiceRepositoryPort`, `RefundRepositoryPort` | `InvoiceGenerateService`, `InvoiceVoidService`, `RefundProcessService`, `RefundApproveService` | `InvoiceController`, `RefundController` |
+| **Logistics** | `ShipmentUseCasePort`, `ReturnUseCasePort` | `ShipmentRepositoryPort`, `ReturnRepositoryPort` | `ShipmentCreateService`, `ShipmentStatusService`, `ReturnProcessService` | `ShipmentController`, `ReturnController` |
+| **Audit** | `AuditUseCasePort` | `AuditLogRepositoryPort` | `RegisterAuditLogService`, `ConsultAuditLogsService` | `AuditController`, `AuditLogMongoAdapter` |
 
-#### 9.1 Flujo de autenticación
+---
 
-```
-1. POST /api/auth/register  → crea el usuario (BCrypt) + perfil → devuelve un JWT
-        (o)
-   POST /api/auth/login     → valida credenciales → devuelve un JWT
+## 6. ENDPOINTS REST
 
-2. El cliente guarda el token y lo envía en cada petición:
-   Authorization: Bearer <token>
+### 6.1 Autenticación (público)
 
-3. JwtAuthenticationFilter valida el token en cada request y puebla el
-   SecurityContext. Si el token falta o es inválido, la petición llega
-   sin autenticar y la API responde 401.
-```
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | /api/auth/register | Autorregistro de BUYER o SELLER |
+| POST | /api/auth/login | Login y obtención de JWT |
 
-#### 9.2 Ejemplos con curl
+### 6.2 Usuarios
 
-**Registrar un comprador**
-```bash
-curl -i -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-        "email": "buyer1@test.com",
-        "fullName": "Juan Perez",
-        "password": "secret123",
-        "role": "BUYER",
-        "primaryAddress": "Calle 123 #45-67"
-      }'
-# 201 Created → {"tokenType":"Bearer","token":"eyJ...","expiresIn":86400000,...}
-```
+| Método | Ruta | Rol |
+|--------|------|-----|
+| GET | /api/users/me | Autenticado |
+| GET | /api/users/{id} | ADMIN |
+| POST | /api/users | ADMIN |
 
-**Registrar un vendedor**
-```bash
-curl -i -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-        "email": "seller1@test.com",
-        "fullName": "Tienda SA",
-        "password": "secret123",
-        "role": "SELLER",
-        "taxId": "900123456-7",
-        "companyName": "Tienda Nexus"
-      }'
-```
+### 6.3 Catálogo
 
-**Iniciar sesión**
-```bash
-curl -i -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "buyer1@test.com", "password": "secret123"}'
-# 200 OK → {"tokenType":"Bearer","token":"eyJ...","expiresIn":86400000,...}
-```
+| Método | Ruta | Rol |
+|--------|------|-----|
+| GET | /api/products | Autenticado |
+| GET | /api/products/{id} | Autenticado |
+| POST | /api/products | SELLER, ADMIN |
+| PATCH | /api/products/{id} | SELLER, ADMIN |
+| DELETE | /api/products/{id} | ADMIN |
+| GET | /api/categories | Autenticado |
+| POST | /api/categories | ADMIN |
+| GET | /api/warehouses | Autenticado |
+| GET | /api/catalog | Autenticado |
 
-**Usar el token**
-```bash
-TOKEN="eyJhbGciOiJIUzI1NiJ9..."
+### 6.4 Inventario
 
-curl -i http://localhost:8080/api/users/me \
-  -H "Authorization: Bearer $TOKEN"
-```
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | /api/inventories | Listar |
+| POST | /api/inventories | Crear |
+| PATCH | /api/inventories/{id}/reserve | Reservar |
+| PATCH | /api/inventories/{id}/confirm-payment | Confirmar pago |
+| PATCH | /api/inventories/{id}/mark-damaged | Marcar dañado |
 
-#### 9.3 Formato del JWT
+### 6.5 Órdenes
 
-Algoritmo **HS256** (HMAC-SHA256). Payload de ejemplo:
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | /api/orders | Listar |
+| POST | /api/orders | Crear |
+| POST | /api/orders/{id}/items | Añadir ítem |
+| DELETE | /api/orders/{id}/items/{itemId} | Quitar ítem |
+| PATCH | /api/orders/{id}/checkout | Checkout |
+| PATCH | /api/orders/{id}/confirm-payment | Confirmar pago |
+| PATCH | /api/orders/{id}/dispatch | Despachar |
+| PATCH | /api/orders/{id}/deliver | Entregar |
+| PATCH | /api/orders/{id}/finish | Finalizar |
+| PATCH | /api/orders/{id}/cancel | Cancelar |
 
-```json
-{
-  "roles": ["ROLE_BUYER"],
-  "sub": "buyer1@test.com",
-  "iat": 1759100000,
-  "exp": 1759186400
+### 6.6 Facturación
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | /api/invoices | Generar factura |
+| GET | /api/invoices | Listar |
+| PATCH | /api/invoices/{id}/void | Anular |
+| POST | /api/refunds | Crear reembolso |
+| PATCH | /api/refunds/{id}/approve | Aprobar |
+
+### 6.7 Logística
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | /api/shipments | Crear envío |
+| PATCH | /api/shipments/{id}/status | Actualizar estado |
+| POST | /api/returns | Crear devolución |
+| PATCH | /api/returns/{id}/approve | Aprobar devolución |
+
+### 6.8 Auditoría
+
+| Método | Ruta | Rol |
+|--------|------|-----|
+| GET | /api/audit | ADMIN, SUPERVISOR |
+| GET | /api/audit/{id} | ADMIN, SUPERVISOR |
+
+---
+
+## 7. SEGURIDAD JWT
+
+Los archivos de seguridad están en `infrastructure/security/`:
+
+| Archivo | Rol |
+|---------|-----|
+| `SecurityConfig` | Configuración de Spring Security (filtros, rutas, CORS) |
+| `JwtService` | Generación y validación de JWT |
+| `JwtAuthenticationFilter` | Lee `Authorization: Bearer <token>` |
+| `CustomUserDetailsService` | Carga usuarios desde `UserRepositoryPort` |
+| `UserDetailsAdapter` | Adapta `User` (dominio) a `UserDetails` |
+| `RestAuthenticationEntryPoint` | Responde 401 con `ErrorResponse` |
+| `RestAccessDeniedHandler` | Responde 403 con `ErrorResponse` |
+
+### Flujo de autenticación
+
+1. Cliente invoca `POST /api/auth/login` con credenciales (email y password).
+2. `AuthenticationUseCase` valida el hash BCrypt a través del `UserManagementService`.
+3. Se genera un JWT con expiración (24 horas) y rol incrustado.
+4. El cliente almacena el token y lo añade: `Authorization: Bearer eyJ...`.
+5. `JwtAuthenticationFilter` extrae el token del encabezado:
+   - Si no existe y el endpoint es público → continúa la cadena.
+   - Si existe y es válido → resuelve el `User` y crea `UsernamePasswordAuthenticationToken` en `SecurityContextHolder`.
+   - Si está expirado o corrupto → interrumpe con 401 Unauthorized.
+6. Spring Security autoriza comparando autoridades con las reglas de `SecurityConfig`.
+
+---
+
+## 8. EXCEPCIONES Y MANEJO DE ERRORES
+
+### 8.1 Catálogo de Excepciones de Dominio (`domain/exceptions/`)
+
+17 excepciones que representan casos de borde y reglas de negocio:
+
+- **ResourceNotFoundException**: ID o identificador no existe.
+- **BusinessRuleException**: Infracción genérica de reglas de negocio.
+- **InvalidStatusTransitionException**: Transición de estado inválida.
+- **DuplicateResourceException**: Conflicto de unicidad (SKU, email).
+- **CategoryHasProductsException**: Eliminar categoría con productos.
+- **ProductNotAvailableException**: Producto descontinuado.
+- **WarehouseCapacityExceededException**: Excede capacidad de bodega.
+- **InvoiceAlreadyExistsException**: Factura duplicada para una orden.
+- **InvoiceNotPayableException**: Pagar factura ya pagada o anulada.
+- **RefundAmountExceededException**: Reembolso mayor al total facturado.
+- **RefundNotAllowedException**: Reembolso rechazado por condiciones.
+- **PaymentGatewayException**: Fallo con pasarela de pago.
+- **ShipmentAlreadyExistsException**: Envío duplicado.
+- **TrackingNotFoundException**: Tracking inexistente.
+- **ReturnWindowExpiredException**: Devolución fuera de plazo.
+- **ReturnNotAllowedException**: Devolución no permitida.
+- **ReturnAlreadyProcessedException**: Devolución ya procesada.
+
+### 8.2 Manejador Centralizado
+
+`GlobalExceptionHandler` (en `adapters/rest/exception/`) captura todas las excepciones y las serializa en `ErrorResponse`:
+
+```java
+public class ErrorResponse {
+    private int status;
+    private String error;
+    private String message;
+    private String path;
+    private LocalDateTime timestamp;
+    private List<String> details;
 }
-```
+8.3 Mapeo de Códigos HTTP
+Código	Significado	Excepciones asociadas
+400	Bad Request	MethodArgumentNotValidException, HttpMessageNotReadableException
+401	Unauthorized	AuthenticationException, token ausente/expirado
+403	Forbidden	AccessDeniedException
+404	Not Found	ResourceNotFoundException, TrackingNotFoundException
+409	Conflict	InvalidStatusTransitionException, DuplicateResourceException, CategoryHasProductsException
+422	Unprocessable Entity	BusinessRuleException, WarehouseCapacityExceededException, InvoiceNotPayableException
+500	Internal Server Error	Exception.class (fallback)
+9. TESTING
+9.1 Estrategia
+Pruebas unitarias con Mockito: Aíslan los ports/out con @Mock. Verifican cálculos, transiciones de estado y reglas de negocio.
 
-| Claim | Significado |
-|-------|-------------|
-| `sub` | Email del usuario (el "username" del sistema). |
-| `roles` | Autoridades concedidas, con prefijo `ROLE_`. |
-| `iat` | Momento de emisión (issued at). |
-| `exp` | Momento de expiración. |
+Pruebas de controladores con @WebMvcTest: Validan serialización JSON, códigos HTTP, validaciones Jakarta y seguridad.
 
-**TTL del token: 24 horas** (`jwt.expiration=86400000` ms). Pasado ese tiempo, cualquier petición devuelve 401 y el cliente debe volver a hacer login.
+9.2 Resultados actuales
+94 tests verdes (0 fallos, 0 errores).
 
-#### 9.4 Cómo registrar un rol privilegiado
+Suite	Tests
+AuditServiceTest	3
+AuthControllerTest	11
+AuthServiceTest	15
+InvoiceServiceTest	4
+RefundServiceTest	3
+CatalogServiceTest	3
+CategoryServiceTest	5
+ProductServiceTest	4
+WarehouseServiceTest	4
+InventoryServiceTest	6
+ReturnServiceTest	5
+ShipmentServiceTest	3
+OrderServiceTest	4
+UserControllerTest	16
+UserServiceTest	8
+TOTAL	94
+9.3 Ejecución
+bash
+mvn clean test
+10. CÓMO EJECUTAR EL PROYECTO
+10.1 Requisitos
+JDK: 17 o superior
 
-`ADMIN`, `SUPERVISOR` y `WAREHOUSE_OPERATOR` **no pueden autorregistrarse**. Intentar `role=ADMIN` en `/api/auth/register` devuelve **422** con el mensaje *"Self-registration is only allowed for BUYER and SELLER roles"*. Se crean exclusivamente por un administrador:
+MySQL: 8.0+ corriendo en localhost:3306
 
-```bash
-curl -i -X POST http://localhost:8080/api/users \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin2@test.com","fullName":"Admin Dos","password":"secret123","role":"ADMIN"}'
-```
+MongoDB: local o Atlas
 
-#### 9.5 Mapa de roles → endpoints permitidos
+Maven: 3.9+
 
-| Rol | Puede acceder a |
-|-----|-----------------|
-| *(anónimo)* | `POST /api/auth/register`, `POST /api/auth/login`, `/swagger-ui/**`, `/v3/api-docs/**`, `/actuator/health` |
-| `ADMIN` | Todo. En particular `/api/users/**` (salvo `/api/users/me`, que es de todos), `/api/audit/**` |
-| `SUPERVISOR` | `/api/audit/**` + el resto de endpoints autenticados |
-| `BUYER` | `/api/users/me`, lecturas de catálogo, órdenes, facturas, devoluciones propias |
-| `SELLER` | `/api/users/me`, lecturas de catálogo, sus productos, envíos de sus órdenes |
-| `WAREHOUSE_OPERATOR` | `/api/users/me`, `/api/inventory/**`, `/api/shipments/**`, `/api/warehouses/**` |
+10.2 Configuración (application.properties)
+properties
+# ===== Servidor =====
+server.port=8080
+spring.application.name=nexus-market
 
-#### 9.6 Códigos HTTP de seguridad
+# ===== MySQL =====
+spring.datasource.url=jdbc:mysql://localhost:3306/nexusmarket?useSSL=false&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true
+spring.datasource.username=${DB_USERNAME:root}
+spring.datasource.password=${DB_PASSWORD:root}
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
-| Código | Cuándo | Body |
-|--------|--------|------|
-| **401 Unauthorized** | Sin token, token malformado, firma inválida o token expirado | `ErrorResponse` JSON |
-| **403 Forbidden** | Token **válido** pero el rol no tiene permiso para la ruta | `ErrorResponse` JSON |
+# ===== JPA =====
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.open-in-view=false
 
-Ambos devuelven el formato estándar de error del proyecto:
+# ===== MongoDB =====
+spring.data.mongodb.uri=${MONGODB_URI:mongodb://localhost:27017/nexusmarket_audit}
 
-```json
-{
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "Authentication is required to access this resource",
-  "path": "/api/users/me",
-  "timestamp": "2026-09-29T10:15:30",
-  "details": null
-}
-```
+# ===== JWT =====
+jwt.secret=${JWT_SECRET:...}
+jwt.expiration=86400000
+10.3 Pasos
+bash
+# 1. Crear BD MySQL
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS nexusmarket CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-```json
-{
-  "status": 403,
-  "error": "Forbidden",
-  "message": "You do not have permission to access this resource",
-  "path": "/api/users/1",
-  "timestamp": "2026-09-29T10:15:30",
-  "details": null
-}
-```
+# 2. Compilar
+mvn clean install -DskipTests
 
-#### 9.7 Gestión de secretos (variables de entorno)
+# 3. Iniciar
+mvn spring-boot:run
+App disponible en http://localhost:8080.
 
-Los secretos se leen de variables de entorno con **fallback de desarrollo** en `application.properties`:
+11. RAMAS GIT Y CONTROL DE VERSIONES
+11.1 Política de Ramas
+main: Rama principal y definitiva. Contiene la versión oficial con Arquitectura Hexagonal completa, 94 tests verdes y desacoplamiento estricto de capas.
 
-| Propiedad | Variable de entorno | Fallback de dev |
-|-----------|---------------------|-----------------|
-| `spring.datasource.username` | `DB_USERNAME` | `root` |
-| `spring.datasource.password` | `DB_PASSWORD` | `root` |
-| `spring.data.mongodb.uri` | `MONGODB_URI` | cadena de Atlas |
-| `jwt.secret` | `JWT_SECRET` | clave de 64 chars |
+Ramas de migración/experimentación: Consolidadas en main, pueden eliminarse para conservar un historial limpio.
 
-**PowerShell (desarrollo local):**
-```powershell
-$env:JWT_SECRET = "<nuevo-secreto-de-64-caracteres>"
-$env:DB_PASSWORD = "<password-mysql>"
-$env:MONGODB_URI = "mongodb+srv://..."
-```
+11.2 Convenciones de Commits
+Seguir el estándar Conventional Commits:
 
-**Docker:**
-```bash
-docker run -e JWT_SECRET="..." -e DB_PASSWORD="..." -e MONGODB_URI="..." nexusmarket
-```
+feat(modulo): Nueva funcionalidad respetando puertos y adaptadores.
 
-**Producción:** usar un secrets manager (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault) o los secrets nativos del orquestador (Kubernetes Secrets), nunca el repositorio.
+fix(modulo): Corrección de errores.
 
-#### 9.8 Cómo rotar el `jwt.secret`
+test(modulo): Nuevas pruebas unitarias o de integración.
 
-1. Generar un valor nuevo de al menos 32 bytes (`openssl rand -base64 48`).
-2. Actualizar la variable `JWT_SECRET` y reiniciar la aplicación.
-3. **Efecto inmediato:** todos los tokens emitidos con el secreto anterior dejan de validar → logout global forzado. Los clientes deben hacer login otra vez.
+refactor(modulo): Ajustes estructurales sin alterar comportamiento.
 
-#### 9.9 Notas importantes y limitaciones conocidas
-
-- **Usuarios antiguos en texto plano**: los usuarios creados **antes** de la Fase 2 tienen la contraseña en texto plano en MySQL y **ya no pueden iniciar sesión** (BCrypt nunca hará match contra texto plano). Deben recrearse vía `POST /api/auth/register` o `POST /api/users`.
-- **JWT stateless sin refresh token**: no hay refresh token ni blacklist. Consecuencia práctica: un usuario **bloqueado** que ya tenga un token válido lo conservará hasta que expire (máximo 24 h). Mitigación futura: refresh tokens + blacklist.
-- **Aviso de seguridad**: los secretos siguen teniendo un fallback literal en `application.properties`, que **está en git**, para no romper el desarrollo local. En producción es obligatorio inyectar las variables de entorno y eliminar los fallbacks.
+docs: Actualización de documentación.
