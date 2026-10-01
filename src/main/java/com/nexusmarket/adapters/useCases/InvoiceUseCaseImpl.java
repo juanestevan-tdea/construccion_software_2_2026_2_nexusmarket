@@ -1,16 +1,18 @@
 package com.nexusmarket.adapters.useCases;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.services.InvoiceGenerateService;
 import com.nexusmarket.domain.services.InvoiceVoidService;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -19,7 +21,7 @@ public class InvoiceUseCaseImpl implements InvoiceUseCasePort {
     private final InvoiceGenerateService invoiceGenerateService;
     private final InvoiceVoidService invoiceVoidService;
     private final InvoiceRepositoryPort invoiceRepositoryPort;
-    private final OrderRepository orderRepository;
+    private final OrderRepositoryPort orderRepositoryPort;
 
     @Override
     public Invoice generateInvoice(Long orderId, String pdfUrl) {
@@ -34,7 +36,7 @@ public class InvoiceUseCaseImpl implements InvoiceUseCasePort {
 
     @Override
     public Invoice findByOrder(Long orderId) {
-        if (!orderRepository.existsById(orderId)) {
+        if (!orderRepositoryPort.existsById(orderId)) {
             throw new ResourceNotFoundException("Order", orderId);
         }
         return invoiceRepositoryPort.findByOrderId(orderId)

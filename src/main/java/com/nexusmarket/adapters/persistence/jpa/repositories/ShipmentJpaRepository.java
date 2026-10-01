@@ -1,22 +1,23 @@
 package com.nexusmarket.adapters.persistence.jpa.repositories;
 
-import com.nexusmarket.adapters.persistence.jpa.entities.ShipmentJpaEntity;
-import com.nexusmarket.orders.domain.model.Order;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.ShipmentJpaEntity;
 
 @Repository
 public interface ShipmentJpaRepository extends JpaRepository<ShipmentJpaEntity, Long> {
 
     Optional<ShipmentJpaEntity> findByTrackingNumber(String trackingNumber);
 
-    Optional<ShipmentJpaEntity> findByOrder(Order order);
+    Optional<ShipmentJpaEntity> findByOrder(OrderJpaEntity order);
 
-    boolean existsByOrder(Order order);
+    boolean existsByOrder(OrderJpaEntity order);
 
     boolean existsByTrackingNumber(String trackingNumber);
 

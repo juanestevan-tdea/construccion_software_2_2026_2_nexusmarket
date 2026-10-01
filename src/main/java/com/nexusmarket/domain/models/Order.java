@@ -1,20 +1,14 @@
-package com.nexusmarket.orders.domain.model;
+package com.nexusmarket.domain.models;
 
 import com.nexusmarket.common.exception.InvalidStatusTransitionException;
-import com.nexusmarket.users.domain.model.Buyer;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "pedidos")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,34 +16,21 @@ import java.util.List;
 @Builder
 public class Order {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne
-    @JoinColumn(name = "buyer_id", nullable = false)
-    private Buyer buyer;
-
-    @Column(nullable = false)
+    private Long buyerId;
+    private String buyerEmail;
     private LocalDateTime orderDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private OrderStatus status;
-
-    @Column(nullable = false)
     private BigDecimal totalAmount;
 
     @Builder.Default
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
-    // Métodos de negocio
     public void addItem(OrderItem item) {
         if (this.status != OrderStatus.CART && this.status != OrderStatus.PENDING_PAYMENT) {
             throw new InvalidStatusTransitionException(status.name(), "MODIFY_ITEMS");
         }
-        item.setOrder(this);
+        item.setOrderId(this.id);
         this.items.add(item);
         recalculateTotal();
     }

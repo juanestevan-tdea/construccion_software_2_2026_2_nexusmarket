@@ -4,14 +4,14 @@ import com.nexusmarket.adapters.useCases.ReturnUseCaseImpl;
 import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
 import com.nexusmarket.common.exception.ReturnNotAllowedException;
 import com.nexusmarket.common.exception.ReturnWindowExpiredException;
+import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
 import com.nexusmarket.domain.services.ReturnProcessService;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.domain.valueobjects.ReturnStatus;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.model.OrderStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +34,7 @@ class ReturnServiceTest {
     private ReturnRepositoryPort returnRepositoryPort;
 
     @Mock
-    private OrderRepository orderRepository;
+    private OrderRepositoryPort orderRepositoryPort;
 
     private ReturnUseCasePort returnUseCase;
 
@@ -47,13 +47,13 @@ class ReturnServiceTest {
         order.setStatus(OrderStatus.DELIVERED);
         order.setOrderDate(LocalDateTime.now().minusDays(5));
 
-        ReturnProcessService returnProcessService = new ReturnProcessService(returnRepositoryPort, orderRepository);
-        returnUseCase = new ReturnUseCaseImpl(returnProcessService, returnRepositoryPort, orderRepository);
+        ReturnProcessService returnProcessService = new ReturnProcessService(returnRepositoryPort, orderRepositoryPort);
+        returnUseCase = new ReturnUseCaseImpl(returnProcessService, returnRepositoryPort, orderRepositoryPort);
     }
 
     @Test
     void createReturn_Success() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
         when(returnRepositoryPort.findByOrderId(1L)).thenReturn(Collections.emptyList());
         when(returnRepositoryPort.save(any(Return.class))).thenAnswer(i -> {
             Return ret = i.getArgument(0);
@@ -72,7 +72,7 @@ class ReturnServiceTest {
     void createReturn_ThrowsReturnNotAllowedException_WhenOrderNotDeliveredOrFinished() {
         order.setStatus(OrderStatus.PAID);
 
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
 
         assertThrows(ReturnNotAllowedException.class, () -> returnUseCase.createReturn(1L, "Defective"));
     }
@@ -81,7 +81,7 @@ class ReturnServiceTest {
     void createReturn_ThrowsReturnWindowExpiredException_WhenOver30Days() {
         order.setOrderDate(LocalDateTime.now().minusDays(35));
 
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
 
         assertThrows(ReturnWindowExpiredException.class, () -> returnUseCase.createReturn(1L, "Too late"));
     }
@@ -90,7 +90,7 @@ class ReturnServiceTest {
     void createReturn_ThrowsReturnAlreadyProcessedException_WhenPendingReturnExists() {
         Return existing = Return.builder().id(2L).status(ReturnStatus.REQUESTED).build();
 
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
         when(returnRepositoryPort.findByOrderId(1L)).thenReturn(List.of(existing));
 
         assertThrows(ReturnAlreadyProcessedException.class, () -> returnUseCase.createReturn(1L, "Defective"));

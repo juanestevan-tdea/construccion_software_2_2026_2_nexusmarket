@@ -1,4 +1,4 @@
-package com.nexusmarket.orders.domain.model;
+package com.nexusmarket.domain.valueobjects;
 
 public enum OrderStatus {
     CART,

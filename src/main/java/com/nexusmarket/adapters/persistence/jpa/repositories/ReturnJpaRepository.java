@@ -1,21 +1,22 @@
 package com.nexusmarket.adapters.persistence.jpa.repositories;
 
-import com.nexusmarket.adapters.persistence.jpa.entities.ReturnJpaEntity;
-import com.nexusmarket.orders.domain.model.Order;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.ReturnJpaEntity;
 
 @Repository
 public interface ReturnJpaRepository extends JpaRepository<ReturnJpaEntity, Long> {
 
-    List<ReturnJpaEntity> findByOrder(Order order);
+    List<ReturnJpaEntity> findByOrder(OrderJpaEntity order);
 
-    Optional<ReturnJpaEntity> findFirstByOrderOrderByRequestedAtDesc(Order order);
+    Optional<ReturnJpaEntity> findFirstByOrderOrderByRequestedAtDesc(OrderJpaEntity order);
 
     @Query("SELECT r FROM ReturnJpaEntity r WHERE r.order.id = :orderId")
     List<ReturnJpaEntity> findByOrderId(@Param("orderId") Long orderId);

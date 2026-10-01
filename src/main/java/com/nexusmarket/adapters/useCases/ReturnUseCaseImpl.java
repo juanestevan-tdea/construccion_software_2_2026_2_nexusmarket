@@ -1,15 +1,17 @@
 package com.nexusmarket.adapters.useCases;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
 import com.nexusmarket.domain.services.ReturnProcessService;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -17,7 +19,7 @@ public class ReturnUseCaseImpl implements ReturnUseCasePort {
 
     private final ReturnProcessService returnProcessService;
     private final ReturnRepositoryPort returnRepositoryPort;
-    private final OrderRepository orderRepository;
+    private final OrderRepositoryPort orderRepositoryPort;
 
     @Override
     public Return createReturn(Long orderId, String reason) {
@@ -32,7 +34,7 @@ public class ReturnUseCaseImpl implements ReturnUseCasePort {
 
     @Override
     public List<Return> findByOrder(Long orderId) {
-        if (!orderRepository.existsById(orderId)) {
+        if (!orderRepositoryPort.existsById(orderId)) {
             throw new ResourceNotFoundException("Order", orderId);
         }
         return returnRepositoryPort.findByOrderId(orderId);

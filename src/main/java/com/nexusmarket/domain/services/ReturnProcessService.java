@@ -1,32 +1,34 @@
 package com.nexusmarket.domain.services;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.ReturnAlreadyProcessedException;
 import com.nexusmarket.common.exception.ReturnNotAllowedException;
 import com.nexusmarket.common.exception.ReturnWindowExpiredException;
+import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Return;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.domain.valueobjects.ReturnStatus;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.model.OrderStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ReturnProcessService {
 
     private final ReturnRepositoryPort returnRepositoryPort;
-    private final OrderRepository orderRepository;
+    private final OrderRepositoryPort orderRepositoryPort;
 
     @Transactional
     public Return createReturn(Long orderId, String reason) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.DELIVERED && order.getStatus() != OrderStatus.FINISHED) {

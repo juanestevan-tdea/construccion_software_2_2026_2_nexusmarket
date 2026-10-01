@@ -1,11 +1,16 @@
 package com.nexusmarket.orders.service;
 
+import com.nexusmarket.adapters.useCases.OrderUseCaseImpl;
 import com.nexusmarket.catalog.domain.repository.ProductRepository;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.InvalidStatusTransitionException;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.model.OrderStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
+import com.nexusmarket.domain.models.Order;
+import com.nexusmarket.domain.ports.in.OrderUseCasePort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
+import com.nexusmarket.domain.services.OrderCalculationService;
+import com.nexusmarket.domain.services.OrderCreateService;
+import com.nexusmarket.domain.services.OrderLifecycleService;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.users.domain.model.Buyer;
 import com.nexusmarket.users.domain.model.BuyerCommercialStatus;
 import com.nexusmarket.users.domain.model.User;
@@ -13,7 +18,6 @@ import com.nexusmarket.users.domain.repository.BuyerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,14 +31,13 @@ import static org.mockito.Mockito.when;
 class OrderServiceTest {
 
     @Mock
-    private OrderRepository orderRepository;
+    private OrderRepositoryPort orderRepositoryPort;
     @Mock
     private BuyerRepository buyerRepository;
     @Mock
     private ProductRepository productRepository;
 
-    @InjectMocks
-    private OrderService orderService;
+    private OrderUseCasePort orderUseCase;
 
     private Buyer buyer;
 
@@ -42,22 +45,27 @@ class OrderServiceTest {
     void setUp() {
         User user = User.builder().id(2L).email("buyer@test.com").status(com.nexusmarket.users.domain.model.UserStatus.ACTIVE).build();
         buyer = Buyer.builder().id(1L).user(user).commercialStatus(BuyerCommercialStatus.ACTIVE).build();
+
+        OrderCreateService createService = new OrderCreateService(orderRepositoryPort, buyerRepository);
+        OrderCalculationService calculationService = new OrderCalculationService(orderRepositoryPort, productRepository);
+        OrderLifecycleService lifecycleService = new OrderLifecycleService(orderRepositoryPort);
+        orderUseCase = new OrderUseCaseImpl(createService, calculationService, lifecycleService, orderRepositoryPort, buyerRepository);
     }
 
     @Test
     void createOrder_Success() {
         when(buyerRepository.findById(1L)).thenReturn(Optional.of(buyer));
-        when(orderRepository.save(any(Order.class))).thenAnswer(i -> {
+        when(orderRepositoryPort.save(any(Order.class))).thenAnswer(i -> {
             Order o = i.getArgument(0);
             o.setId(10L);
             return o;
         });
 
-        Order created = orderService.createOrder(1L);
+        Order created = orderUseCase.createOrder(1L);
 
         assertNotNull(created);
         assertEquals(OrderStatus.CART, created.getStatus());
-        assertEquals(buyer, created.getBuyer());
+        assertEquals(1L, created.getBuyerId());
     }
 
     @Test
@@ -65,7 +73,7 @@ class OrderServiceTest {
         buyer.setCommercialStatus(BuyerCommercialStatus.INACTIVE);
         when(buyerRepository.findById(1L)).thenReturn(Optional.of(buyer));
 
-        assertThrows(BusinessRuleException.class, () -> orderService.createOrder(1L));
+        assertThrows(BusinessRuleException.class, () -> orderUseCase.createOrder(1L));
     }
 
     @Test
@@ -73,9 +81,9 @@ class OrderServiceTest {
         Order order = new Order();
         order.setId(10L);
         order.setStatus(OrderStatus.CART);
-        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(10L)).thenReturn(Optional.of(order));
 
-        assertThrows(InvalidStatusTransitionException.class, () -> orderService.confirmPayment(10L));
+        assertThrows(InvalidStatusTransitionException.class, () -> orderUseCase.confirmPayment(10L));
     }
 
     @Test
@@ -83,8 +91,9 @@ class OrderServiceTest {
         Order order = new Order();
         order.setId(10L);
         order.setStatus(OrderStatus.FINISHED);
-        when(orderRepository.findById(10L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(10L)).thenReturn(Optional.of(order));
 
-        assertThrows(InvalidStatusTransitionException.class, () -> orderService.cancel(10L));
+        assertThrows(InvalidStatusTransitionException.class, () -> orderUseCase.cancel(10L));
     }
 }
+

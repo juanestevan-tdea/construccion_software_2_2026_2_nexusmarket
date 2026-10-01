@@ -1,30 +1,32 @@
 package com.nexusmarket.domain.services;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.common.exception.InvoiceAlreadyExistsException;
 import com.nexusmarket.common.exception.InvoiceNotPayableException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
+import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.model.OrderStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class InvoiceGenerateService {
 
     private final InvoiceRepositoryPort invoiceRepositoryPort;
-    private final OrderRepository orderRepository;
+    private final OrderRepositoryPort orderRepositoryPort;
 
     @Transactional
     public Invoice generateInvoice(Long orderId, String pdfUrl) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.PAID

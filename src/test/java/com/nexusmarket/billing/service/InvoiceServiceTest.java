@@ -5,15 +5,15 @@ import com.nexusmarket.common.exception.InvoiceAlreadyExistsException;
 import com.nexusmarket.common.exception.InvoiceNotPayableException;
 import com.nexusmarket.common.exception.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
+import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
 import com.nexusmarket.domain.services.InvoiceGenerateService;
 import com.nexusmarket.domain.services.InvoiceVoidService;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.domain.valueobjects.RefundStatus;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.model.OrderStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +35,7 @@ class InvoiceServiceTest {
     private InvoiceRepositoryPort invoiceRepositoryPort;
 
     @Mock
-    private OrderRepository orderRepository;
+    private OrderRepositoryPort orderRepositoryPort;
 
     @Mock
     private RefundRepositoryPort refundRepositoryPort;
@@ -51,14 +51,14 @@ class InvoiceServiceTest {
         order.setStatus(OrderStatus.PAID);
         order.setTotalAmount(BigDecimal.valueOf(250.00));
 
-        InvoiceGenerateService generateService = new InvoiceGenerateService(invoiceRepositoryPort, orderRepository);
+        InvoiceGenerateService generateService = new InvoiceGenerateService(invoiceRepositoryPort, orderRepositoryPort);
         InvoiceVoidService voidService = new InvoiceVoidService(invoiceRepositoryPort, refundRepositoryPort);
-        invoiceUseCase = new InvoiceUseCaseImpl(generateService, voidService, invoiceRepositoryPort, orderRepository);
+        invoiceUseCase = new InvoiceUseCaseImpl(generateService, voidService, invoiceRepositoryPort, orderRepositoryPort);
     }
 
     @Test
     void generateInvoice_Success() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
         when(invoiceRepositoryPort.existsByOrderIdAndActiveTrue(1L)).thenReturn(false);
         when(invoiceRepositoryPort.save(any(Invoice.class))).thenAnswer(i -> {
             Invoice inv = i.getArgument(0);
@@ -77,14 +77,14 @@ class InvoiceServiceTest {
     void generateInvoice_ThrowsInvoiceNotPayableException_WhenOrderInCart() {
         order.setStatus(OrderStatus.CART);
 
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
 
         assertThrows(InvoiceNotPayableException.class, () -> invoiceUseCase.generateInvoice(1L, null));
     }
 
     @Test
     void generateInvoice_ThrowsInvoiceAlreadyExistsException_WhenInvoiceAlreadyExists() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepositoryPort.findById(1L)).thenReturn(Optional.of(order));
         when(invoiceRepositoryPort.existsByOrderIdAndActiveTrue(1L)).thenReturn(true);
 
         assertThrows(InvoiceAlreadyExistsException.class, () -> invoiceUseCase.generateInvoice(1L, null));

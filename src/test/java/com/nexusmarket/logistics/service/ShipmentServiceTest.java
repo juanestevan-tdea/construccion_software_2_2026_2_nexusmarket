@@ -6,11 +6,11 @@ import com.nexusmarket.common.exception.InvalidStatusTransitionException;
 import com.nexusmarket.common.exception.TrackingNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
 import com.nexusmarket.domain.services.ShipmentCreateService;
 import com.nexusmarket.domain.services.ShipmentStatusService;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +29,7 @@ class ShipmentServiceTest {
     private ShipmentRepositoryPort shipmentRepositoryPort;
 
     @Mock
-    private OrderRepository orderRepository;
+    private OrderRepositoryPort orderRepositoryPort;
 
     @Mock
     private WarehouseRepository warehouseRepository;
@@ -38,9 +38,9 @@ class ShipmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        ShipmentCreateService createService = new ShipmentCreateService(shipmentRepositoryPort, orderRepository, warehouseRepository);
+        ShipmentCreateService createService = new ShipmentCreateService(shipmentRepositoryPort, orderRepositoryPort, warehouseRepository);
         ShipmentStatusService statusService = new ShipmentStatusService(shipmentRepositoryPort);
-        shipmentUseCase = new ShipmentUseCaseImpl(createService, statusService, shipmentRepositoryPort, orderRepository);
+        shipmentUseCase = new ShipmentUseCaseImpl(createService, statusService, shipmentRepositoryPort, orderRepositoryPort);
     }
 
     @Test

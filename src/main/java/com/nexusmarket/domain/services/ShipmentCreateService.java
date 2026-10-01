@@ -1,34 +1,36 @@
 package com.nexusmarket.domain.services;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
 import com.nexusmarket.common.exception.BusinessRuleException;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.ShipmentAlreadyExistsException;
+import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Shipment;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
+import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.model.OrderStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ShipmentCreateService {
 
     private final ShipmentRepositoryPort shipmentRepositoryPort;
-    private final OrderRepository orderRepository;
+    private final OrderRepositoryPort orderRepositoryPort;
     private final WarehouseRepository warehouseRepository;
 
     @Transactional
     public Shipment createShipment(Long orderId, Long warehouseId, String trackingNumber) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.DISPATCHED) {

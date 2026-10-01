@@ -1,23 +1,24 @@
 package com.nexusmarket.adapters.persistence.jpa.repositories;
 
-import com.nexusmarket.adapters.persistence.jpa.entities.InvoiceJpaEntity;
-import com.nexusmarket.orders.domain.model.Order;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.nexusmarket.adapters.persistence.jpa.entities.InvoiceJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
 
 @Repository
 public interface InvoiceJpaRepository extends JpaRepository<InvoiceJpaEntity, Long> {
 
-    Optional<InvoiceJpaEntity> findByOrder(Order order);
+    Optional<InvoiceJpaEntity> findByOrder(OrderJpaEntity order);
 
     Optional<InvoiceJpaEntity> findByInvoiceNumber(String invoiceNumber);
 
-    boolean existsByOrderAndActiveTrue(Order order);
+    boolean existsByOrderAndActiveTrue(OrderJpaEntity order);
 
     List<InvoiceJpaEntity> findByActive(Boolean active);
 

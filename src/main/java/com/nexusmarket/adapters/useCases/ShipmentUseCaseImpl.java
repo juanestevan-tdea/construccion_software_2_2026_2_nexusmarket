@@ -1,18 +1,20 @@
 package com.nexusmarket.adapters.useCases;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.common.exception.TrackingNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
 import com.nexusmarket.domain.services.ShipmentCreateService;
 import com.nexusmarket.domain.services.ShipmentStatusService;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class ShipmentUseCaseImpl implements ShipmentUseCasePort {
     private final ShipmentCreateService shipmentCreateService;
     private final ShipmentStatusService shipmentStatusService;
     private final ShipmentRepositoryPort shipmentRepositoryPort;
-    private final OrderRepository orderRepository;
+    private final OrderRepositoryPort orderRepositoryPort;
 
     @Override
     public Shipment createShipment(Long orderId, Long warehouseId, String trackingNumber) {
@@ -42,7 +44,7 @@ public class ShipmentUseCaseImpl implements ShipmentUseCasePort {
 
     @Override
     public Shipment findByOrder(Long orderId) {
-        if (!orderRepository.existsById(orderId)) {
+        if (!orderRepositoryPort.existsById(orderId)) {
             throw new ResourceNotFoundException("Order", orderId);
         }
         return shipmentRepositoryPort.findByOrderId(orderId)

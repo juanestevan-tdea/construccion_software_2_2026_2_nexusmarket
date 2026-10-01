@@ -1,20 +1,22 @@
 package com.nexusmarket.adapters.persistence.jpa.mappers;
 
+import org.springframework.stereotype.Component;
+
+import com.nexusmarket.adapters.persistence.jpa.entities.OrderJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.ShipmentJpaEntity;
+import com.nexusmarket.adapters.persistence.jpa.repositories.OrderJpaRepository;
 import com.nexusmarket.catalog.domain.model.Warehouse;
 import com.nexusmarket.catalog.domain.repository.WarehouseRepository;
 import com.nexusmarket.common.exception.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
-import com.nexusmarket.orders.domain.model.Order;
-import com.nexusmarket.orders.domain.repository.OrderRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class ShipmentJpaMapper {
 
-    private final OrderRepository orderRepository;
+    private final OrderJpaRepository orderJpaRepository;
     private final WarehouseRepository warehouseRepository;
 
     public Shipment toDomain(ShipmentJpaEntity entity) {
@@ -38,9 +40,9 @@ public class ShipmentJpaMapper {
             return null;
         }
 
-        Order order = null;
+        OrderJpaEntity order = null;
         if (domain.getOrderId() != null) {
-            order = orderRepository.findById(domain.getOrderId())
+            order = orderJpaRepository.findById(domain.getOrderId())
                     .orElseThrow(() -> new ResourceNotFoundException("Order", domain.getOrderId()));
         }
 
