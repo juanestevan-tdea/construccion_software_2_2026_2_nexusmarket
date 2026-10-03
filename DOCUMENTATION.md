@@ -73,8 +73,11 @@ text
 
 ### 2.3 Regla de Oro del Dominio
 
-> **La capa de dominio (`com.nexusmarket.domain.*`) es estrictamente pura.**
-> No conoce, no importa y no depende de Spring Boot, Spring Data JPA, Hibernate, MongoDB, Jackson ni especificaciones HTTP/Servlet. Toda la persistencia y transporte se comunican a través de los puertos mediante Entities/DTOs desacopladas y Mappers explícitos.
+> La capa de dominio (`com.nexusmarket.domain.*`) es estructuralmente pura respecto a la infraestructura de persistencia y transporte. Los paquetes `domain/models`, `domain/valueobjects`, `domain/exceptions` y `domain/ports` NO conocen ni importan JPA, Hibernate, MongoDB, Jackson ni servlets HTTP.
+>
+> Los `domain/services` utilizan únicamente las anotaciones de Spring `@Service` y `@Transactional` para inyección de dependencias y manejo transaccional. Toda la lógica de negocio permanece aislada de los adaptadores concretos.
+>
+> Toda comunicación con el exterior se realiza a través de los **puertos** (`ports/in` y `ports/out`), implementados por adaptadores intercambiables (REST, JPA, MongoDB) sin afectar al núcleo.
 
 ---
 
