@@ -1,175 +1,129 @@
-# Guía de Puesta en Marcha: NexusMarket
+# Guía paso a paso: poner en marcha el proyecto
 
-Guía paso a paso para configurar, compilar, probar y ejecutar **NexusMarket** en entornos locales de desarrollo.
+Probado en Windows 11 + PowerShell 5.1. Todos los comandos se ejecutan desde la
+raíz del repositorio, salvo indicación contraria.
 
----
+## 0. Prerrequisitos
 
-## 1. Requisitos Previos
+1. **JDK 17 o superior** (verificado con Eclipse Temurin 21):
+   `java -version`.
+2. **Docker Desktop** en ejecución: `docker --version` y `docker compose version`.
+3. Puertos libres en el host: **3306** (MySQL), **27017** (MongoDB) y **8080**
+   (app). Cómo comprobarlo:
+   ```powershell
+   Get-NetTCPConnection -LocalPort 27017,3306,8080 -State Listen |
+     Select-Object LocalAddress, LocalPort, OwningProcess
+   ```
+   - Si el 8080 está ocupado (frecuente por Docker Desktop u otras apps), usar
+     `SERVER_PORT=8081` al arrancar (ver paso 3).
+   - Si `127.0.0.1:27017` lo ocupa un `mongod` ajeno a Docker (ver
+     [solución de problemas](#6-solución-de-problemas)), apuntar la app al
+     contenedor con `MONGODB_URI=mongodb://[::1]:27017/nexusmarket_audit`.
 
-Asegúrate de contar con las siguientes herramientas instaladas en tu sistema:
+## 1. Levantar las bases de datos
 
-- **JDK 17 o superior** (OpenJDK o Eclipse Temurin):
-  ```bash
-  java -version
-  ```
-- **Apache Maven 3.9+** (o usar el wrapper `./mvnw` / `mvnw.cmd`):
-  ```bash
-  mvn -version
-  ```
-- **MySQL 8.0+** (local o vía Docker) en el puerto `3306`.
-- **MongoDB 7.0+** (local o clúster MongoDB Atlas) en el puerto `27017`.
-- **Docker & Docker Compose** (opcional, recomendado para levantar la infraestructura de datos).
-
----
-
-## 2. Pasos para Ejecutar NexusMarket
-
-### Paso a) Clonar el repositorio
-```bash
-git clone https://github.com/juanestevan-tdea/construccion_software_2_2026_2_nexusmarket.git
-cd construccion_software_2_2026_2_nexusmarket
-```
-
-### Paso b) Crear la Base de Datos MySQL
-Accede a tu cliente de MySQL (CLI, Workbench, DBeaver) y ejecuta:
-```sql
-CREATE DATABASE nexusmarket CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-### Paso c) Configurar Variables de Entorno o `application.properties`
-El archivo `src/main/resources/application.properties` está preparado con valores por defecto y variables de entorno externas. Puedes configurarlas en tu terminal o sistema antes de iniciar:
-
-| Variable | Descripción | Valor por Defecto |
-|---|---|---|
-| `DB_USERNAME` | Usuario de MySQL | `root` |
-| `DB_PASSWORD` | Contraseña de MySQL | `root` |
-| `MONGODB_URI` | Cadena de conexión de MongoDB | URI de MongoDB Atlas (o `mongodb://localhost:27017/nexusmarket_audit`) |
-| `JWT_SECRET` | Clave secreta HMAC-SHA256 (min 256 bits) | Clave base preconfigurada en propiedades |
-| `SERVER_PORT` | Puerto HTTP del servidor Spring Boot | `8080` |
-
-#### En Windows PowerShell:
 ```powershell
-$env:DB_USERNAME="root"
-$env:DB_PASSWORD="root"
-$env:MONGODB_URI="mongodb://localhost:27017/nexusmarket_audit"
+docker compose up -d
+docker ps --format "{{.Names}}|{{.Status}}"
+docker exec nexusmarket-mongo mongosh --quiet --eval "db.runCommand({ping:1})"
+docker exec nexusmarket-mysql mysql -uroot -proot -e "SELECT VERSION();"
 ```
 
-#### En Linux / macOS / Bash:
-```bash
-export DB_USERNAME="root"
-export DB_PASSWORD="root"
-export MONGODB_URI="mongodb://localhost:27017/nexusmarket_audit"
+Esto crea `nexusmarket-mysql` (MySQL 8, `nexusmarket`) y `nexusmarket-mongo`
+(MongoDB 7, `nexusmarket_audit`). Credenciales por defecto: usuario `root` / clave
+`root` (sobrescribibles con `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`).
+
+## 2. Compilar y correr las pruebas
+
+```powershell
+.\mvnw.cmd test
 ```
 
-### Paso d) Compilar el Proyecto
-Para descargar dependencias y compilar el código saltando los tests:
-```bash
-mvn clean install -DskipTests
-```
-*(O en Windows usando el wrapper: `.\mvnw.cmd clean install -DskipTests`)*
+Resultado esperado: `Tests run: 94, Failures: 0, Errors: 0` y
+`BUILD SUCCESS`. La prueba `NexusMarketApplicationTests.contextLoads` necesita
+MySQL arriba (paso 1); sin base de datos ese test falla por conexión, el resto
+pasa.
 
-### Paso e) Ejecutar la Aplicación
-Inicia el servidor Spring Boot:
-```bash
-mvn spring-boot:run
-```
-O ejecutando el artefacto `.jar` empaquetado:
-```bash
-java -jar target/nexus-market-1.0.0-SNAPSHOT.jar
+## 3. Empaquetar y arrancar la aplicación
+
+```powershell
+.\mvnw.cmd -q -DskipTests package
+$env:SERVER_PORT="8080"   # u "8081" si el 8080 está ocupado
+java -jar target\nexus-market-1.0.0-SNAPSHOT.jar
 ```
 
-La aplicación arrancará en `http://localhost:8080`.
+Al arrancar, Hibernate crea/actualiza las tablas en `nexusmarket` y Mongo queda
+listo para crear `audit_logs` con el primer evento. Verificar salud:
 
----
-
-## 3. Endpoints Públicos de Ejemplo
-
-Los siguientes endpoints están expuestos públicamente bajo `/api/auth/**`:
-
-### 3.1. Registro de Usuario (`POST /api/auth/register`)
-
-**Petición HTTP:**
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "email": "juan.perez@example.com",
-  "fullName": "Juan Perez",
-  "password": "Password123!",
-  "role": "BUYER",
-  "primaryAddress": "Calle 50 # 40-20, Medellin",
-  "taxId": "1017123456",
-  "companyName": "Perez Enterprises"
-}
+```powershell
+curl.exe -s http://127.0.0.1:8080/actuator/health
+# {"status":"UP"}
 ```
 
-> **Roles válidos:** `BUYER`, `SELLER`, `INVENTORY_MANAGER`, `LOGISTICS_OPERATOR`, `AUDITOR`, `SUPERVISOR`, `ADMIN`.
+> Variables opcionales en la misma sesión antes de `java -jar`:
+> `$env:DB_USERNAME`, `$env:DB_PASSWORD`, `$env:MONGODB_URI`,
+> `$env:JWT_SECRET`, `$env:SERVER_PORT`. Ver tabla en `README.md`.
 
-**Respuesta Exitosa (`201 Created`):**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "type": "Bearer",
-  "userId": 1,
-  "email": "juan.perez@example.com",
-  "fullName": "Juan Perez",
-  "role": "BUYER"
-}
+## 4. Prueba de humo end-to-end (registro → login → uso → logout)
+
+> En PowerShell, pasar JSON inline a `curl.exe` suele corromper las comillas.
+> Usar **archivos** para los bodies (`-d "@ruta\file.json"`).
+
+1. Crear los bodies (una sola vez):
+   ```powershell
+   $tmp = "$env:TEMP\nexusmarket-smoke"
+   New-Item -ItemType Directory -Path $tmp -Force
+   Set-Content "$tmp\register.json" -Value '{"email":"test@nexus.com","fullName":"Test User","password":"Test123!","role":"BUYER","primaryAddress":"Calle 50 #40-20, Medellin"}' -NoNewline
+   Set-Content "$tmp\login.json" -Value '{"email":"test@nexus.com","password":"Test123!"}' -NoNewline
+   ```
+   (Si repites la prueba, cambia el `email` por uno nuevo.)
+
+2. Registrar usuario → **201**:
+   ```powershell
+   curl.exe -s -w "`nHTTP:%{http_code}`n" -X POST http://127.0.0.1:8080/api/auth/register -H "Content-Type: application/json" -d "@$tmp\register.json"
+   ```
+
+3. Login → **200** con `token`, `role` y `expiresIn`:
+   ```powershell
+   $login = curl.exe -s -X POST http://127.0.0.1:8080/api/auth/login -H "Content-Type: application/json" -d "@$tmp\login.json"
+   $token = ($login | ConvertFrom-Json).token
+   ```
+
+4. Endpoint protegido con token → **200** (sin token → **401**):
+   ```powershell
+   curl.exe -s -w "`nHTTP:%{http_code}`n" http://127.0.0.1:8080/api/users/me -H "Authorization: Bearer $token"
+   ```
+
+5. Verificar persistencia:
+   ```powershell
+   docker exec nexusmarket-mysql mysql -uroot -proot --batch -e "SHOW TABLES FROM nexusmarket; SELECT id, email, role, status FROM nexusmarket.usuarios;"
+   docker exec nexusmarket-mongo mongosh --quiet nexusmarket_audit --eval "db.audit_logs.countDocuments()"
+   ```
+
+## 5. Apagar todo
+
+```powershell
+# Detener la app: Ctrl+C en su terminal
+docker compose stop        # o `docker compose down` para además borrar contenedores (los volúmenes con datos se conservan)
 ```
 
-### 3.2. Inicio de Sesión (`POST /api/auth/login`)
+## 6. Solución de problemas
 
-**Petición HTTP:**
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "juan.perez@example.com",
-  "password": "Password123!"
-}
-```
-
-**Respuesta Exitosa (`200 OK`):**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "type": "Bearer",
-  "userId": 1,
-  "email": "juan.perez@example.com",
-  "fullName": "Juan Perez",
-  "role": "BUYER"
-}
-```
-
-Para consumir los endpoints protegidos, añade la cabecera:
-```http
-Authorization: Bearer <TOKEN_RECIBIDO>
-```
-
----
-
-## 4. Ejecución de Pruebas Unitarias y de Integración
-
-Para ejecutar la suite completa de pruebas automatizadas:
-```bash
-mvn clean test
-```
-
-**Resultado esperado:**
-```text
-Tests run: 94, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
-
----
-
-## 5. Solución de Problemas (Troubleshooting)
-
-| Problema / Error | Causa Probable | Solución Recomendada |
+| Síntoma | Causa probable | Solución |
 |---|---|---|
-| `Port 8080 was already in use` | Hay otro proceso (Tomcat, Docker Desktop, otra app) usando el puerto 8080. | Inicia la app especificando un puerto alternativo: `mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081"` o establece `$env:SERVER_PORT="8081"`. |
-| `Communications link failure / Access denied for user` (MySQL) | MySQL no está corriendo, las credenciales son incorrectas o la base de datos `nexusmarket` no ha sido creada. | 1. Verifica que MySQL esté activo en el puerto 3306.<br>2. Confirma `DB_USERNAME` y `DB_PASSWORD`.<br>3. Ejecuta `CREATE DATABASE nexusmarket;` en tu motor MySQL. |
-| `MongoSocketOpenException / MongoTimeoutException` (MongoDB) | MongoDB no se encuentra activo localmente o no hay acceso a internet para MongoDB Atlas. | 1. Si usas MongoDB local, confirma que el servicio esté corriendo en el puerto 27017.<br>2. Si usas MongoDB Atlas, verifica tu conexión a internet o exporta la URI correcta en `MONGODB_URI`. |
-| `401 Unauthorized` / `403 Forbidden` en endpoints protegidos | El token JWT no fue incluido o expiró. | Asegúrate de enviar la cabecera `Authorization: Bearer <token>` obtenida en `/api/auth/login`. |
+| `Port 8080 was already in use` | Otro proceso ocupa el puerto | Arrancar con `$env:SERVER_PORT="8081"` |
+| `Tests ... NexusMarketApplicationTests ... Communications link failure` | MySQL apagado | `docker compose up -d` y repetir |
+| Auditoría no aparece en `nexusmarket-mongo` | Otro `mongod` nativo ocupa `127.0.0.1:27017` | Arrancar con `$env:MONGODB_URI="mongodb://[::1]:27017/nexusmarket_audit"` o detener el proceso ajeno (requiere admin) |
+| `401 Unauthorized` en endpoints protegidos | Token ausente o expirado | Enviar `Authorization: Bearer <token>` obtenido en `/api/auth/login` |
+| `curl.exe` devuelve 400 con JSON inline en PowerShell | Comillas mutiladas por la shell | Usar `-d "@archivo.json"` como en el paso 4 |
+
+## 7. Variables de entorno
+
+| Variable | Valor por defecto | Uso |
+|---|---|---|
+| `SERVER_PORT` | `8080` | Puerto HTTP de Spring Boot |
+| `DB_USERNAME` | `root` | Usuario de MySQL |
+| `DB_PASSWORD` | `root` | Contraseña de MySQL |
+| `MONGODB_URI` | `mongodb://localhost:27017/nexusmarket_audit` | URI de MongoDB |
+| `JWT_SECRET` | Clave por defecto | Firma HMAC-SHA256 para JWT |
+| `JWT_EXPIRATION` | `86400000` | Expiración del token en milisegundos (24h) |
