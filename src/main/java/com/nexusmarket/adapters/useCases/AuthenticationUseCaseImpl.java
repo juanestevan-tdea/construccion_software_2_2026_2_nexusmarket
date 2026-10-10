@@ -20,10 +20,7 @@ import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.infrastructure.security.JwtService;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
     private final UserUseCasePort userUseCasePort;
@@ -31,9 +28,22 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
     private final SellerUseCasePort sellerUseCasePort;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final long jwtExpiration;
 
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
+    public AuthenticationUseCaseImpl(
+            UserUseCasePort userUseCasePort,
+            BuyerUseCasePort buyerUseCasePort,
+            SellerUseCasePort sellerUseCasePort,
+            JwtService jwtService,
+            AuthenticationManager authenticationManager,
+            @Value("${jwt.expiration}") long jwtExpiration) {
+        this.userUseCasePort = userUseCasePort;
+        this.buyerUseCasePort = buyerUseCasePort;
+        this.sellerUseCasePort = sellerUseCasePort;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+        this.jwtExpiration = jwtExpiration;
+    }
 
     @Override
     @Transactional

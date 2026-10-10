@@ -27,3 +27,8 @@ application-dev.yml
 # Local environment files (never commit real secrets)
 .env
 .env.local
+
+# Local environment files (nunca commitear secretos)
+application-local.properties
+.env
+.env.local

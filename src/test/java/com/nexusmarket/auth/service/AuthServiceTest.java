@@ -28,7 +28,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,10 +63,8 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        AuthenticationUseCaseImpl impl = new AuthenticationUseCaseImpl(
-                userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService, authenticationManager);
-        ReflectionTestUtils.setField(impl, "jwtExpiration", ONE_DAY_MS);
-        authService = impl;
+        authService = new AuthenticationUseCaseImpl(
+                userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService, authenticationManager, ONE_DAY_MS);
     }
 
     // ---------- helpers ----------
