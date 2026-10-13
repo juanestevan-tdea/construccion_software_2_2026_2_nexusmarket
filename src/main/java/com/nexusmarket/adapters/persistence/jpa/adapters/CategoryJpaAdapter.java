@@ -5,18 +5,22 @@ import com.nexusmarket.adapters.persistence.jpa.mappers.CategoryJpaMapper;
 import com.nexusmarket.adapters.persistence.jpa.repositories.CategoryJpaRepository;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-@RequiredArgsConstructor
 public class CategoryJpaAdapter implements CategoryRepositoryPort {
 
     private final CategoryJpaRepository categoryJpaRepository;
     private final CategoryJpaMapper categoryJpaMapper;
+
+    public CategoryJpaAdapter(CategoryJpaRepository categoryJpaRepository,
+                              CategoryJpaMapper categoryJpaMapper) {
+        this.categoryJpaRepository = categoryJpaRepository;
+        this.categoryJpaMapper = categoryJpaMapper;
+    }
 
     @Override
     public Category save(Category category) {

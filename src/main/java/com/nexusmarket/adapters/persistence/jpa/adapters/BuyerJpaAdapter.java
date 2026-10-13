@@ -6,18 +6,21 @@ import com.nexusmarket.adapters.persistence.jpa.repositories.BuyerJpaRepository;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-@RequiredArgsConstructor
 public class BuyerJpaAdapter implements BuyerRepositoryPort {
 
     private final BuyerJpaRepository buyerJpaRepository;
     private final BuyerJpaMapper buyerJpaMapper;
+
+    public BuyerJpaAdapter(BuyerJpaRepository buyerJpaRepository, BuyerJpaMapper buyerJpaMapper) {
+        this.buyerJpaRepository = buyerJpaRepository;
+        this.buyerJpaMapper = buyerJpaMapper;
+    }
 
     @Override
     public Buyer save(Buyer buyer) {

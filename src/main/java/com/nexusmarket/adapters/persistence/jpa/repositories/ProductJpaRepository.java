@@ -7,13 +7,10 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import com.nexusmarket.adapters.persistence.jpa.entities.CategoryJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.ProductJpaEntity;
 import com.nexusmarket.adapters.persistence.jpa.entities.SellerJpaEntity;
 
-@Repository
 public interface ProductJpaRepository extends JpaRepository<ProductJpaEntity, Long> {
 
     Optional<ProductJpaEntity> findBySku(String sku);

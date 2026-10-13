@@ -36,10 +36,6 @@ public class OrderRestMapper {
         if (item == null) {
             return null;
         }
-        BigDecimal subtotal = item.getUnitPrice() != null && item.getQuantity() != null
-                ? item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()))
-                : BigDecimal.ZERO;
-
         return OrderItemResponseDTO.builder()
                 .id(item.getId())
                 .productId(item.getProductId())
@@ -47,7 +43,7 @@ public class OrderRestMapper {
                 .productSku(item.getProductSku())
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
-                .subtotal(subtotal)
+                .subtotal(item.getSubtotal())
                 .build();
     }
 }

@@ -7,7 +7,12 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "productos")
+@Table(name = "productos", indexes = {
+    @Index(name = "idx_productos_sku", columnList = "sku", unique = true),
+    @Index(name = "idx_productos_active", columnList = "active"),
+    @Index(name = "idx_productos_category_id", columnList = "category_id"),
+    @Index(name = "idx_productos_seller_id", columnList = "seller_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

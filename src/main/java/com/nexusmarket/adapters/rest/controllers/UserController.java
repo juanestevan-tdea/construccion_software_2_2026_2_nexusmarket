@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -40,6 +41,9 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponseDTO> getCurrentUser(@AuthenticationPrincipal UserDetailsAdapter principal) {
+        if (principal == null || principal.getUser() == null) {
+            throw new BadCredentialsException("No authenticated user found");
+        }
         UserResponseDTO user = UserRestMapper.toResponseDTO(principal.getUser());
         return ResponseEntity.ok(user);
     }

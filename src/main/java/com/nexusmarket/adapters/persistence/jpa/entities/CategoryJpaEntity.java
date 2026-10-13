@@ -1,5 +1,4 @@
 package com.nexusmarket.adapters.persistence.jpa.entities;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;

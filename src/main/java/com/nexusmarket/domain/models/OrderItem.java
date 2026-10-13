@@ -18,4 +18,11 @@ public class OrderItem {
     private String productSku;
     private Integer quantity;
     private BigDecimal unitPrice;
+
+    public BigDecimal getSubtotal() {
+        if (this.unitPrice != null && this.quantity != null) {
+            return this.unitPrice.multiply(BigDecimal.valueOf(this.quantity));
+        }
+        return BigDecimal.ZERO;
+    }
 }

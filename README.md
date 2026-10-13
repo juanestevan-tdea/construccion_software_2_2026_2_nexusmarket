@@ -142,6 +142,14 @@ WAREHOUSE_OPERATOR: Gestión de bodegas, recepciones y despachos.
 
 Almacenamiento seguro de credenciales con BCrypt.
 
+### 🛡️ Seguridad en Producción
+
+Para despliegues productivos o entornos públicos es **estrictamente obligatorio** configurar la clave de firma JWT mediante la variable de entorno `JWT_SECRET`:
+
+- **Requisito mínimo:** Clave HMAC-SHA256 con al menos 256 bits (32+ caracteres) de entropía; se recomienda una cadena aleatoria de 64 caracteres alfanuméricos (512 bits).
+- **Riesgo:** El valor presente en `application.properties` es un fallback exclusivo para desarrollo local. El uso de dicha clave por defecto en producción compromete la autenticidad e integridad de todos los tokens emitidos.
+- **Rotación:** Se aconseja rotar la clave periódicamente (ej. cada 90 días) inyectando el nuevo valor en `$env:JWT_SECRET` o en la configuración del contenedor. La rotación invalida inmediatamente cualquier token emitido previamente.
+
 🧪 Testing
 Suite completa de pruebas unitarias y de integración con aislamiento mediante mocks.
 

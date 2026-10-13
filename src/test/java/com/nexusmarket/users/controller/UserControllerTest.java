@@ -3,7 +3,6 @@ package com.nexusmarket.users.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexusmarket.adapters.rest.controllers.UserController;
 import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
-import com.nexusmarket.adapters.rest.dtos.responses.UserResponseDTO;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.infrastructure.security.CustomUserDetailsService;
 import com.nexusmarket.infrastructure.security.JwtAuthenticationFilter;

@@ -5,12 +5,15 @@ import com.nexusmarket.adapters.rest.dtos.responses.CategoryResponseDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.ProductResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.CategoryRestMapper;
 import com.nexusmarket.adapters.rest.mappers.ProductRestMapper;
-import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.ports.in.CatalogUseCasePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
