@@ -1,7 +1,7 @@
 package com.nexusmarket.users.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexusmarket.adapters.rest.controllers.UserController;
+import com.nexusmarket.adapters.rest.controllers.admin.UserController;
 import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.infrastructure.security.CustomUserDetailsService;
@@ -13,7 +13,7 @@ import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 import com.nexusmarket.infrastructure.security.SecurityConfig;
 import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.models.User;
-import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
@@ -99,13 +99,13 @@ class UserControllerTest {
         return SecurityMockMvcRequestPostProcessors.user(new UserDetailsAdapter(user));
     }
 
-    // ---------- GET /api/users/me ----------
+    // ---------- GET /api/v1/admin/users/me ----------
     @Test
     @DisplayName("getCurrentUser_Returns200_WhenAuthenticated")
     void getCurrentUser_returns200_whenAuthenticated() throws Exception {
         User user = sampleUser(1L, "test@test.com", "Test User", UserRole.BUYER);
 
-        mockMvc.perform(get("/api/users/me")
+        mockMvc.perform(get("/api/v1/admin/users/me")
                 .with(authenticatedAs(user)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
@@ -120,22 +120,22 @@ class UserControllerTest {
     @Test
     @DisplayName("getCurrentUser_Returns401WithErrorResponse_WhenNoToken")
     void getCurrentUser_returns401WithErrorResponse_whenNoToken() throws Exception {
-        mockMvc.perform(get("/api/users/me"))
+        mockMvc.perform(get("/api/v1/admin/users/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.message").value("Authentication is required to access this resource"))
-                .andExpect(jsonPath("$.path").value("/api/users/me"));
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/users/me"));
     }
 
-    // ---------- GET /api/users/{id} ----------
+    // ---------- GET /api/v1/admin/users/{id} ----------
     @Test
     @DisplayName("getUserById_Returns200_WhenAdmin")
     void getUserById_returns200_whenAdmin() throws Exception {
         User user = sampleUser(1L, "target@test.com", "Target User", UserRole.SELLER);
         when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user);
 
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/admin/users/1")
                 .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
@@ -148,13 +148,13 @@ class UserControllerTest {
     @Test
     @DisplayName("getUserById_Returns403WithErrorResponse_WhenBuyer")
     void getUserById_returns403WithErrorResponse_whenBuyer() throws Exception {
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/admin/users/1")
                 .with(authenticatedAs(sampleUser(2L, "buyer@test.com", "Buyer", UserRole.BUYER))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.error").value("Forbidden"))
                 .andExpect(jsonPath("$.message").value("You do not have permission to access this resource"))
-                .andExpect(jsonPath("$.path").value("/api/users/1"));
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/users/1"));
 
         verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
@@ -162,12 +162,12 @@ class UserControllerTest {
     @Test
     @DisplayName("getUserById_Returns403WithErrorResponse_WhenSeller")
     void getUserById_returns403WithErrorResponse_whenSeller() throws Exception {
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/admin/users/1")
                 .with(authenticatedAs(sampleUser(3L, "seller@test.com", "Seller", UserRole.SELLER))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.error").value("Forbidden"))
-                .andExpect(jsonPath("$.path").value("/api/users/1"));
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/users/1"));
 
         verify(userUseCasePort, never()).getUserByIdOrThrow(anyLong());
     }
@@ -178,7 +178,7 @@ class UserControllerTest {
         when(userUseCasePort.getUserByIdOrThrow(404L))
                 .thenThrow(new ResourceNotFoundException("User", 404L));
 
-        mockMvc.perform(get("/api/users/404")
+        mockMvc.perform(get("/api/v1/admin/users/404")
                 .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
@@ -201,7 +201,7 @@ class UserControllerTest {
 
         when(userUseCasePort.createUser("newuser@test.com", "New User", "secret123", UserRole.SELLER)).thenReturn(user);
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/admin/users")
                 .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -223,7 +223,7 @@ class UserControllerTest {
                 .role(UserRole.SELLER)
                 .build();
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/admin/users")
                 .with(authenticatedAs(sampleUser(2L, "buyer@test.com", "Buyer", UserRole.BUYER)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -243,7 +243,7 @@ class UserControllerTest {
                 .role(UserRole.SELLER)
                 .build();
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/admin/users")
                 .with(authenticatedAs(sampleUser(3L, "seller@test.com", "Seller", UserRole.SELLER)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -263,7 +263,7 @@ class UserControllerTest {
                 .role(null)
                 .build();
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/admin/users")
                 .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -283,7 +283,7 @@ class UserControllerTest {
                 .role(UserRole.SELLER)
                 .build();
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/admin/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
@@ -296,7 +296,7 @@ class UserControllerTest {
     @Test
     @DisplayName("getUserById_Returns403_WhenWarehouseOperator")
     void getUserById_returns403_whenWarehouseOperator() throws Exception {
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/admin/users/1")
                 .with(authenticatedAs(sampleUser(4L, "warehouse@test.com", "Warehouse",
                         UserRole.WAREHOUSE_OPERATOR))))
                 .andExpect(status().isForbidden())
@@ -308,7 +308,7 @@ class UserControllerTest {
     @Test
     @DisplayName("getUserById_Returns403_WhenSupervisor")
     void getUserById_returns403_whenSupervisor() throws Exception {
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/admin/users/1")
                 .with(authenticatedAs(sampleUser(5L, "supervisor@test.com", "Supervisor",
                         UserRole.SUPERVISOR))))
                 .andExpect(status().isForbidden())
@@ -321,7 +321,7 @@ class UserControllerTest {
     @Test
     @DisplayName("getUserById_Returns403_WhenMockUserHasNoRole")
     void getUserById_returns403_whenMockUserHasNoRole() throws Exception {
-        mockMvc.perform(get("/api/users/1")
+        mockMvc.perform(get("/api/v1/admin/users/1")
                 .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("plain@test.com")))
                 .andExpect(status().isForbidden());
 
@@ -334,7 +334,7 @@ class UserControllerTest {
         when(userUseCasePort.findByRole(UserRole.SELLER))
                 .thenReturn(List.of(sampleUser(1L, "s@test.com", "Seller", UserRole.SELLER)));
 
-        mockMvc.perform(get("/api/users/role/SELLER")
+        mockMvc.perform(get("/api/v1/admin/users/role/SELLER")
                         .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].email").value("s@test.com"));
@@ -345,7 +345,7 @@ class UserControllerTest {
     @Test
     @DisplayName("getAllUsers_Returns403_WhenBuyer")
     void getAllUsers_returns403_whenBuyer() throws Exception {
-        mockMvc.perform(get("/api/users")
+        mockMvc.perform(get("/api/v1/admin/users")
                         .with(authenticatedAs(sampleUser(2L, "buyer@test.com", "Buyer", UserRole.BUYER))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));

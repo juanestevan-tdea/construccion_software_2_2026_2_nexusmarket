@@ -1,10 +1,11 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.seller;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -20,13 +21,14 @@ import com.nexusmarket.adapters.rest.dtos.requests.ProductUpdateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.ProductResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.ProductRestMapper;
 import com.nexusmarket.domain.models.Product;
-import com.nexusmarket.domain.ports.in.ProductUseCasePort;
+import com.nexusmarket.domain.ports.in.seller.ProductUseCasePort;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/seller/products")
+@PreAuthorize("hasRole('SELLER')")
 @RequiredArgsConstructor
 public class ProductController {
 

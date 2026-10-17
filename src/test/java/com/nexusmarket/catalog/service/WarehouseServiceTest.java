@@ -6,7 +6,7 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Warehouse;
-import com.nexusmarket.domain.ports.in.WarehouseUseCasePort;
+import com.nexusmarket.domain.ports.in.warehouse.WarehouseUseCasePort;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 import com.nexusmarket.domain.services.WarehouseDomainService;

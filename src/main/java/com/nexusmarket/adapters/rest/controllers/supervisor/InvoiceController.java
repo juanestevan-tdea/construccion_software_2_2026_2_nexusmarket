@@ -1,14 +1,15 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.supervisor;
 
 import com.nexusmarket.adapters.rest.dtos.requests.InvoiceCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.InvoiceResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.InvoiceRestMapper;
 import com.nexusmarket.domain.models.Invoice;
-import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
+import com.nexusmarket.domain.ports.in.supervisor.InvoiceUseCasePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/invoices")
+@RequestMapping("/api/v1/supervisor/invoices")
+@PreAuthorize("hasRole('SUPERVISOR')")
 @RequiredArgsConstructor
 public class InvoiceController {
 

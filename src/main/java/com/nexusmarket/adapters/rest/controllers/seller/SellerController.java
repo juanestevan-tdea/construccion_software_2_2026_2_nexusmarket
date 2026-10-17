@@ -1,4 +1,4 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.seller;
 
 import com.nexusmarket.adapters.rest.dtos.requests.SellerCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.SellerUpdateRequestDTO;
@@ -6,12 +6,13 @@ import com.nexusmarket.adapters.rest.dtos.responses.SellerResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.SellerRestMapper;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
-import com.nexusmarket.domain.ports.in.SellerUseCasePort;
-import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/sellers")
+@RequestMapping("/api/v1/seller/sellers")
+@PreAuthorize("hasRole('SELLER')")
 @RequiredArgsConstructor
 public class SellerController {
 

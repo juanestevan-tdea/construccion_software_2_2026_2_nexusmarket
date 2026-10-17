@@ -1,9 +1,10 @@
-package com.nexusmarket.domain.ports.in;
+package com.nexusmarket.domain.ports.in.seller;
+
+import com.nexusmarket.domain.models.Product;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.valueobjects.ProductType;
 
 public interface ProductUseCasePort {

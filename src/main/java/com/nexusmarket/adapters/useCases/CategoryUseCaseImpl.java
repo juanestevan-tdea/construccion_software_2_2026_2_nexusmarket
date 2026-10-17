@@ -2,7 +2,7 @@ package com.nexusmarket.adapters.useCases;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Category;
-import com.nexusmarket.domain.ports.in.CategoryUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.CategoryUseCasePort;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.services.CategoryDomainService;
 import lombok.RequiredArgsConstructor;

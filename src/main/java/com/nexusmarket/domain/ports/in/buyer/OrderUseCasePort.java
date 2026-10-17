@@ -1,4 +1,4 @@
-package com.nexusmarket.domain.ports.in;
+package com.nexusmarket.domain.ports.in.buyer;
 
 import com.nexusmarket.domain.models.Order;
 

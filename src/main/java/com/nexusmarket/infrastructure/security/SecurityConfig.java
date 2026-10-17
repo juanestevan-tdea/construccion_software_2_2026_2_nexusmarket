@@ -1,5 +1,7 @@
 package com.nexusmarket.infrastructure.security;
 
+import com.nexusmarket.domain.services.SessionAuditService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,9 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.nexusmarket.domain.services.SessionAuditService;
-import lombok.RequiredArgsConstructor;
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -30,9 +29,10 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
+    // Endpoints públicos (sin autenticación)
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/api/auth/register",
-        "/api/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/login",
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/v3/api-docs/**",
@@ -40,9 +40,10 @@ public class SecurityConfig {
         "/actuator/health/**"
     };
 
+    // Endpoints de auth que requieren autenticación (logout, change-password)
     private static final String[] AUTHENTICATED_AUTH_ENDPOINTS = {
-        "/api/auth/logout",
-        "/api/auth/change-password"
+        "/api/v1/auth/logout",
+        "/api/v1/auth/change-password"
     };
 
     @Bean
@@ -58,17 +59,32 @@ public class SecurityConfig {
                 .sessionManagement(session
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                // Auth endpoints
                 .requestMatchers(AUTHENTICATED_AUTH_ENDPOINTS).authenticated()
-                .requestMatchers("/api/v1/admin/session-events").hasRole("ADMIN")
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
-                .requestMatchers("/api/users/**").hasRole("ADMIN")
-                .requestMatchers("/api/audit/**").hasAnyRole("ADMIN", "SUPERVISOR")
-                .requestMatchers(HttpMethod.GET,
-                        "/api/products/**",
-                        "/api/categories/**",
-                        "/api/catalog/**",
-                        "/api/warehouses/**").authenticated()
+
+                // Perfil propio accesible por cualquier autenticado
+                .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/me").authenticated()
+
+                // Admin routes
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+                // Supervisor routes
+                .requestMatchers("/api/v1/supervisor/**").hasRole("SUPERVISOR")
+
+                // Seller routes
+                .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
+
+                // Buyer routes
+                .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")
+
+                // Warehouse operator routes
+                .requestMatchers("/api/v1/warehouse/**").hasRole("WAREHOUSE_OPERATOR")
+
+                // Catalog (autenticado, cualquier rol)
+                .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").authenticated()
+
+                // Cualquier otra ruta requiere autenticación
                 .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

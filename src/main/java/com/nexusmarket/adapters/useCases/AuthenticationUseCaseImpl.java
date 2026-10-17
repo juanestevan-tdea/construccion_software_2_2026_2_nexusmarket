@@ -13,9 +13,9 @@ import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
-import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
-import com.nexusmarket.domain.ports.in.SellerUseCasePort;
-import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
+import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
@@ -28,8 +28,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
     private final UserUseCasePort userUseCasePort;
     private final BuyerUseCasePort buyerUseCasePort;
-    private final SellerUseCasePort sellerUseCasePort;
-    private final UserManagementService userManagementService;
+    private final SellerUseCasePort sellerUseCasePort;    private final UserManagementService userManagementService;
     private final SessionAuditService sessionAuditService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;

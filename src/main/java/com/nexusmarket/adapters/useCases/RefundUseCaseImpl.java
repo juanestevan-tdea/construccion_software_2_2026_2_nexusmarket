@@ -2,7 +2,7 @@ package com.nexusmarket.adapters.useCases;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Refund;
-import com.nexusmarket.domain.ports.in.RefundUseCasePort;
+import com.nexusmarket.domain.ports.in.supervisor.RefundUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
 import com.nexusmarket.domain.services.RefundApproveService;

@@ -1,4 +1,4 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.admin;
 
 import com.nexusmarket.adapters.rest.dtos.responses.SessionEventDto;
 import com.nexusmarket.adapters.persistence.mongodb.adapters.SessionAuditMongoAdapter;
@@ -15,16 +15,17 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.util.Optional;
 
 /**
  * Controlador de consulta de eventos de sesión de seguridad.
  * Solo accesible por usuarios con rol ADMIN.
  */
+@RestController
 @RequestMapping("/api/v1/admin/session-events")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class SessionEventController {
 
@@ -32,17 +33,8 @@ public class SessionEventController {
 
     /**
      * Consulta paginada de eventos de sesión con filtros opcionales.
-     *
-     * @param email  email del usuario (opcional)
-     * @param type   tipo de evento (opcional)
-     * @param from   fecha inicio (inclusive, ISO 8601, opcional)
-     * @param to     fecha fin (inclusive, ISO 8601, opcional)
-     * @param page   número de página (0-based)
-     * @param size   tamaño de página
-     * @return página de eventos ordenada por occurredAt DESC
      */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<SessionEventDto>> getSessionEvents(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) SessionEventType type,
@@ -53,9 +45,6 @@ public class SessionEventController {
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by("occurredAt").descending());
 
-        // Spring Data MongoDB con @Query requiere valores no null; se usan criterios por defecto
-        // cuando los filtros son opcionales. Para mantener simplicidad, se delega la consulta
-        // al adaptador que usa MongoTemplate con Criteria dinámicas.
         Page<com.nexusmarket.adapters.persistence.mongodb.documents.SessionEventDocument> pageDocs;
 
         if (email != null && type != null && from != null && to != null) {
@@ -64,8 +53,6 @@ public class SessionEventController {
             pageDocs = sessionEventMongoRepository.findByFilters(email, type,
                     Instant.MIN, Instant.MAX, pageable);
         } else if (email != null) {
-            // Sin tipo: consultar por email y paginar en memoria no es ideal con @Query fijo;
-            // se usa findByFilters con tipo null (Spring Data lo trata como sin filtro de tipo)
             pageDocs = sessionEventMongoRepository.findByFilters(email, null,
                     Instant.MIN, Instant.MAX, pageable);
         } else if (type != null) {

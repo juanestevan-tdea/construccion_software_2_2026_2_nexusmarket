@@ -4,7 +4,7 @@ import com.nexusmarket.adapters.useCases.ShipmentUseCaseImpl;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
-import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.in.warehouse.ShipmentUseCasePort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
 import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;

@@ -2,7 +2,7 @@ package com.nexusmarket.adapters.useCases;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Seller;
-import com.nexusmarket.domain.ports.in.SellerUseCasePort;
+import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
 import com.nexusmarket.domain.services.SellerDomainService;
 import lombok.RequiredArgsConstructor;

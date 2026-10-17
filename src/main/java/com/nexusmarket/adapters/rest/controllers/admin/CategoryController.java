@@ -1,15 +1,16 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.admin;
 
 import com.nexusmarket.adapters.rest.dtos.requests.CategoryCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.CategoryUpdateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.CategoryResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.CategoryRestMapper;
 import com.nexusmarket.domain.models.Category;
-import com.nexusmarket.domain.ports.in.CategoryUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.CategoryUseCasePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -22,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/api/v1/admin/categories")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class CategoryController {
 

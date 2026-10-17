@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
-import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
+import com.nexusmarket.domain.ports.in.supervisor.InvoiceUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.services.InvoiceGenerateService;

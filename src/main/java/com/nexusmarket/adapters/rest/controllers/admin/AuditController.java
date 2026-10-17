@@ -1,11 +1,12 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.admin;
 
 import com.nexusmarket.adapters.rest.dtos.responses.AuditLogResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.AuditLogRestMapper;
-import com.nexusmarket.domain.ports.in.AuditUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.AuditUseCasePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,7 +17,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/audit")
+@RequestMapping("/api/v1/admin/audit")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class AuditController {
 

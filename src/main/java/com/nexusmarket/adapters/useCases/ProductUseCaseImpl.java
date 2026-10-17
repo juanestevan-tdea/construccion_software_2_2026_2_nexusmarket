@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Product;
-import com.nexusmarket.domain.ports.in.ProductUseCasePort;
+import com.nexusmarket.domain.ports.in.seller.ProductUseCasePort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.domain.services.ProductDomainService;
 import com.nexusmarket.domain.valueobjects.ProductType;

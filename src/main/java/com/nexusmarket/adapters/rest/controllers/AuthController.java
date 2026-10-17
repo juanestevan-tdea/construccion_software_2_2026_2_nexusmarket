@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

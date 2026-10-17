@@ -1,9 +1,10 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.buyer;
 
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,13 +19,14 @@ import com.nexusmarket.adapters.rest.dtos.requests.OrderItemRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.OrderResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.OrderRestMapper;
 import com.nexusmarket.domain.models.Order;
-import com.nexusmarket.domain.ports.in.OrderUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.OrderUseCasePort;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/v1/buyer/orders")
+@PreAuthorize("hasRole('BUYER')")
 @RequiredArgsConstructor
 public class OrderController {
 

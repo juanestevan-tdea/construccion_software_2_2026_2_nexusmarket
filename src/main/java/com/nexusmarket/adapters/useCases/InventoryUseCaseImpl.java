@@ -1,7 +1,7 @@
 package com.nexusmarket.adapters.useCases;
 
 import com.nexusmarket.domain.models.Inventory;
-import com.nexusmarket.domain.ports.in.InventoryUseCasePort;
+import com.nexusmarket.domain.ports.in.warehouse.InventoryUseCasePort;
 import com.nexusmarket.domain.services.InventoryConsultService;
 import com.nexusmarket.domain.services.InventoryManagementService;
 import lombok.RequiredArgsConstructor;

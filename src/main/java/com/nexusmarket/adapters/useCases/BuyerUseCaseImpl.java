@@ -2,7 +2,7 @@ package com.nexusmarket.adapters.useCases;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Buyer;
-import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.services.BuyerDomainService;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;

@@ -1,4 +1,4 @@
-package com.nexusmarket.domain.ports.in;
+package com.nexusmarket.domain.ports.in.admin;
 
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.valueobjects.UserRole;
@@ -30,11 +30,9 @@ public interface UserUseCasePort {
 
     /**
      * Invalida todas las sesiones activas del usuario incrementando su tokenVersion.
-     * Cualquier JWT emitido con un ver anterior quedará rechazado.
      *
      * @param userId identificador del usuario
      * @return el usuario actualizado
-     * @throws ResourceNotFoundException si el usuario no existe
      */
     User invalidateSessions(Long userId);
 }

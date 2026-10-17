@@ -1,4 +1,4 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.admin;
 
 import java.util.List;
 
@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,7 +20,7 @@ import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.UserResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.UserRestMapper;
 import com.nexusmarket.domain.models.User;
-import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
@@ -27,7 +28,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/admin/users")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class UserController {
 

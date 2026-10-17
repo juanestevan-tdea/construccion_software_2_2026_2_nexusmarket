@@ -3,7 +3,7 @@ package com.nexusmarket.catalog.service;
 import com.nexusmarket.adapters.useCases.CategoryUseCaseImpl;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Product;
-import com.nexusmarket.domain.ports.in.CategoryUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.CategoryUseCasePort;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.domain.services.CategoryDomainService;

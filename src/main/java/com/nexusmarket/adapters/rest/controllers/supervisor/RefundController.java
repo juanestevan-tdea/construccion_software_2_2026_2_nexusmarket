@@ -1,14 +1,15 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.supervisor;
 
 import com.nexusmarket.adapters.rest.dtos.requests.RefundCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.RefundResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.RefundRestMapper;
 import com.nexusmarket.domain.models.Refund;
-import com.nexusmarket.domain.ports.in.RefundUseCasePort;
+import com.nexusmarket.domain.ports.in.supervisor.RefundUseCasePort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/refunds")
+@RequestMapping("/api/v1/supervisor/refunds")
+@PreAuthorize("hasRole('SUPERVISOR')")
 @RequiredArgsConstructor
 public class RefundController {
 

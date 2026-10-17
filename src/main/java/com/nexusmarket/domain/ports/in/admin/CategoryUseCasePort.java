@@ -1,4 +1,4 @@
-package com.nexusmarket.domain.ports.in;
+package com.nexusmarket.domain.ports.in.admin;
 
 import com.nexusmarket.domain.models.Category;
 

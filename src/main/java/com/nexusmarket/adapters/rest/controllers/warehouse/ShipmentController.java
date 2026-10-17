@@ -1,15 +1,17 @@
-package com.nexusmarket.adapters.rest.controllers;
+package com.nexusmarket.adapters.rest.controllers.warehouse;
 
 import com.nexusmarket.adapters.rest.dtos.requests.ShipmentCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.ShipmentStatusUpdateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.ShipmentResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.ShipmentRestMapper;
 import com.nexusmarket.domain.models.Shipment;
-import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.in.warehouse.ShipmentUseCasePort;
+import com.nexusmarket.domain.valueobjects.ShipmentStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/shipments")
+@RequestMapping("/api/v1/warehouse/shipments")
+@PreAuthorize("hasRole('WAREHOUSE_OPERATOR')")
 @RequiredArgsConstructor
 public class ShipmentController {
 

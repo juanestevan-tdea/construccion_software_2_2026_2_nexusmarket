@@ -6,7 +6,7 @@ import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.User;
-import com.nexusmarket.domain.ports.in.OrderUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.OrderUseCasePort;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;

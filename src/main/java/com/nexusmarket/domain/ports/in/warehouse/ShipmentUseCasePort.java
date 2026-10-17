@@ -1,4 +1,4 @@
-package com.nexusmarket.domain.ports.in;
+package com.nexusmarket.domain.ports.in.warehouse;
 
 import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;

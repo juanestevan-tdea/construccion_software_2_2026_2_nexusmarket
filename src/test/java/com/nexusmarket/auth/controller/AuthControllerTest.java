@@ -39,7 +39,7 @@ class AuthControllerTest {
     @MockitoBean
     private AuthenticationUseCasePort authenticationUseCasePort;
 
-    // ---------- POST /api/auth/register ----------
+    // ---------- POST /api/v1/auth/register ----------
     @Test
     @DisplayName("register_BuyerRole_Returns201WithAuthResponse")
     void register_buyerRole_returns201WithAuthResponse() throws Exception {
@@ -63,7 +63,7 @@ class AuthControllerTest {
 
         when(authenticationUseCasePort.register(any(RegisterRequestDTO.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -102,7 +102,7 @@ class AuthControllerTest {
 
         when(authenticationUseCasePort.register(any(RegisterRequestDTO.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -126,7 +126,7 @@ class AuthControllerTest {
                 .thenThrow(new BusinessRuleException(
                         "Self-registration is only allowed for BUYER and SELLER roles"));
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnprocessableEntity());
@@ -145,7 +145,7 @@ class AuthControllerTest {
                 .primaryAddress("Calle 123")
                 .build();
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -164,7 +164,7 @@ class AuthControllerTest {
                 .primaryAddress("Calle 123")
                 .build();
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -183,7 +183,7 @@ class AuthControllerTest {
                 .primaryAddress("Calle 123")
                 .build();
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -202,7 +202,7 @@ class AuthControllerTest {
                 .primaryAddress("Calle 123")
                 .build();
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -210,7 +210,7 @@ class AuthControllerTest {
         verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
     }
 
-    // ---------- POST /api/auth/login ----------
+    // ---------- POST /api/v1/auth/login ----------
     @Test
     @DisplayName("login_ValidCredentials_Returns200WithToken")
     void login_validCredentials_returns200WithToken() throws Exception {
@@ -231,7 +231,7 @@ class AuthControllerTest {
 
         when(authenticationUseCasePort.login(any(LoginRequestDTO.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -254,7 +254,7 @@ class AuthControllerTest {
         when(authenticationUseCasePort.login(any(LoginRequestDTO.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
@@ -270,7 +270,7 @@ class AuthControllerTest {
                 .password("secret123")
                 .build();
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -286,7 +286,7 @@ class AuthControllerTest {
                 .password("secret123")
                 .build();
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());

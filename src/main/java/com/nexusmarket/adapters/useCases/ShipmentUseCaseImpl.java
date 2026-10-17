@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
 import com.nexusmarket.domain.models.Shipment;
-import com.nexusmarket.domain.ports.in.ShipmentUseCasePort;
+import com.nexusmarket.domain.ports.in.warehouse.ShipmentUseCasePort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
 import com.nexusmarket.domain.services.ShipmentCreateService;

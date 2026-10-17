@@ -1,4 +1,4 @@
-package com.nexusmarket.domain.ports.in;
+package com.nexusmarket.domain.ports.in.supervisor;
 
 import com.nexusmarket.domain.models.Refund;
 

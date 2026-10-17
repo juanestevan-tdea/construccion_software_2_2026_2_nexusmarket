@@ -6,7 +6,7 @@ import com.nexusmarket.domain.exceptions.ReturnNotAllowedException;
 import com.nexusmarket.domain.exceptions.ReturnWindowExpiredException;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Return;
-import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.ReturnUseCasePort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
 import com.nexusmarket.domain.services.ReturnProcessService;

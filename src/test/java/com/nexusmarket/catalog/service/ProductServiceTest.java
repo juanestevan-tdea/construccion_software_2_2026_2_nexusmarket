@@ -9,7 +9,7 @@ import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
-import com.nexusmarket.domain.ports.in.ProductUseCasePort;
+import com.nexusmarket.domain.ports.in.seller.ProductUseCasePort;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;

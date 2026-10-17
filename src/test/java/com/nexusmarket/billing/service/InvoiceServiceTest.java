@@ -6,7 +6,7 @@ import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
 import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Order;
-import com.nexusmarket.domain.ports.in.InvoiceUseCasePort;
+import com.nexusmarket.domain.ports.in.supervisor.InvoiceUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;

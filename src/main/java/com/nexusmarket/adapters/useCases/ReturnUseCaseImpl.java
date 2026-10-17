@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Return;
-import com.nexusmarket.domain.ports.in.ReturnUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.ReturnUseCasePort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
 import com.nexusmarket.domain.services.ReturnProcessService;

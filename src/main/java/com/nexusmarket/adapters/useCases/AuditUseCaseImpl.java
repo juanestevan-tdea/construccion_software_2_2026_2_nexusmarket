@@ -1,7 +1,7 @@
 package com.nexusmarket.adapters.useCases;
 
 import com.nexusmarket.domain.models.AuditLog;
-import com.nexusmarket.domain.ports.in.AuditUseCasePort;
+import com.nexusmarket.domain.ports.in.admin.AuditUseCasePort;
 import com.nexusmarket.domain.services.ConsultAuditLogsService;
 import com.nexusmarket.domain.services.RegisterAuditLogService;
 import lombok.RequiredArgsConstructor;
