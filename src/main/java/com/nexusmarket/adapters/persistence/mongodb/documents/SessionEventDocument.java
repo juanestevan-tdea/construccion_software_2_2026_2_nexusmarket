@@ -56,6 +56,6 @@ public class SessionEventDocument {
 
     private Integer tokenVersion;
 
-    @Indexed(expireAfterSeconds = 7776000) // TTL: 90 días
+    @Indexed(expireAfter = "PT7776000S") // TTL: 90 días
     private Instant occurredAt;
 }

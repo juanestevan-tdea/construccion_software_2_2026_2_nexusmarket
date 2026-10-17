@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(
             BusinessRuleException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(InvalidStatusTransitionException.class)
@@ -106,7 +106,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WarehouseCapacityExceededException.class)
     public ResponseEntity<ErrorResponse> handleWarehouseCapacityExceeded(
             WarehouseCapacityExceededException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(InvoiceAlreadyExistsException.class)
@@ -118,19 +118,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvoiceNotPayableException.class)
     public ResponseEntity<ErrorResponse> handleInvoiceNotPayable(
             InvoiceNotPayableException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(RefundAmountExceededException.class)
     public ResponseEntity<ErrorResponse> handleRefundAmountExceeded(
             RefundAmountExceededException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(RefundNotAllowedException.class)
     public ResponseEntity<ErrorResponse> handleRefundNotAllowed(
             RefundNotAllowedException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(PaymentGatewayException.class)
@@ -154,13 +154,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReturnWindowExpiredException.class)
     public ResponseEntity<ErrorResponse> handleReturnWindowExpired(
             ReturnWindowExpiredException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(ReturnNotAllowedException.class)
     public ResponseEntity<ErrorResponse> handleReturnNotAllowed(
             ReturnNotAllowedException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request, null);
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(ReturnAlreadyProcessedException.class)
@@ -208,7 +208,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSize(
             MaxUploadSizeExceededException ex, HttpServletRequest request) {
-        return build(HttpStatus.PAYLOAD_TOO_LARGE, "Maximum upload size exceeded", request, null);
+        return build(HttpStatus.CONTENT_TOO_LARGE, "Maximum upload size exceeded", request, null);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

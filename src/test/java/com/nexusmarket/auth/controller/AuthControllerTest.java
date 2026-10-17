@@ -129,7 +129,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
 
         verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
     }
