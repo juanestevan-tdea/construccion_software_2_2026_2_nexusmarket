@@ -1,5 +1,6 @@
 package com.nexusmarket.infrastructure.security;
 
+import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -12,12 +13,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
     private static final String ROLES_CLAIM = "roles";
+    private static final String VERSION_CLAIM = "ver";
 
     private final String secret;
     private final long expiration;
@@ -34,11 +37,22 @@ public class JwtService {
                 .map(Object::toString)
                 .toList());
 
+        // tokenVersion del usuario para invalidación de sesiones
+        Integer tokenVersion = 0;
+        if (userDetails instanceof UserDetailsAdapter adapter) {
+            tokenVersion = adapter.getUser().getTokenVersion();
+            if (tokenVersion == null) {
+                tokenVersion = 0;
+            }
+        }
+        claims.put(VERSION_CLAIM, tokenVersion);
+
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .claims(claims)
+                .id(UUID.randomUUID().toString()) // jti: identificador único del token
                 .subject(userDetails.getUsername())
                 .issuedAt(now)
                 .expiration(expiry)
@@ -50,9 +64,32 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractJti(String token) {
+        return extractClaim(token, Claims::getId);
+    }
+
+    public Integer extractVersion(String token) {
+        return extractClaim(token, claims -> claims.get(VERSION_CLAIM, Integer.class));
+    }
+
     public boolean validateToken(String token, UserDetails userDetails) {
         try {
             final String username = extractUsername(token);
+            final Integer tokenVersion = extractVersion(token);
+
+            Integer userVersion = 0;
+            if (userDetails instanceof UserDetailsAdapter adapter) {
+                userVersion = adapter.getUser().getTokenVersion();
+                if (userVersion == null) {
+                    userVersion = 0;
+                }
+            }
+
+            // La versión del token debe coincidir con la versión actual del usuario
+            if (!tokenVersion.equals(userVersion)) {
+                return false;
+            }
+
             return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
         } catch (Exception ex) {
             return false;

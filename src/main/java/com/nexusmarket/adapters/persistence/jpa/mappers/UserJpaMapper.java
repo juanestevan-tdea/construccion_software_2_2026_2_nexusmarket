@@ -18,6 +18,8 @@ public class UserJpaMapper {
                 .password(entity.getPassword())
                 .role(entity.getRole())
                 .status(entity.getStatus())
+                .tokenVersion(entity.getTokenVersion())
+                .lastLogoutAt(entity.getLastLogoutAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -34,6 +36,8 @@ public class UserJpaMapper {
                 .password(domain.getPassword())
                 .role(domain.getRole())
                 .status(domain.getStatus())
+                .tokenVersion(domain.getTokenVersion())
+                .lastLogoutAt(domain.getLastLogoutAt())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .build();

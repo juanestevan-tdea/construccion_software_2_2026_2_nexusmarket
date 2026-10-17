@@ -29,12 +29,18 @@ public class SecurityConfig {
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/api/auth/**",
+        "/api/auth/register",
+        "/api/auth/login",
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/v3/api-docs/**",
         "/actuator/health",
         "/actuator/health/**"
+    };
+
+    private static final String[] AUTHENTICATED_AUTH_ENDPOINTS = {
+        "/api/auth/logout",
+        "/api/auth/change-password"
     };
 
     @Bean
@@ -50,6 +56,7 @@ public class SecurityConfig {
                 .sessionManagement(session
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                .requestMatchers(AUTHENTICATED_AUTH_ENDPOINTS).authenticated()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                 .requestMatchers("/api/users/**").hasRole("ADMIN")

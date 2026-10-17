@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,6 +18,8 @@ import java.io.IOException;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -49,9 +53,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    // Token rechazado: versión obsoleta (logout / cambio de contraseña)
+                    // o cualquier otro fallo de validación. No autenticar y limpiar contexto.
+                    String jti = jwtService.extractJti(jwt);
+                    log.warn("JWT rechazado (versión obsoleta o inválida): jti={}, email={}",
+                            jti, userEmail);
+                    SecurityContextHolder.clearContext();
                 }
             }
         } catch (Exception ex) {
+            // Cualquier fallo de parseo/validación → no autenticar.
+            // Spring Security devolverá 401 a través del authenticationEntryPoint.
             SecurityContextHolder.clearContext();
         }
 

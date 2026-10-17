@@ -70,5 +70,10 @@ public class UserUseCaseImpl implements UserUseCasePort {
     public User changeRole(Long id, UserRole newRole) {
         return userManagementService.changeRole(id, newRole);
     }
+
+    @Override
+    public User invalidateSessions(Long userId) {
+        return userManagementService.invalidateSessions(userId);
+    }
 }
 

@@ -7,6 +7,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -41,6 +42,13 @@ public class UserJpaEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status;
+
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private Integer tokenVersion = 0;
+
+    @Column(name = "last_logout_at", nullable = true)
+    private Instant lastLogoutAt;
 
     @CreationTimestamp
     @Column(updatable = false)

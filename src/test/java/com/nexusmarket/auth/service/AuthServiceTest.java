@@ -11,6 +11,7 @@ import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -51,6 +52,9 @@ class AuthServiceTest {
     private SellerUseCasePort sellerUseCasePort;
 
     @Mock
+    private UserManagementService userManagementService;
+
+    @Mock
     private JwtService jwtService;
 
     @Mock
@@ -61,7 +65,8 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthenticationUseCaseImpl(
-                userUseCasePort, buyerUseCasePort, sellerUseCasePort, jwtService, authenticationManager, ONE_DAY_MS);
+                userUseCasePort, buyerUseCasePort, sellerUseCasePort, userManagementService,
+                jwtService, authenticationManager, ONE_DAY_MS);
     }
 
     // ---------- helpers ----------

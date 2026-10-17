@@ -16,6 +16,7 @@ import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.infrastructure.security.JwtService;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
@@ -26,6 +27,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
     private final UserUseCasePort userUseCasePort;
     private final BuyerUseCasePort buyerUseCasePort;
     private final SellerUseCasePort sellerUseCasePort;
+    private final UserManagementService userManagementService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final long jwtExpiration;
@@ -34,12 +36,14 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
             UserUseCasePort userUseCasePort,
             BuyerUseCasePort buyerUseCasePort,
             SellerUseCasePort sellerUseCasePort,
+            UserManagementService userManagementService,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
             @Value("${jwt.expiration}") long jwtExpiration) {
         this.userUseCasePort = userUseCasePort;
         this.buyerUseCasePort = buyerUseCasePort;
         this.sellerUseCasePort = sellerUseCasePort;
+        this.userManagementService = userManagementService;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.jwtExpiration = jwtExpiration;
@@ -80,6 +84,18 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
         String token = jwtService.generateToken(principal);
         return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
+    }
+
+    @Override
+    @Transactional
+    public void logout(Long userId) {
+        userUseCasePort.invalidateSessions(userId);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        userManagementService.changePassword(userId, currentPassword, newPassword);
     }
 
     private void createBuyerProfile(User user, String primaryAddress) {

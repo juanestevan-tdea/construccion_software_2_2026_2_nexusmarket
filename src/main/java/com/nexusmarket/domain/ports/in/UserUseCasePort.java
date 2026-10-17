@@ -27,4 +27,14 @@ public interface UserUseCasePort {
     User activateUser(Long id);
 
     User changeRole(Long id, UserRole newRole);
+
+    /**
+     * Invalida todas las sesiones activas del usuario incrementando su tokenVersion.
+     * Cualquier JWT emitido con un ver anterior quedará rechazado.
+     *
+     * @param userId identificador del usuario
+     * @return el usuario actualizado
+     * @throws ResourceNotFoundException si el usuario no existe
+     */
+    User invalidateSessions(Long userId);
 }
