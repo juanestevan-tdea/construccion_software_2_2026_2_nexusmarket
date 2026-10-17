@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.nexusmarket.domain.services.SessionAuditService;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -25,6 +26,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtService jwtService;
+    private final SessionAuditService sessionAuditService;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
@@ -57,6 +59,7 @@ public class SecurityConfig {
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers(AUTHENTICATED_AUTH_ENDPOINTS).authenticated()
+                .requestMatchers("/api/v1/admin/session-events").hasRole("ADMIN")
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
@@ -75,7 +78,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtService, customUserDetailsService);
+        return new JwtAuthenticationFilter(jwtService, customUserDetailsService, sessionAuditService);
     }
 
     @Bean

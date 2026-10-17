@@ -7,6 +7,7 @@ import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
+import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
@@ -18,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.authentication.AuthenticationManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class TokenInvalidationServiceTest {
 
     private static final String TEST_SECRET = "test-secret-key-for-hs256-signing-at-least-256-bits-long!!";
@@ -38,6 +42,9 @@ class TokenInvalidationServiceTest {
 
     @Mock
     private UserManagementService userManagementService;
+
+    @Mock
+    private SessionAuditService sessionAuditService;
 
     @Mock
     private UserUseCasePort userUseCasePort;
@@ -56,9 +63,11 @@ class TokenInvalidationServiceTest {
     @BeforeEach
     void setUp() {
         jwtService = new JwtService(TEST_SECRET, TTL_MS);
+        // Mockear getUserByIdOrThrow para logout/changePassword
+        when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user(1L, "buyer@test.com", 1));
         authService = new AuthenticationUseCaseImpl(
                 userUseCasePort, buyerUseCasePort, sellerUseCasePort, userManagementService,
-                jwtService, authenticationManager, TTL_MS);
+                sessionAuditService, jwtService, authenticationManager, TTL_MS);
     }
 
     private static User user(Long id, String email, Integer tokenVersion) {

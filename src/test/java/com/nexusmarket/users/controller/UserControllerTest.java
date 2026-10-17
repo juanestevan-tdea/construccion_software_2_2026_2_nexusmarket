@@ -11,6 +11,7 @@ import com.nexusmarket.infrastructure.security.RestAccessDeniedHandler;
 import com.nexusmarket.infrastructure.security.RestAuthenticationEntryPoint;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 import com.nexusmarket.infrastructure.security.SecurityConfig;
+import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
@@ -68,6 +69,9 @@ class UserControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private SessionAuditService sessionAuditService;
 
     // ---------- helpers ----------
     private static User sampleUser(Long id, String email, String fullName, UserRole role) {

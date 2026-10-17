@@ -16,10 +16,12 @@ import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.SellerUseCasePort;
 import com.nexusmarket.domain.ports.in.UserUseCasePort;
+import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.infrastructure.security.JwtService;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
+import org.springframework.security.authentication.BadCredentialsException;
 
 @Service
 public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
@@ -28,6 +30,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
     private final BuyerUseCasePort buyerUseCasePort;
     private final SellerUseCasePort sellerUseCasePort;
     private final UserManagementService userManagementService;
+    private final SessionAuditService sessionAuditService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final long jwtExpiration;
@@ -37,6 +40,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
             BuyerUseCasePort buyerUseCasePort,
             SellerUseCasePort sellerUseCasePort,
             UserManagementService userManagementService,
+            SessionAuditService sessionAuditService,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
             @Value("${jwt.expiration}") long jwtExpiration) {
@@ -44,6 +48,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
         this.buyerUseCasePort = buyerUseCasePort;
         this.sellerUseCasePort = sellerUseCasePort;
         this.userManagementService = userManagementService;
+        this.sessionAuditService = sessionAuditService;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.jwtExpiration = jwtExpiration;
@@ -76,26 +81,38 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
     @Override
     public AuthResponseDTO login(LoginRequestDTO request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-        UserDetailsAdapter principal = (UserDetailsAdapter) authentication.getPrincipal();
-        User user = principal.getUser();
+            UserDetailsAdapter principal = (UserDetailsAdapter) authentication.getPrincipal();
+            User user = principal.getUser();
 
-        String token = jwtService.generateToken(principal);
-        return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
+            String token = jwtService.generateToken(principal);
+            String jti = jwtService.extractJti(token);
+            sessionAuditService.recordLogin(user.getEmail(), jti, null);
+
+            return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
+        } catch (BadCredentialsException ex) {
+            sessionAuditService.recordLoginFailed(request.getEmail(), "bad credentials", null);
+            throw ex;
+        }
     }
 
     @Override
     @Transactional
     public void logout(Long userId) {
         userUseCasePort.invalidateSessions(userId);
+        User user = userUseCasePort.getUserByIdOrThrow(userId);
+        sessionAuditService.recordLogout(user.getEmail(), null, null);
     }
 
     @Override
     @Transactional
     public void changePassword(Long userId, String currentPassword, String newPassword) {
         userManagementService.changePassword(userId, currentPassword, newPassword);
+        User user = userUseCasePort.getUserByIdOrThrow(userId);
+        sessionAuditService.recordPasswordChange(user.getEmail(), null, null);
     }
 
     private void createBuyerProfile(User user, String primaryAddress) {

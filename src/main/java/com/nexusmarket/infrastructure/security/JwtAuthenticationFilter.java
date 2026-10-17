@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.nexusmarket.domain.services.SessionAuditService;
+import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final SessionAuditService sessionAuditService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -54,17 +57,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    // Token rechazado: versión obsoleta (logout / cambio de contraseña)
-                    // o cualquier otro fallo de validación. No autenticar y limpiar contexto.
+                    // Token rechazado: distinguir entre versión obsoleta y token inválido/expirado
                     String jti = jwtService.extractJti(jwt);
-                    log.warn("JWT rechazado (versión obsoleta o inválida): jti={}, email={}",
-                            jti, userEmail);
+                    try {
+                        Integer tokenVersion = jwtService.extractVersion(jwt);
+                        Integer userVersion = null;
+                        if (userDetails instanceof UserDetailsAdapter adapter) {
+                            userVersion = adapter.getUser().getTokenVersion();
+                        }
+                        if (tokenVersion != null && userVersion != null
+                                && !tokenVersion.equals(userVersion)) {
+                            sessionAuditService.recordTokenRejected(userEmail, jti,
+                                    "token version obsolete", request, tokenVersion);
+                        } else {
+                            sessionAuditService.recordTokenInvalid(jti,
+                                    "invalid signature or expired", request, tokenVersion);
+                        }
+                    } catch (Exception ex) {
+                        sessionAuditService.recordTokenInvalid(jti, "token parse error", request, null);
+                    }
+                    log.warn("JWT rechazado: jti={}, email={}", jti, userEmail);
                     SecurityContextHolder.clearContext();
                 }
             }
         } catch (Exception ex) {
             // Cualquier fallo de parseo/validación → no autenticar.
             // Spring Security devolverá 401 a través del authenticationEntryPoint.
+            try {
+                String jti = jwtService.extractJti(jwt);
+                sessionAuditService.recordTokenInvalid(jti, "token parse error", request, null);
+            } catch (Exception parseEx) {
+                // No se pudo extraer jti; ignorar y continuar
+            }
             SecurityContextHolder.clearContext();
         }
 
