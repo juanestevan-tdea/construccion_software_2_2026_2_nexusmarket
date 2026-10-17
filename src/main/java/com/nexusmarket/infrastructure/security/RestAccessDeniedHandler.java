@@ -1,6 +1,6 @@
 package com.nexusmarket.infrastructure.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nexusmarket.adapters.rest.dtos.responses.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
