@@ -1,6 +1,12 @@
-# 📐 Software Design Document (SDD) — NexusMarket
+# Software Design Document (SDD) — NexusMarket
 
-Documento de diseño formal del backend de marketplace multi-vendedor **NexusMarket**, construido con **arquitectura hexagonal (ports & adapters)**, **Spring Boot 3.4**, **Java 17**, **Spring Security + JWT**, **MySQL (JPA)** y **MongoDB (auditoría)**.
+Documento de diseño del backend de marketplace multi-vendedor **NexusMarket**,
+construido con **arquitectura hexagonal (Ports & Adapters)** sobre
+**Spring Boot 4.0.0**, **Spring Framework 7**, **Jackson 3**, **Java 17**,
+**Spring Security + JWT**, **MySQL (JPA)** y **MongoDB (auditoría)**.
+
+> Estado: proyecto académico. El SDD describe la implementación real; los
+> aspectos no verificados o pendientes se marcan explícitamente.
 
 ## Índice de contenido
 
@@ -9,51 +15,92 @@ Documento de diseño formal del backend de marketplace multi-vendedor **NexusMar
 | 00. Introducción | [00-introduccion/proposito.md](00-introduccion/proposito.md) | Propósito y objetivos medibles |
 | 00. Introducción | [00-introduccion/alcance.md](00-introduccion/alcance.md) | Alcance: qué cubre y qué no el sistema |
 | 00. Introducción | [00-introduccion/glosario.md](00-introduccion/glosario.md) | Glosario de términos de dominio |
-| 01. Requisitos | [01-requisitos/requisitos-funcionales.md](01-requisitos/requisitos-funcionales.md) | RF-001…RF-043, por módulo, con actor y criterios de aceptación |
-| 01. Requisitos | [01-requisitos/requisitos-no-funcionales.md](01-requisitos/requisitos-no-funcionales.md) | RNF-001…RNF-007 |
-| 01. Requisitos | [01-requisitos/casos-de-uso.md](01-requisitos/casos-de-uso.md) | Trazabilidad RF → casos de uso (`domain/ports/in/`) |
-| 02. Arquitectura | [02-arquitectura/c4-nivel-1-contexto.md](02-arquitectura/c4-nivel-1-contexto.md) | C4 Nivel 1: Contexto |
-| 02. Arquitectura | [02-arquitectura/c4-nivel-2-contenedores.md](02-arquitectura/c4-nivel-2-contenedores.md) | C4 Nivel 2: Contenedores |
-| 02. Arquitectura | [02-arquitectura/c4-nivel-3-componentes.md](02-arquitectura/c4-nivel-3-componentes.md) | C4 Nivel 3: Componentes por módulo |
-| 02. Arquitectura | [02-arquitectura/c4-nivel-4-codigo.md](02-arquitectura/c4-nivel-4-codigo.md) | C4 Nivel 4: Código (classDiagram por módulo) |
-| 03. Dominio | [03-dominio/modelo-de-dominio.md](03-dominio/modelo-de-dominio.md) | Entidades, relaciones y classDiagram del agregado Order |
-| 03. Dominio | [03-dominio/reglas-de-negocio.md](03-dominio/reglas-de-negocio.md) | RN-001… con invariante en código |
-| 03. Dominio | [03-dominio/eventos-de-dominio.md](03-dominio/eventos-de-dominio.md) | Eventos de dominio, payload y consumidores |
-| 04. API | [04-api/contratos-por-endpoint.md](04-api/contratos-por-endpoint.md) | Contratos de los 93 endpoints (rol, request, response, errores) |
-| 04. API | [04-api/openapi.yaml](04-api/openapi.yaml) | Especificación OpenAPI 3.1 generada de los controladores reales |
-| 05. Despliegue | [05-despliegue/diagrama-despliegue.md](05-despliegue/diagrama-despliegue.md) | Diagrama de despliegue (docker-compose) |
+| 01. Requisitos | [01-requisitos/requisitos-funcionales.md](01-requisitos/requisitos-funcionales.md) | RF por módulo, actor y criterios de aceptación |
+| 01. Requisitos | [01-requisitos/requisitos-no-funcionales.md](01-requisitos/requisitos-no-funcionales.md) | RNF del sistema |
+| 01. Requisitos | [01-requisitos/casos-de-uso.md](01-requisitos/casos-de-uso.md) | Trazabilidad RF → casos de uso |
+| 02. Arquitectura | [02-arquitectura/c4-nivel-1-contexto.md](02-arquitectura/c4-nivel-1-contexto.md) | C4 Nivel 1: contexto |
+| 02. Arquitectura | [02-arquitectura/c4-nivel-2-contenedores.md](02-arquitectura/c4-nivel-2-contenedores.md) | C4 Nivel 2: contenedores |
+| 02. Arquitectura | [02-arquitectura/c4-nivel-3-componentes.md](02-arquitectura/c4-nivel-3-componentes.md) | C4 Nivel 3: componentes por módulo |
+| 02. Arquitectura | [02-arquitectura/c4-nivel-4-codigo.md](02-arquitectura/c4-nivel-4-codigo.md) | C4 Nivel 4: diagramas de clase |
+| 03. Dominio | [03-dominio/modelo-de-dominio.md](03-dominio/modelo-de-dominio.md) | Entidades, relaciones y agregado Order |
+| 03. Dominio | [03-dominio/reglas-de-negocio.md](03-dominio/reglas-de-negocio.md) | Reglas con invariante en código |
+| 03. Dominio | [03-dominio/eventos-de-dominio.md](03-dominio/eventos-de-dominio.md) | Eventos y consumidores |
+| 03. Dominio | [03-dominio/servicios-y-responsabilidades.md](03-dominio/servicios-y-responsabilidades.md) | Inventario SRP y deuda de `UserManagementService` |
+| 04. API | [04-api/contratos-por-endpoint.md](04-api/contratos-por-endpoint.md) | Contratos de los 96 endpoints |
+| 04. API | [04-api/openapi.yaml](04-api/openapi.yaml) | Especificación OpenAPI 3.1 mantenida a mano |
+| 05. Despliegue | [05-despliegue/diagrama-despliegue.md](05-despliegue/diagrama-despliegue.md) | Docker Compose: MySQL + MongoDB + App |
+| 06. Adaptadores | [06-adaptadores/global-exception-handler.md](06-adaptadores/global-exception-handler.md) | Excepciones de dominio y mapeo HTTP |
+| 06. Adaptadores | [06-adaptadores/seguridad-y-autorizacion.md](06-adaptadores/seguridad-y-autorizacion.md) | JWT, roles y propiedad de recursos |
+| 06. Adaptadores | [06-adaptadores/persistencia.md](06-adaptadores/persistencia.md) | Adaptadores JPA y MongoDB |
+| 07. Trazabilidad | [07-trazabilidad/matriz-trazabilidad.md](07-trazabilidad/matriz-trazabilidad.md) | Requisito → código → prueba |
 
-## 🚨 Gaps detectados
+## Hallazgos y correcciones aplicadas
 
-Los siguientes hallazgos reales se detectaron durante el recorrido del código y se documentan aquí (no se agregan funcionalidades al SDD, solo se evidencian):
-
-1. **Dependencia de dominio hacia adaptador REST** — `domain/ports/in/AuthenticationUseCasePort.java` importa `com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO`, `RegisterRequestDTO` y `com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO`. Rompe el principio hexagonal de que `domain/` no conoce la capa de `adapters/`.
-2. **Autorización más gruesa de lo documentado** — `SecurityConfig` exige solo `authenticated` para escrituras de catálogo (`POST/PATCH/DELETE /api/products`), mientras el README declara roles `SELLER` / `ADMIN`. Solo `/api/users/**` (salvo `/me`) exige `ADMIN` y `/api/audit/**` exige `ADMIN` o `SUPERVISOR`.
-3. **OpenAPI no servido automáticamente** — `SecurityConfig` permite `/v3/api-docs/**` y `/swagger-ui/**`, pero `pom.xml` no incluye `springdoc-openapi`; no hay generación automática de OpenAPI. Este SDD incluye `openapi.yaml` escrito a mano a partir de los controladores reales.
-4. **Notificaciones son un stub** — `infrastructure/notification/NotificationPort` y `NoOpNotificationAdapter` existen pero no están conectadas a ningún caso de uso; `NotificationPort` no se invoca desde `adapters/useCases/`.
+1. **Dependencia de dominio hacia REST (corregida).**
+   `AuthenticationUseCasePort` importaba `LoginRequestDTO`, `RegisterRequestDTO`
+   y `AuthResponseDTO`. Ahora usa `LoginCommand`, `RegisterCommand` y
+   `AuthenticationResult` en `domain/ports/in/model`. El controller traduce.
+2. **Autorización por método inerte (corregida).**
+   `@PreAuthorize` no tenía efecto porque faltaba `@EnableMethodSecurity`.
+   Se habilitó y se añadió `@PreAuthorize("isAuthenticated()")` a
+   `GET /api/v1/admin/users/me`.
+3. **Suplantación de identidad en cuerpos (corregida).**
+   `sellerId`, `buyerId` y `userId` ya no se aceptan en los cuerpos de creación;
+   se resuelven desde el JWT. Los controladores de comprador y vendedor validan
+   la propiedad del recurso antes de leer o modificar.
+4. **Fuga de datos entre compradores (corregida).**
+   `GET /api/v1/buyer/orders` usaba `findAll()`. Ahora filtra por el comprador
+   autenticado; las devoluciones y perfiles siguen la misma regla.
+5. **Devoluciones aprobadas por el propio comprador (corregida).**
+   Los endpoints de aprobación, rechazo y finalización se movieron a
+   `/api/v1/supervisor/returns/**`.
+6. **Excepciones acopladas a Spring (corregida).**
+   Se añadió `DomainException` y las 17 excepciones concretas heredan de ella.
+   `GlobalExceptionHandler` mapea 404/409/422/400/502 y tiene un fallback 400
+   para excepciones de dominio no mapeadas.
+7. **OpenAPI no servido automáticamente (pendiente).**
+   `SecurityConfig` permite `/v3/api-docs/**` y `/swagger-ui/**`, pero no se
+   incluye `springdoc-openapi`. El contrato vive en `04-api/openapi.yaml`.
+8. **Notificaciones sin uso (pendiente).**
+   `NotificationPort` y `NoOpNotificationAdapter` existen, pero ningún caso de
+   uso los invoca.
+9. **Esquema sin Flyway (pendiente).**
+   `spring.jpa.hibernate.ddl-auto=update` gobierna el esquema. Existe
+   `V1__add_token_version.sql`, pero Flyway no está en el `pom.xml`.
+10. **SRP parcial (pendiente).**
+   `UserManagementService` concentra alta, estado, rol, sesiones y contraseña.
+   La división propuesta está en
+   [03-dominio/servicios-y-responsabilidades.md](03-dominio/servicios-y-responsabilidades.md).
+   No se aplicó para no comprometer los 149 tests sin pruebas de integración.
+11. **Transiciones de orden y estado comercial fuera de rol (corregida).**
+   `dispatch`, `deliver` y `finish` se movieron a
+   `/api/v1/warehouse/orders/{id}/...` (`WAREHOUSE_OPERATOR`). El cambio de
+   estado comercial del comprador se movió a
+   `/api/v1/admin/buyers/{id}/status` (`ADMIN`).
 
 ## Documentación relacionada
 
-- [DOCUMENTATION.md](../DOCUMENTATION.md) — Documentación técnica completa
-- [README.md](../README.md) — Overview del proyecto
-- [Especificacion-Funcional.pdf](Especificacion-Funcional.pdf) — Especificación funcional del negocio (material de clase)
+- [README.md](../README.md) — visión general del proyecto
+- [SETUP.md](../SETUP.md) — instalación y ejecución
+- [DOCUMENTATION.md](../DOCUMENTATION.md) — documentación técnica extendida
+- [Especificacion-Funcional.pdf](Especificacion-Funcional.pdf) — material de clase
 
-## Estructura de paquetes del código (resumen)
+## Estructura de paquetes (resumen)
 
 ```
 com.nexusmarket/
-├── domain/                     # Núcleo puro (sin Spring/JPA/Mongo)
-│   ├── models/                 # 14 POJOs (Order, User, Product, ...)
-│   ├── valueobjects/           # 10 enums (UserRole, OrderStatus, ...)
-│   ├── exceptions/             # 17 excepciones de negocio
-│   ├── ports/
-│   │   ├── in/                 # 15 interfaces de casos de uso
-│   │   └── out/                # 13 interfaces de persistencia
-│   └── services/               # 20 servicios de dominio
+├── domain/
+│   ├── models/          # 14 POJOs
+│   ├── valueobjects/    # 11 enums
+│   ├── exceptions/      # DomainException + 17 subtipos
+│   ├── ports/in/        # 15 puertos + modelos de comando/resultado
+│   ├── ports/out/       # 14 puertos de persistencia
+│   └── services/        # 23 servicios de dominio (SRP)
 ├── adapters/
-│   ├── rest/                   # 15 controladores, DTOs, mappers, GlobalExceptionHandler
-│   ├── persistence/jpa/        # 12 adaptadores, 13 entidades, 13 repositorios, 13 mappers
-│   ├── persistence/mongodb/    # Adaptador de auditoría (AuditLog)
-│   └── useCases/               # 15 implementaciones de ports/in
-└── infrastructure/             # security (JWT), config, notification (NoOp)
+│   ├── rest/            # 19 controladores, DTOs, mappers, handler
+│   ├── persistence/
+│   │   ├── jpa/         # 12 adaptadores, 13 entidades/repos/mappers
+│   │   └── mongodb/     # auditoría y sesiones
+│   └── useCases/        # 15 implementaciones de puertos de entrada
+└── infrastructure/      # security (JWT), config, notification
 ```

@@ -4,8 +4,7 @@ import com.nexusmarket.domain.valueobjects.ProductType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.Size;import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,9 +33,6 @@ public class ProductCreateRequestDTO {
 
     @NotNull(message = "Product type is required")
     private ProductType type;
-
-    @NotNull(message = "Seller ID is required")
-    private Long sellerId;
 
     @NotNull(message = "Category ID is required")
     private Long categoryId;

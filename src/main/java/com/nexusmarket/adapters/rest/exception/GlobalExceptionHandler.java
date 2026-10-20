@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.nexusmarket.adapters.rest.dtos.responses.ErrorResponse;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
+import com.nexusmarket.domain.exceptions.DomainException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
@@ -167,6 +168,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleReturnAlreadyProcessed(
             ReturnAlreadyProcessedException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    /**
+     * Red de seguridad para excepciones de dominio sin mapeo explícito.
+     *
+     * <p>Spring elige el handler más específico por tipo, por lo que este método
+     * solo se ejecuta cuando no existe un {@code @ExceptionHandler} dedicado.
+     * El dominio nunca conoce HTTP; la traducción a 400 se decide aquí.</p>
+     */
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<ErrorResponse> handleUnmappedDomainException(
+            DomainException ex, HttpServletRequest request) {
+        log.warn("Unmapped domain exception at {}: {}", request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
     }
 
     // ---------- Spring / framework exceptions ----------

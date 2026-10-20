@@ -1,6 +1,7 @@
 package com.nexusmarket.adapters.rest.dtos.responses;
 
 import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,6 +31,18 @@ public class AuthResponseDTO {
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .role(user.getRole())
+                .build();
+    }
+
+    public static AuthResponseDTO fromResult(AuthenticationResult result) {
+        return AuthResponseDTO.builder()
+                .tokenType(result.getTokenType())
+                .token(result.getToken())
+                .expiresIn(result.getExpiresIn())
+                .id(result.getId())
+                .email(result.getEmail())
+                .fullName(result.getFullName())
+                .role(result.getRole())
                 .build();
     }
 }

@@ -1,8 +1,8 @@
 package com.nexusmarket.auth.service;
 
-import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
-import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
-import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
+import com.nexusmarket.domain.ports.in.model.LoginCommand;
+import com.nexusmarket.domain.ports.in.model.RegisterCommand;
+import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
 import com.nexusmarket.adapters.useCases.AuthenticationUseCaseImpl;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
@@ -85,8 +85,8 @@ class AuthServiceTest {
                 .build();
     }
 
-    private static RegisterRequestDTO buyerRequest() {
-        return RegisterRequestDTO.builder()
+    private static RegisterCommand buyerRequest() {
+        return RegisterCommand.builder()
                 .email("buyer1@test.com")
                 .fullName("Juan Perez")
                 .password("secret123")
@@ -95,8 +95,8 @@ class AuthServiceTest {
                 .build();
     }
 
-    private static RegisterRequestDTO sellerRequest() {
-        return RegisterRequestDTO.builder()
+    private static RegisterCommand sellerRequest() {
+        return RegisterCommand.builder()
                 .email("seller1@test.com")
                 .fullName("Tienda SA")
                 .password("secret123")
@@ -110,14 +110,14 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_Buyer_Success")
     void register_buyer_success() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
 
         when(userUseCasePort.createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER))
                 .thenReturn(saved);
         when(jwtService.generateToken(any(UserDetailsAdapter.class))).thenReturn("fake.jwt.token");
 
-        AuthResponseDTO response = authService.register(request);
+        AuthenticationResult response = authService.register(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getToken()).isEqualTo("fake.jwt.token");
@@ -135,14 +135,14 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_Seller_Success")
     void register_seller_success() {
-        RegisterRequestDTO request = sellerRequest();
+        RegisterCommand request = sellerRequest();
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
 
         when(userUseCasePort.createUser("seller1@test.com", "Tienda SA", "secret123", UserRole.SELLER))
                 .thenReturn(saved);
         when(jwtService.generateToken(any(UserDetailsAdapter.class))).thenReturn("fake.jwt.token.seller");
 
-        AuthResponseDTO response = authService.register(request);
+        AuthenticationResult response = authService.register(request);
 
         assertThat(response.getToken()).isEqualTo("fake.jwt.token.seller");
         assertThat(response.getRole()).isEqualTo(UserRole.SELLER);
@@ -156,7 +156,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenRoleIsAdmin")
     void register_throwsBusinessRuleException_whenRoleIsAdmin() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         request.setRole(UserRole.ADMIN);
 
         assertThatThrownBy(() -> authService.register(request))
@@ -169,7 +169,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenRoleIsWarehouseOperator")
     void register_throwsBusinessRuleException_whenRoleIsWarehouseOperator() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         request.setRole(UserRole.WAREHOUSE_OPERATOR);
 
         assertThatThrownBy(() -> authService.register(request))
@@ -182,7 +182,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenRoleIsSupervisor")
     void register_throwsBusinessRuleException_whenRoleIsSupervisor() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         request.setRole(UserRole.SUPERVISOR);
 
         assertThatThrownBy(() -> authService.register(request))
@@ -195,7 +195,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenRoleIsNull")
     void register_throwsBusinessRuleException_whenRoleIsNull() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         request.setRole(null);
 
         assertThatThrownBy(() -> authService.register(request))
@@ -209,7 +209,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenBuyerWithoutPrimaryAddress")
     void register_throwsBusinessRuleException_whenBuyerWithoutPrimaryAddress() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         request.setPrimaryAddress(null);
 
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
@@ -227,7 +227,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenBuyerWithBlankPrimaryAddress")
     void register_throwsBusinessRuleException_whenBuyerWithBlankPrimaryAddress() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         request.setPrimaryAddress("   ");
 
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
@@ -244,7 +244,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenSellerWithoutTaxId")
     void register_throwsBusinessRuleException_whenSellerWithoutTaxId() {
-        RegisterRequestDTO request = sellerRequest();
+        RegisterCommand request = sellerRequest();
         request.setTaxId(null);
 
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
@@ -262,7 +262,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenSellerWithoutCompanyName")
     void register_throwsBusinessRuleException_whenSellerWithoutCompanyName() {
-        RegisterRequestDTO request = sellerRequest();
+        RegisterCommand request = sellerRequest();
         request.setCompanyName(null);
 
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
@@ -280,7 +280,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_ThrowsBusinessRuleException_WhenSellerWithBlankCompanyName")
     void register_throwsBusinessRuleException_whenSellerWithBlankCompanyName() {
-        RegisterRequestDTO request = sellerRequest();
+        RegisterCommand request = sellerRequest();
         request.setCompanyName("  ");
 
         User saved = persistedUser(2L, "seller1@test.com", UserRole.SELLER);
@@ -298,7 +298,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_PropagatesDuplicateResourceException_FromUserService")
     void register_propagatesDuplicateResourceException_fromUserService() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
 
         when(userUseCasePort.createUser(anyString(), anyString(), anyString(), any(UserRole.class)))
                 .thenThrow(new DuplicateResourceException("User", "email", "buyer1@test.com"));
@@ -313,7 +313,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("register_CallsUserServiceWithRequestValues")
     void register_callsUserServiceWithRequestValues() {
-        RegisterRequestDTO request = buyerRequest();
+        RegisterCommand request = buyerRequest();
         User saved = persistedUser(1L, "buyer1@test.com", UserRole.BUYER);
 
         when(userUseCasePort.createUser("buyer1@test.com", "Juan Perez", "secret123", UserRole.BUYER))
@@ -329,7 +329,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("login_Success")
     void login_success() {
-        LoginRequestDTO request = LoginRequestDTO.builder()
+        LoginCommand request = LoginCommand.builder()
                 .email("buyer1@test.com")
                 .password("secret123")
                 .build();
@@ -343,7 +343,7 @@ class AuthServiceTest {
                 .thenReturn(authentication);
         when(jwtService.generateToken(principal)).thenReturn("fake.jwt.token");
 
-        AuthResponseDTO response = authService.login(request);
+        AuthenticationResult response = authService.login(request);
 
         assertThat(response.getToken()).isEqualTo("fake.jwt.token");
         assertThat(response.getTokenType()).isEqualTo("Bearer");
@@ -359,7 +359,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("login_ThrowsBadCredentialsException_WhenPasswordWrong")
     void login_throwsBadCredentialsException_whenPasswordWrong() {
-        LoginRequestDTO request = LoginRequestDTO.builder()
+        LoginCommand request = LoginCommand.builder()
                 .email("buyer1@test.com")
                 .password("wrong-password")
                 .build();

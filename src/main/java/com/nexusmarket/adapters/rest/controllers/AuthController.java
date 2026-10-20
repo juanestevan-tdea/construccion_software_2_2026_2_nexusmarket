@@ -5,6 +5,9 @@ import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
+import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
+import com.nexusmarket.domain.ports.in.model.LoginCommand;
+import com.nexusmarket.domain.ports.in.model.RegisterCommand;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,14 +29,29 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
-        AuthResponseDTO response = authenticationUseCasePort.register(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        RegisterCommand command = RegisterCommand.builder()
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                .password(request.getPassword())
+                .role(request.getRole())
+                .primaryAddress(request.getPrimaryAddress())
+                .taxId(request.getTaxId())
+                .companyName(request.getCompanyName())
+                .build();
+
+        AuthenticationResult result = authenticationUseCasePort.register(command);
+        return new ResponseEntity<>(AuthResponseDTO.fromResult(result), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
-        AuthResponseDTO response = authenticationUseCasePort.login(request);
-        return ResponseEntity.ok(response);
+        LoginCommand command = LoginCommand.builder()
+                .email(request.getEmail())
+                .password(request.getPassword())
+                .build();
+
+        AuthenticationResult result = authenticationUseCasePort.login(command);
+        return ResponseEntity.ok(AuthResponseDTO.fromResult(result));
     }
 
     @PostMapping("/logout")

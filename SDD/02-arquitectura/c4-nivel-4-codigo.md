@@ -10,20 +10,22 @@ Diagrama de clases (`classDiagram` de Mermaid) por módulo de negocio, mostrando
 classDiagram
     class AuthenticationUseCasePort {
         <<interface>>
-        +register(RegisterRequestDTO) AuthResponseDTO
-        +login(LoginRequestDTO) AuthResponseDTO
+        +register(RegisterCommand) AuthenticationResult
+        +login(LoginCommand) AuthenticationResult
     }
     class AuthenticationUseCaseImpl {
-        +register(RegisterRequestDTO) AuthResponseDTO
-        +login(LoginRequestDTO) AuthResponseDTO
+        +register(RegisterCommand) AuthenticationResult
+        +login(LoginCommand) AuthenticationResult
     }
     class UserManagementService {
         <<domain service>>
-        +authenticate(email, password) User
+        +createUser(email, fullName, password, role) User
+        +changePassword(Long, String, String) User
+        +invalidateSessions(Long) User
     }
     class JwtService {
         <<infrastructure>>
-        +generateToken(User) String
+        +generateToken(UserDetails) String
         +validateToken(String) boolean
     }
     class UserRepositoryPort {
@@ -59,17 +61,17 @@ classDiagram
     class UserRole <<enum>> {
         BUYER, SELLER, WAREHOUSE_OPERATOR, ADMIN, SUPERVISOR
     }
-    class RegisterRequestDTO {
+    class RegisterCommand {
         String email
         String fullName
         String password
         UserRole role
     }
-    class LoginRequestDTO {
+    class LoginCommand {
         String email
         String password
     }
-    class AuthResponseDTO {
+    class AuthenticationResult {
         String token
         Long expiresIn
         UserRole role
@@ -140,7 +142,9 @@ classDiagram
         +changeCommercialStatus(Long, BuyerCommercialStatus) Buyer
     }
     class BuyerUseCaseImpl { <<usecase impl>> }
-    class BuyerDomainService { <<domain service>> }
+    class CreateBuyerService { <<domain service>> }
+    class AddBuyerAddressService { <<domain service>> }
+    class ChangeBuyerCommercialStatusService { <<domain service>> }
     class BuyerRepositoryPort { <<interface>> }
     class BuyerJpaAdapter { <<adapter>> }
     class Buyer {
@@ -173,7 +177,9 @@ classDiagram
     BuyerUseCaseImpl ..|> BuyerUseCasePort : implements
     SellerUseCaseImpl ..|> SellerUseCasePort : implements
     UserUseCaseImpl --> UserManagementService : uses
-    BuyerUseCaseImpl --> BuyerDomainService : uses
+    BuyerUseCaseImpl --> CreateBuyerService : uses
+    BuyerUseCaseImpl --> AddBuyerAddressService : uses
+    BuyerUseCaseImpl --> ChangeBuyerCommercialStatusService : uses
     SellerUseCaseImpl --> SellerDomainService : uses
     UserUseCaseImpl ..> UserRepositoryPort : depends
     BuyerUseCaseImpl ..> BuyerRepositoryPort : depends

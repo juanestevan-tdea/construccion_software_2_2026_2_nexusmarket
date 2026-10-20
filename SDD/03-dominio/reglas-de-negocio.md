@@ -166,7 +166,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `user.isActive() == true` (precondición de login).
 
-**Origen:** `UserManagementService.authenticate` verifica `user.isActive()`; `User.isActive()` retorna `status == UserStatus.ACTIVE`.
+**Origen:** `DaoAuthenticationProvider` consulta `CustomUserDetailsService` y `UserDetailsAdapter.isEnabled()`; un usuario con `status != ACTIVE` es rechazado con `DisabledException`.
 
 ---
 

@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.exceptions;
 
-public class TrackingNotFoundException extends RuntimeException {
+public class TrackingNotFoundException extends DomainException {
 
     public TrackingNotFoundException(String message) {
         super(message);

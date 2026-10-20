@@ -1,28 +1,38 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
     container_name: nexusmarket-mysql
-    restart: always
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: nexusmarket
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-nexusmarket}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - nexusmarket-net
 
   mongodb:
     image: mongo:7
     container_name: nexusmarket-mongo
-    restart: always
+    restart: unless-stopped
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - nexusmarket-net
 
@@ -31,17 +41,22 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: nexusmarket-app
-    restart: always
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/nexusmarket?useSSL=false&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nexusmarket}?useSSL=false&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true
       DB_USERNAME: root
-      DB_PASSWORD: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MONGODB_URI: mongodb://mongodb:27017/nexusmarket_audit
+      # Fallback SOLO para desarrollo local. En producción exporta JWT_SECRET
+      # en el host antes de `docker compose up -d`.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-docker-secret-override-in-production-0123456789abcdef}
     depends_on:
-      - mysql
-      - mongodb
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
     networks:
       - nexusmarket-net
 

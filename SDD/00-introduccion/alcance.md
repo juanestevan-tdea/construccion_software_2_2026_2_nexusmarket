@@ -6,8 +6,8 @@ A continuación se indica qué cubre y qué no cubre el sistema NexusMarket en e
 
 | Área | Alcance real (tomado del código) |
 |------|----------------------------------|
-| Autenticación y seguridad | Registro y login de usuarios (`/api/auth/register`, `/api/auth/login`), JWT stateless firmado con HMAC-SHA256 (JJWT 0.12.6), expiración 24 h, contraseñas con BCrypt, RBAC con 5 roles (`BUYER`, `SELLER`, `WAREHOUSE_OPERATOR`, `ADMIN`, `SUPERVISOR`), manejo global de errores con `ErrorResponse`. |
-| Usuarios, compradores y vendedores | CRUD de usuarios (solo `ADMIN`), consulta de perfil propio (`/api/users/me`), creación y consulta de compradores y vendedores, bloqueo/activación de usuarios, cambio de rol, estado comercial de comprador. |
+| Autenticación y seguridad | Registro y login de usuarios (`/api/v1/auth/register`, `/api/v1/auth/login`), JWT stateless firmado con HMAC-SHA256 (JJWT 0.12.6), expiración 24 h, contraseñas con BCrypt, RBAC con 5 roles (`BUYER`, `SELLER`, `WAREHOUSE_OPERATOR`, `ADMIN`, `SUPERVISOR`), manejo global de errores con `ErrorResponse`. |
+| Usuarios, compradores y vendedores | CRUD de usuarios (solo `ADMIN`), consulta de perfil propio (`/api/v1/admin/users/me`), creación y consulta de compradores y vendedores, bloqueo/activación de usuarios, cambio de rol, estado comercial de comprador. |
 | Catálogo de productos | Creación, consulta individual, listado con filtros (por categoría, vendedor, rango de precio), actualización y desactivación (soft delete) de productos con SKU único. |
 | Categorías y bodegas | Categorías jerárquicas (con padre/hijos), creación, consulta de raíces, actualización y eliminación (bloqueada si tiene productos). Bodegas con nombre, ubicación, tipo (`MARKETPLACE`/`SELLER`) y capacidad. |
 | Inventario | Creación de registros de inventario (producto × bodega × cantidad), consulta por producto/bodega, operaciones de reserva, confirmación de pago, marcado como dañado y ajuste de cantidad (sin permitir stock negativo). |

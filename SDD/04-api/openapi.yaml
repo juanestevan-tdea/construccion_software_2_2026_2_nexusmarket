@@ -1,2779 +1,634 @@
 openapi: 3.1.0
 info:
   title: NexusMarket API
-  version: 1.0.0
+  version: 1.1.0
   description: |
-    Backend de marketplace multi-vendedor construido con arquitectura hexagonal
-    (ports & adapters), Spring Boot 3.4 y Java 17. Autenticación JWT stateless
-    con RBAC (5 roles: BUYER, SELLER, WAREHOUSE_OPERATOR, ADMIN, SUPERVISOR).
-    Persistencia híbrida: MySQL (JPA) para datos transaccionales y MongoDB para
-    auditoría.
-  contact:
-    name: NexusMarket Team
-    email: dev@nexusmarket.local
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    Contrato OpenAPI de los flujos principales de NexusMarket.
+
+    **Alcance:** este archivo documenta autenticación, catálogo, órdenes,
+    productos, transiciones de bodega, devoluciones, perfil y salud. La
+    referencia completa de los 96 endpoints está en
+    `SDD/04-api/contratos-por-endpoint.md`.
+
+    **Seguridad:** JWT Bearer firmado con HMAC-SHA256. La identidad (`userId`)
+    se obtiene del token; los cuerpos no aceptan identificadores de usuario.
+    La autorización combina reglas de ruta y `@PreAuthorize`.
+
+    **No se sirve automáticamente:** el proyecto no incluye `springdoc-openapi`.
 servers:
   - url: http://localhost:8080
-    description: Servidor de desarrollo local
-  - url: https://api.nexusmarket.local
-    description: Servidor de producción
+    description: Desarrollo local
 tags:
-  - name: auth
-    description: Autenticación pública (registro y login)
-  - name: users
-    description: Gestión de usuarios (ADMIN)
-  - name: buyers
-    description: Perfiles de comprador
-  - name: sellers
-    description: Perfiles de vendedor
-  - name: catalog
-    description: Catálogo de productos, categorías y bodegas
-  - name: inventory
-    description: Gestión de inventario por bodega
-  - name: orders
-    description: Órdenes de compra y ciclo de vida
-  - name: invoices
-    description: Facturación
-  - name: refunds
-    description: Reembolsos
-  - name: shipments
-    description: Envíos y tracking
-  - name: returns
-    description: Devoluciones
-  - name: audit
-    description: Auditoría de operaciones (ADMIN, SUPERVISOR)
+  - name: Auth
+  - name: Catalog
+  - name: Orders
+  - name: Products
+  - name: Returns
+  - name: Users
+  - name: Health
+
+security:
+  - bearerAuth: []
+
 paths:
-  ###############################################################################
-  # AUTH (público)
-  ###############################################################################
-  /api/auth/register:
+  /api/v1/auth/register:
     post:
-      tags: [auth]
-      summary: Registro de usuario (BUYER o SELLER)
-      operationId: authRegister
+      tags: [Auth]
+      summary: Registrar comprador o vendedor
       security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterRequestDTO'
-      responses:
-        '201':
-          description: Usuario creado y token JWT emitido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/auth/login:
-    post:
-      tags: [auth]
-      summary: Login y obtención de JWT
-      operationId: authLogin
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequestDTO'
-      responses:
-        '200':
-          description: Autenticación exitosa, retorna JWT
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # USERS
-  ###############################################################################
-  /api/users:
-    post:
-      tags: [users]
-      summary: Crear usuario (ADMIN)
-      operationId: usersCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserCreateRequestDTO'
+              $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
           description: Usuario creado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponseDTO'
+                $ref: '#/components/schemas/AuthResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
 
-    get:
-      tags: [users]
-      summary: Listar todos los usuarios (ADMIN)
-      operationId: usersList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de usuarios
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/me:
-    get:
-      tags: [users]
-      summary: Consultar perfil del usuario autenticado
-      operationId: usersMe
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Perfil del usuario autenticado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/{id}:
-    get:
-      tags: [users]
-      summary: Consultar usuario por ID (ADMIN)
-      operationId: usersGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Usuario encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/email:
-    get:
-      tags: [users]
-      summary: Consultar usuario por email (ADMIN)
-      operationId: usersGetByEmail
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/QueryEmail'
-      responses:
-        '200':
-          description: Usuario encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/role/{role}:
-    get:
-      tags: [users]
-      summary: Listar usuarios por rol (ADMIN)
-      operationId: usersGetByRole
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathUserRole'
-      responses:
-        '200':
-          description: Lista de usuarios por rol
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/{id}/block:
-    patch:
-      tags: [users]
-      summary: Bloquear usuario (ADMIN)
-      operationId: usersBlock
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Usuario bloqueado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/{id}/activate:
-    patch:
-      tags: [users]
-      summary: Activar usuario (ADMIN)
-      operationId: usersActivate
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Usuario activado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/users/{id}/role:
-    patch:
-      tags: [users]
-      summary: Cambiar rol de usuario (ADMIN)
-      operationId: usersChangeRole
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-        - $ref: '#/components/parameters/QueryNewRole'
-      responses:
-        '200':
-          description: Rol actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # BUYERS
-  ###############################################################################
-  /api/buyers:
+  /api/v1/auth/login:
     post:
-      tags: [buyers]
-      summary: Crear comprador
-      operationId: buyersCreate
-      security:
-        - bearerAuth: []
+      tags: [Auth]
+      summary: Iniciar sesión
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BuyerCreateRequestDTO'
-      responses:
-        '201':
-          description: Comprador creado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BuyerResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [buyers]
-      summary: Listar compradores
-      operationId: buyersList
-      security:
-        - bearerAuth: []
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Lista de compradores
+          description: Token emitido
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BuyerResponseDTO'
+                $ref: '#/components/schemas/AuthResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/buyers/{id}:
-    get:
-      tags: [buyers]
-      summary: Consultar comprador por ID
-      operationId: buyersGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Comprador encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BuyerResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/buyers/status/{status}:
-    get:
-      tags: [buyers]
-      summary: Listar compradores por estado comercial
-      operationId: buyersGetByStatus
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathBuyerCommercialStatus'
-      responses:
-        '200':
-          description: Lista de compradores por estado
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BuyerResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/buyers/{id}/addresses:
+  /api/v1/auth/logout:
     post:
-      tags: [buyers]
-      summary: Agregar dirección adicional al comprador
-      operationId: buyersAddAddress
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-        - $ref: '#/components/parameters/QueryAddress'
+      tags: [Auth]
+      summary: Invalidar las sesiones activas del usuario autenticado
       responses:
-        '200':
-          description: Dirección agregada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BuyerResponseDTO'
+        '204':
+          description: Sesiones invalidadas
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/buyers/{id}/status:
-    patch:
-      tags: [buyers]
-      summary: Cambiar estado comercial del comprador
-      operationId: buyersChangeCommercialStatus
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-        - $ref: '#/components/parameters/QueryNewCommercialStatus'
-      responses:
-        '200':
-          description: Estado comercial actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BuyerResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # SELLERS
-  ###############################################################################
-  /api/sellers:
+  /api/v1/auth/change-password:
     post:
-      tags: [sellers]
-      summary: Crear vendedor
-      operationId: sellersCreate
-      security:
-        - bearerAuth: []
+      tags: [Auth]
+      summary: Cambiar la contraseña e invalidar sesiones
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SellerCreateRequestDTO'
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
       responses:
-        '201':
-          description: Vendedor creado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SellerResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+        '204':
+          description: Contraseña actualizada
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
 
+  /api/v1/catalog:
     get:
-      tags: [sellers]
-      summary: Listar vendedores
-      operationId: sellersList
-      security:
-        - bearerAuth: []
+      tags: [Catalog]
+      summary: Listar productos activos
       responses:
         '200':
-          description: Lista de vendedores
+          description: Catálogo
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/SellerResponseDTO'
+                  $ref: '#/components/schemas/ProductResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/sellers/{id}:
+  /api/v1/catalog/search:
     get:
-      tags: [sellers]
-      summary: Consultar vendedor por ID
-      operationId: sellersGetById
-      security:
-        - bearerAuth: []
+      tags: [Catalog]
+      summary: Buscar productos
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Vendedor encontrado
+          description: Resultados
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SellerResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/sellers/taxId:
-    get:
-      tags: [sellers]
-      summary: Consultar vendedor por taxId
-      operationId: sellersGetByTaxId
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/QueryTaxId'
-      responses:
-        '200':
-          description: Vendedor encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SellerResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/sellers/{id}/activate:
-    patch:
-      tags: [sellers]
-      summary: Activar vendedor
-      operationId: sellersActivate
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Vendedor activado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SellerResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/sellers/{id}/deactivate:
-    patch:
-      tags: [sellers]
-      summary: Desactivar vendedor
-      operationId: sellersDeactivate
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Vendedor desactivado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SellerResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/sellers/{id}/update:
-    patch:
-      tags: [sellers]
-      summary: Actualizar vendedor
-      operationId: sellersUpdate
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SellerUpdateRequestDTO'
-      responses:
-        '200':
-          description: Vendedor actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SellerResponseDTO'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/catalog/products/{id}:
+    get:
+      tags: [Catalog]
+      summary: Detalle de producto
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  ###############################################################################
-  # CATALOG - PRODUCTS
-  ###############################################################################
-  /api/products:
+  /api/v1/seller/products:
     post:
-      tags: [catalog]
-      summary: Crear producto
-      operationId: productsCreate
-      security:
-        - bearerAuth: []
+      tags: [Products]
+      summary: Crear producto (vendedor autenticado)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProductCreateRequestDTO'
+              $ref: '#/components/schemas/ProductCreateRequest'
       responses:
         '201':
           description: Producto creado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponseDTO'
+                $ref: '#/components/schemas/ProductResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
     get:
-      tags: [catalog]
-      summary: Listar productos
-      operationId: productsList
-      security:
-        - bearerAuth: []
+      tags: [Products]
+      summary: Listar productos (vendedor)
       responses:
         '200':
-          description: Lista de productos
+          description: Lista
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProductResponseDTO'
+                  $ref: '#/components/schemas/ProductResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/products/{id}:
-    get:
-      tags: [catalog]
-      summary: Consultar producto por ID
-      operationId: productsGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Producto encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+  /api/v1/seller/products/{id}:
     patch:
-      tags: [catalog]
-      summary: Actualizar producto
-      operationId: productsUpdate
-      security:
-        - bearerAuth: []
+      tags: [Products]
+      summary: Actualizar producto propio
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Id'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProductUpdateRequestDTO'
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                  minimum: 0.01
+                type:
+                  $ref: '#/components/schemas/ProductType'
+                categoryId:
+                  type: integer
+                  format: int64
       responses:
         '200':
           description: Producto actualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/ProductResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
     delete:
-      tags: [catalog]
-      summary: Desactivar producto (soft delete)
-      operationId: productsDelete
-      security:
-        - bearerAuth: []
+      tags: [Products]
+      summary: Desactivar producto propio (soft delete)
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Producto desactivado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/ProductResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/products/category/{categoryId}:
-    get:
-      tags: [catalog]
-      summary: Listar productos por categoría
-      operationId: productsGetByCategory
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathCategoryId'
-      responses:
-        '200':
-          description: Lista de productos por categoría
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/products/seller/{sellerId}:
-    get:
-      tags: [catalog]
-      summary: Listar productos por vendedor
-      operationId: productsGetBySeller
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathSellerId'
-      responses:
-        '200':
-          description: Lista de productos por vendedor
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/products/price-range:
-    get:
-      tags: [catalog]
-      summary: Listar productos por rango de precio
-      operationId: productsGetByPriceRange
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/QueryPriceMin'
-        - $ref: '#/components/parameters/QueryPriceMax'
-      responses:
-        '200':
-          description: Lista de productos en rango de precio
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # CATALOG - CATEGORIES
-  ###############################################################################
-  /api/categories:
+  /api/v1/buyer/orders:
     post:
-      tags: [catalog]
-      summary: Crear categoría
-      operationId: categoriesCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CategoryCreateRequestDTO'
-      responses:
-        '201':
-          description: Categoría creada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CategoryResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [catalog]
-      summary: Listar categorías
-      operationId: categoriesList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de categorías
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CategoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/categories/roots:
-    get:
-      tags: [catalog]
-      summary: Listar categorías raíz
-      operationId: categoriesGetRoots
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de categorías raíz
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CategoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/categories/{id}:
-    get:
-      tags: [catalog]
-      summary: Consultar categoría por ID
-      operationId: categoriesGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Categoría encontrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CategoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    patch:
-      tags: [catalog]
-      summary: Actualizar categoría
-      operationId: categoriesUpdate
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CategoryUpdateRequestDTO'
-      responses:
-        '200':
-          description: Categoría actualizada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CategoryResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    delete:
-      tags: [catalog]
-      summary: Eliminar categoría (falla si tiene productos)
-      operationId: categoriesDelete
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '204':
-          description: Categoría eliminada
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # CATALOG - WAREHOUSES
-  ###############################################################################
-  /api/warehouses:
-    post:
-      tags: [catalog]
-      summary: Crear bodega
-      operationId: warehousesCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WarehouseCreateRequestDTO'
-      responses:
-        '201':
-          description: Bodega creada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WarehouseResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [catalog]
-      summary: Listar bodegas
-      operationId: warehousesList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de bodegas
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/WarehouseResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/warehouses/{id}:
-    get:
-      tags: [catalog]
-      summary: Consultar bodega por ID
-      operationId: warehousesGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Bodega encontrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WarehouseResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    patch:
-      tags: [catalog]
-      summary: Actualizar bodega
-      operationId: warehousesUpdate
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WarehouseUpdateRequestDTO'
-      responses:
-        '200':
-          description: Bodega actualizada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WarehouseResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/warehouses/type/{type}:
-    get:
-      tags: [catalog]
-      summary: Listar bodegas por tipo
-      operationId: warehousesGetByType
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathWarehouseType'
-      responses:
-        '200':
-          description: Lista de bodegas por tipo
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/WarehouseResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # CATALOG - GENERAL
-  ###############################################################################
-  /api/catalog:
-    get:
-      tags: [catalog]
-      summary: Resumen del catálogo (productos activos + categorías raíz)
-      operationId: catalogOverview
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Resumen del catálogo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CatalogOverviewResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/catalog/search:
-    get:
-      tags: [catalog]
-      summary: Buscar productos por texto
-      operationId: catalogSearch
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/QuerySearch'
-      responses:
-        '200':
-          description: Productos encontrados
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/catalog/products/{id}:
-    get:
-      tags: [catalog]
-      summary: Detalle de producto en catálogo
-      operationId: catalogGetProductDetail
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Producto encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # INVENTORY
-  ###############################################################################
-  /api/inventories:
-    post:
-      tags: [inventory]
-      summary: Crear registro de inventario
-      operationId: inventoriesCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InventoryCreateRequestDTO'
-      responses:
-        '201':
-          description: Inventario creado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [inventory]
-      summary: Listar inventarios
-      operationId: inventoriesList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de inventarios
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/{id}:
-    get:
-      tags: [inventory]
-      summary: Consultar inventario por ID
-      operationId: inventoriesGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathInventoryId'
-      responses:
-        '200':
-          description: Inventario encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/product/{productId}:
-    get:
-      tags: [inventory]
-      summary: Listar inventarios por producto
-      operationId: inventoriesGetByProduct
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathProductId'
-      responses:
-        '200':
-          description: Lista de inventarios por producto
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/warehouse/{warehouseId}:
-    get:
-      tags: [inventory]
-      summary: Listar inventarios por bodega
-      operationId: inventoriesGetByWarehouse
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathWarehouseId'
-      responses:
-        '200':
-          description: Lista de inventarios por bodega
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/{id}/reserve:
-    patch:
-      tags: [inventory]
-      summary: Reservar unidades de inventario
-      operationId: inventoriesReserve
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathInventoryId'
-        - $ref: '#/components/parameters/QueryReserveAmount'
-      responses:
-        '200':
-          description: Inventario reservado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/{id}/confirm-payment:
-    patch:
-      tags: [inventory]
-      summary: Confirmar pago de inventario
-      operationId: inventoriesConfirmPayment
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathInventoryId'
-      responses:
-        '200':
-          description: Pago confirmado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/{id}/mark-damaged:
-    patch:
-      tags: [inventory]
-      summary: Marcar inventario como dañado
-      operationId: inventoriesMarkDamaged
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathInventoryId'
-      responses:
-        '200':
-          description: Inventario marcado como dañado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/inventories/{id}/adjust:
-    patch:
-      tags: [inventory]
-      summary: Ajustar cantidad de inventario
-      operationId: inventoriesAdjust
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathInventoryId'
-        - $ref: '#/components/parameters/QueryAdjustAmount'
-      responses:
-        '200':
-          description: Inventario ajustado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # ORDERS
-  ###############################################################################
-  /api/orders:
-    post:
-      tags: [orders]
-      summary: Crear orden (estado CART)
-      operationId: ordersCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrderCreateRequestDTO'
+      tags: [Orders]
+      summary: Crear orden para el comprador autenticado
+      description: No recibe cuerpo; el comprador se resuelve desde el JWT.
       responses:
         '201':
           description: Orden creada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: '#/components/schemas/OrderResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
     get:
-      tags: [orders]
-      summary: Listar órdenes
-      operationId: ordersList
-      security:
-        - bearerAuth: []
+      tags: [Orders]
+      summary: Listar las órdenes del comprador autenticado
       responses:
         '200':
-          description: Lista de órdenes
+          description: Órdenes propias
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/OrderResponseDTO'
+                  $ref: '#/components/schemas/OrderResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/orders/{id}:
+  /api/v1/buyer/orders/{id}:
     get:
-      tags: [orders]
-      summary: Consultar orden por ID
-      operationId: ordersGetById
-      security:
-        - bearerAuth: []
+      tags: [Orders]
+      summary: Consultar una orden propia
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          description: Orden encontrada
+          description: Orden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/OrderResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/orders/buyer/{buyerId}:
-    get:
-      tags: [orders]
-      summary: Listar órdenes por comprador
-      operationId: ordersGetByBuyer
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathBuyerId'
-      responses:
-        '200':
-          description: Lista de órdenes por comprador
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/orders/{id}/items:
+  /api/v1/buyer/orders/{id}/items:
     post:
-      tags: [orders]
-      summary: Agregar ítem a orden
-      operationId: ordersAddItem
-      security:
-        - bearerAuth: []
+      tags: [Orders]
+      summary: Añadir ítem a una orden propia
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Id'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrderItemRequestDTO'
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId:
+                  type: integer
+                  format: int64
+                quantity:
+                  type: integer
+                  minimum: 1
       responses:
         '200':
-          description: Ítem agregado
+          description: Orden actualizada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/OrderResponse'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/orders/{id}/items/{itemId}:
-    delete:
-      tags: [orders]
-      summary: Quitar ítem de orden
-      operationId: ordersRemoveItem
-      security:
-        - bearerAuth: []
+  /api/v1/buyer/orders/{id}/checkout:
+    patch:
+      tags: [Orders]
+      summary: Pasar la orden a pago pendiente
       parameters:
-        - $ref: '#/components/parameters/PathId'
-        - $ref: '#/components/parameters/PathOrderItemId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          description: Ítem removido
+          description: Orden en PENDING_PAYMENT
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/OrderResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/warehouse/orders/{id}/dispatch:
+    patch:
+      tags: [Orders]
+      summary: Marcar una orden como despachada
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Orden en DISPATCHED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/orders/{id}/checkout:
+  /api/v1/warehouse/orders/{id}/deliver:
     patch:
-      tags: [orders]
-      summary: Pasar orden a PENDING_PAYMENT
-      operationId: ordersCheckout
-      security:
-        - bearerAuth: []
+      tags: [Orders]
+      summary: Marcar una orden como entregada
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          description: Orden en pago pendiente
+          description: Orden en DELIVERED
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/OrderResponse'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/orders/{id}/confirm-payment:
+  /api/v1/warehouse/orders/{id}/finish:
     patch:
-      tags: [orders]
-      summary: Confirmar pago de orden
-      operationId: ordersConfirmPayment
-      security:
-        - bearerAuth: []
+      tags: [Orders]
+      summary: Marcar una orden como finalizada
       parameters:
-        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          description: Pago confirmado (PAID)
+          description: Orden en FINISHED
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/OrderResponse'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
 
-  /api/orders/{id}/dispatch:
-    patch:
-      tags: [orders]
-      summary: Despachar orden
-      operationId: ordersDispatch
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Orden despachada (DISPATCHED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/orders/{id}/deliver:
-    patch:
-      tags: [orders]
-      summary: Entregar orden
-      operationId: ordersDeliver
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Orden entregada (DELIVERED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/orders/{id}/finish:
-    patch:
-      tags: [orders]
-      summary: Finalizar orden
-      operationId: ordersFinish
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Orden finalizada (FINISHED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/orders/{id}/cancel:
-    patch:
-      tags: [orders]
-      summary: Cancelar orden
-      operationId: ordersCancel
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Orden cancelada (CANCELLED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrderResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # INVOICES
-  ###############################################################################
-  /api/invoices:
+  /api/v1/buyer/returns:
     post:
-      tags: [invoices]
-      summary: Generar factura
-      operationId: invoicesGenerate
-      security:
-        - bearerAuth: []
+      tags: [Returns]
+      summary: Solicitar devolución de una orden propia
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InvoiceCreateRequestDTO'
+              type: object
+              required: [orderId, reason]
+              properties:
+                orderId:
+                  type: integer
+                  format: int64
+                reason:
+                  type: string
       responses:
         '201':
-          description: Factura generada
+          description: Devolución creada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InvoiceResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [invoices]
-      summary: Listar facturas
-      operationId: invoicesList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de facturas
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InvoiceResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/invoices/{id}:
-    get:
-      tags: [invoices]
-      summary: Consultar factura por ID
-      operationId: invoicesGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Factura encontrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InvoiceResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/invoices/order/{orderId}:
-    get:
-      tags: [invoices]
-      summary: Consultar factura por orden
-      operationId: invoicesGetByOrder
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathOrderId'
-      responses:
-        '200':
-          description: Factura encontrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InvoiceResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/invoices/{id}/void:
-    patch:
-      tags: [invoices]
-      summary: Anular factura
-      operationId: invoicesVoid
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathId'
-      responses:
-        '200':
-          description: Factura anulada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InvoiceResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # REFUNDS
-  ###############################################################################
-  /api/refunds:
-    post:
-      tags: [refunds]
-      summary: Crear reembolso
-      operationId: refundsCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RefundCreateRequestDTO'
-      responses:
-        '201':
-          description: Reembolso creado (PENDING)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RefundResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [refunds]
-      summary: Listar reembolsos
-      operationId: refundsList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de reembolsos
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/RefundResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/refunds/{id}:
-    get:
-      tags: [refunds]
-      summary: Consultar reembolso por ID
-      operationId: refundsGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathRefundId'
-      responses:
-        '200':
-          description: Reembolso encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RefundResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/refunds/invoice/{invoiceId}:
-    get:
-      tags: [refunds]
-      summary: Listar reembolsos por factura
-      operationId: refundsGetByInvoice
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathInvoiceId'
-      responses:
-        '200':
-          description: Lista de reembolsos por factura
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/RefundResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/refunds/{id}/approve:
-    patch:
-      tags: [refunds]
-      summary: Aprobar reembolso (SUPERVISOR)
-      operationId: refundsApprove
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathRefundId'
-      responses:
-        '200':
-          description: Reembolso aprobado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RefundResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/refunds/{id}/reject:
-    patch:
-      tags: [refunds]
-      summary: Rechazar reembolso (SUPERVISOR)
-      operationId: refundsReject
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathRefundId'
-      responses:
-        '200':
-          description: Reembolso rechazado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RefundResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # SHIPMENTS
-  ###############################################################################
-  /api/shipments:
-    post:
-      tags: [shipments]
-      summary: Crear envío
-      operationId: shipmentsCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ShipmentCreateRequestDTO'
-      responses:
-        '201':
-          description: Envío creado (PENDING)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShipmentResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-    get:
-      tags: [shipments]
-      summary: Listar envíos
-      operationId: shipmentsList
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Lista de envíos
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ShipmentResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/shipments/{id}:
-    get:
-      tags: [shipments]
-      summary: Consultar envío por ID
-      operationId: shipmentsGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathShipmentId'
-      responses:
-        '200':
-          description: Envío encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShipmentResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/shipments/tracking/{trackingNumber}:
-    get:
-      tags: [shipments]
-      summary: Consultar envío por tracking
-      operationId: shipmentsGetByTracking
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathTrackingNumber'
-      responses:
-        '200':
-          description: Envío encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShipmentResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/shipments/order/{orderId}:
-    get:
-      tags: [shipments]
-      summary: Consultar envío por orden
-      operationId: shipmentsGetByOrder
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathOrderId'
-      responses:
-        '200':
-          description: Envío encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShipmentResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/shipments/{id}/status:
-    patch:
-      tags: [shipments]
-      summary: Actualizar estado de envío
-      operationId: shipmentsUpdateStatus
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathShipmentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ShipmentStatusUpdateRequestDTO'
-      responses:
-        '200':
-          description: Estado actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ShipmentResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # RETURNS
-  ###############################################################################
-  /api/returns:
-    post:
-      tags: [returns]
-      summary: Crear devolución
-      operationId: returnsCreate
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReturnCreateRequestDTO'
-      responses:
-        '201':
-          description: Devolución creada (REQUESTED)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReturnResponseDTO'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/ReturnResponse'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+          $ref: '#/components/responses/Unprocessable'
     get:
-      tags: [returns]
-      summary: Listar devoluciones
-      operationId: returnsList
-      security:
-        - bearerAuth: []
+      tags: [Returns]
+      summary: Listar devoluciones propias
       responses:
         '200':
-          description: Lista de devoluciones
+          description: Devoluciones del comprador autenticado
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ReturnResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                  $ref: '#/components/schemas/ReturnResponse'
 
-  /api/returns/{id}:
-    get:
-      tags: [returns]
-      summary: Consultar devolución por ID
-      operationId: returnsGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathReturnId'
-      responses:
-        '200':
-          description: Devolución encontrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReturnResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/returns/order/{orderId}:
-    get:
-      tags: [returns]
-      summary: Listar devoluciones por orden
-      operationId: returnsGetByOrder
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathOrderId'
-      responses:
-        '200':
-          description: Lista de devoluciones por orden
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ReturnResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/returns/{id}/approve:
+  /api/v1/supervisor/returns/{id}/approve:
     patch:
-      tags: [returns]
-      summary: Aprobar devolución (SUPERVISOR)
-      operationId: returnsApprove
-      security:
-        - bearerAuth: []
+      tags: [Returns]
+      summary: Aprobar una devolución (SUPERVISOR)
       parameters:
-        - $ref: '#/components/parameters/PathReturnId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Devolución aprobada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReturnResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/returns/{id}/reject:
-    patch:
-      tags: [returns]
-      summary: Rechazar devolución (SUPERVISOR)
-      operationId: returnsReject
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathReturnId'
-      responses:
-        '200':
-          description: Devolución rechazada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReturnResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/returns/{id}/complete:
-    patch:
-      tags: [returns]
-      summary: Completar devolución (WAREHOUSE_OPERATOR)
-      operationId: returnsComplete
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathReturnId'
-      responses:
-        '200':
-          description: Devolución completada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReturnResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  ###############################################################################
-  # AUDIT
-  ###############################################################################
-  /api/audit:
-    get:
-      tags: [audit]
-      summary: Consultar logs de auditoría (ADMIN, SUPERVISOR)
-      operationId: auditList
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/QueryAuditUserId'
-        - $ref: '#/components/parameters/QueryAuditEntityName'
-        - $ref: '#/components/parameters/QueryAuditStart'
-        - $ref: '#/components/parameters/QueryAuditEnd'
-      responses:
-        '200':
-          description: Lista de logs de auditoría
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AuditLogResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /api/audit/{id}:
-    get:
-      tags: [audit]
-      summary: Consultar log de auditoría por ID (ADMIN, SUPERVISOR)
-      operationId: auditGetById
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/PathAuditId'
-      responses:
-        '200':
-          description: Log de auditoría encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuditLogResponseDTO'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/ReturnResponse'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
-###############################################################################
-# COMPONENTES
-###############################################################################
+  /api/v1/admin/users/me:
+    get:
+      tags: [Users]
+      summary: Perfil del usuario autenticado
+      responses:
+        '200':
+          description: Usuario actual
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  email:
+                    type: string
+                  fullName:
+                    type: string
+                  role:
+                    type: string
+                    enum: [ADMIN, BUYER, SELLER, SUPERVISOR, WAREHOUSE_OPERATOR]
+                  status:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /actuator/health:
+    get:
+      tags: [Health]
+      summary: Estado del servicio
+      security: []
+      responses:
+        '200':
+          description: Servicio saludable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token JWT emitido por POST /api/auth/login
 
-  ###############################################################################
-  # RESPUESTAS COMPARTIDAS
-  ###############################################################################
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
   responses:
     BadRequest:
-      description: Solicitud inválida (validación o parámetros)
+      description: Petición inválida
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
-      description: No autenticado (token ausente/expirado/inválido)
+      description: Token ausente o inválido
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
-      description: Rol insuficiente para acceder al recurso
+      description: Rol insuficiente o recurso de otro usuario
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
-      description: Recurso no encontrado
+      description: Recurso inexistente
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
-      description: Conflicto (duplicidad, transición inválida)
+      description: Conflicto de estado o duplicidad
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-    UnprocessableEntity:
+    Unprocessable:
       description: Regla de negocio violada
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-    InternalServerError:
-      description: Error interno del servidor
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
 
-  ###############################################################################
-  # PARÁMETROS COMPARTIDOS
-  ###############################################################################
-  parameters:
-    PathId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathUserId:
-      name: userId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathBuyerId:
-      name: buyerId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathSellerId:
-      name: sellerId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathProductId:
-      name: productId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathCategoryId:
-      name: categoryId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathWarehouseId:
-      name: warehouseId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathInventoryId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathOrderId:
-      name: orderId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathOrderItemId:
-      name: itemId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathInvoiceId:
-      name: invoiceId
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathRefundId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathShipmentId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathReturnId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: integer
-        format: int64
-        minimum: 1
-    PathAuditId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-    PathUserRole:
-      name: role
-      in: path
-      required: true
-      schema:
-        $ref: '#/components/schemas/UserRole'
-    PathBuyerCommercialStatus:
-      name: status
-      in: path
-      required: true
-      schema:
-        $ref: '#/components/schemas/BuyerCommercialStatus'
-    PathWarehouseType:
-      name: type
-      in: path
-      required: true
-      schema:
-        $ref: '#/components/schemas/WarehouseType'
-    QueryEmail:
-      name: email
-      in: query
-      required: true
-      schema:
-        type: string
-        format: email
-    QueryTaxId:
-      name: taxId
-      in: query
-      required: true
-      schema:
-        type: string
-    QueryNewRole:
-      name: newRole
-      in: query
-      required: true
-      schema:
-        $ref: '#/components/schemas/UserRole'
-    QueryAddress:
-      name: address
-      in: query
-      required: true
-      schema:
-        type: string
-    QueryNewCommercialStatus:
-      name: newStatus
-      in: query
-      required: true
-      schema:
-        $ref: '#/components/schemas/BuyerCommercialStatus'
-    QueryPriceMin:
-      name: min
-      in: query
-      required: true
-      schema:
-        type: number
-        format: double
-        minimum: 0
-    QueryPriceMax:
-      name: max
-      in: query
-      required: true
-      schema:
-        type: number
-        format: double
-        minimum: 0
-    QuerySearch:
-      name: query
-      in: query
-      required: false
-      schema:
-        type: string
-    QueryReserveAmount:
-      name: amount
-      in: query
-      required: true
-      schema:
-        type: integer
-        minimum: 1
-    QueryAdjustAmount:
-      name: amount
-      in: query
-      required: true
-      schema:
-        type: integer
-    QueryAuditUserId:
-      name: userId
-      in: query
-      required: false
-      schema:
-        type: integer
-        format: int64
-    QueryAuditEntityName:
-      name: entityName
-      in: query
-      required: false
-      schema:
-        type: string
-    QueryAuditStart:
-      name: start
-      in: query
-      required: false
-      schema:
-        type: string
-        format: date-time
-    QueryAuditEnd:
-      name: end
-      in: query
-      required: false
-      schema:
-        type: string
-        format: date-time
-    PathTrackingNumber:
-      name: trackingNumber
-      in: path
-      required: true
-      schema:
-        type: string
-
-  ###############################################################################
-  # SCHEMAS (DTOs y modelos)
-  ###############################################################################
   schemas:
-    ErrorResponse:
-      type: object
-      properties:
-        status:
-          type: integer
-          example: 400
-        error:
-          type: string
-          example: Bad Request
-        message:
-          type: string
-          example: Validation failed
-        path:
-          type: string
-          example: /api/products
-        timestamp:
-          type: string
-          format: date-time
-        details:
-          type: array
-          items:
-            type: string
-        validationErrors:
-          type: object
-          additionalProperties:
-            type: string
-
-    ###############################################################################
-    # AUTH
-    ###############################################################################
-    RegisterRequestDTO:
+    RegisterRequest:
       type: object
       required: [email, fullName, password, role]
       properties:
         email:
           type: string
           format: email
-          example: comprador@nexus.com
         fullName:
           type: string
-          example: Juan Pérez
+          minLength: 3
+          maxLength: 120
         password:
           type: string
-          minLength: 6
-          example: Password123
+          format: password
+          minLength: 8
         role:
-          $ref: '#/components/schemas/UserRole'
+          type: string
+          enum: [BUYER, SELLER]
         primaryAddress:
           type: string
-          example: Calle 123 #45-67
         taxId:
           type: string
-          example: "900.123.456-7"
         companyName:
           type: string
-          example: TechStore SAS
 
-    LoginRequestDTO:
+    LoginRequest:
       type: object
       required: [email, password]
       properties:
         email:
           type: string
           format: email
-          example: comprador@nexus.com
         password:
           type: string
-          example: Password123
+          format: password
 
-    AuthResponseDTO:
+    AuthResponse:
       type: object
       properties:
         tokenType:
@@ -2781,9 +636,9 @@ components:
           example: Bearer
         token:
           type: string
-          example: eyJhbGciOiJIUzI1NiJ9...
         expiresIn:
           type: integer
+          format: int64
           example: 86400000
         id:
           type: integer
@@ -2793,152 +648,25 @@ components:
         fullName:
           type: string
         role:
-          $ref: '#/components/schemas/UserRole'
+          type: string
+          enum: [ADMIN, BUYER, SELLER, SUPERVISOR, WAREHOUSE_OPERATOR]
 
-    ###############################################################################
-    # USERS / BUYERS / SELLERS
-    ###############################################################################
-    UserCreateRequestDTO:
-      type: object
-      required: [email, fullName, password, role]
-      properties:
-        email:
-          type: string
-          format: email
-        fullName:
-          type: string
-        password:
-          type: string
-          minLength: 6
-        role:
-          $ref: '#/components/schemas/UserRole'
+    ProductType:
+      type: string
+      enum: [PHYSICAL, DIGITAL, SERVICE]
 
-    UserResponseDTO:
+    ProductCreateRequest:
       type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        email:
-          type: string
-        fullName:
-          type: string
-        role:
-          $ref: '#/components/schemas/UserRole'
-        status:
-          $ref: '#/components/schemas/UserStatus'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    BuyerCreateRequestDTO:
-      type: object
-      required: [userId, primaryAddress]
-      properties:
-        userId:
-          type: integer
-          format: int64
-        primaryAddress:
-          type: string
-
-    BuyerResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        user:
-          $ref: '#/components/schemas/UserResponseDTO'
-        primaryAddress:
-          type: string
-        additionalAddresses:
-          type: array
-          items:
-            type: string
-        commercialStatus:
-          $ref: '#/components/schemas/BuyerCommercialStatus'
-
-    SellerCreateRequestDTO:
-      type: object
-      required: [userId, taxId, companyName]
-      properties:
-        userId:
-          type: integer
-          format: int64
-        taxId:
-          type: string
-        companyName:
-          type: string
-
-    SellerUpdateRequestDTO:
-      type: object
-      properties:
-        companyName:
-          type: string
-          maxLength: 150
-        taxId:
-          type: string
-          maxLength: 50
-
-    SellerResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        user:
-          $ref: '#/components/schemas/UserResponseDTO'
-        taxId:
-          type: string
-        companyName:
-          type: string
-        active:
-          type: boolean
-
-    ###############################################################################
-    # CATALOG
-    ###############################################################################
-    ProductCreateRequestDTO:
-      type: object
-      required: [sku, name, price, type, sellerId, categoryId]
+      required: [sku, name, price, type, categoryId]
       properties:
         sku:
           type: string
-          maxLength: 50
-          example: SKU-001
-        name:
-          type: string
-          maxLength: 100
-          example: Laptop Dell
-        description:
-          type: string
-        price:
-          type: number
-          format: double
-          minimum: 0.01
-          example: 1250000.00
-        type:
-          $ref: '#/components/schemas/ProductType'
-        sellerId:
-          type: integer
-          format: int64
-        categoryId:
-          type: integer
-          format: int64
-
-    ProductUpdateRequestDTO:
-      type: object
-      properties:
         name:
           type: string
         description:
           type: string
         price:
           type: number
-          format: double
           minimum: 0.01
         type:
           $ref: '#/components/schemas/ProductType'
@@ -2946,7 +674,7 @@ components:
           type: integer
           format: int64
 
-    ProductResponseDTO:
+    ProductResponse:
       type: object
       properties:
         id:
@@ -2960,7 +688,6 @@ components:
           type: string
         price:
           type: number
-          format: double
         type:
           $ref: '#/components/schemas/ProductType'
         active:
@@ -2976,195 +703,7 @@ components:
         categoryName:
           type: string
 
-    CategoryCreateRequestDTO:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          maxLength: 100
-        description:
-          type: string
-        parentId:
-          type: integer
-          format: int64
-
-    CategoryUpdateRequestDTO:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        parentId:
-          type: integer
-          format: int64
-
-    CategoryResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        description:
-          type: string
-        parentId:
-          type: integer
-          format: int64
-        parentName:
-          type: string
-        subCategories:
-          type: array
-          items:
-            $ref: '#/components/schemas/CategoryResponseDTO'
-
-    WarehouseCreateRequestDTO:
-      type: object
-      required: [name, location, type, capacity]
-      properties:
-        name:
-          type: string
-          maxLength: 100
-        location:
-          type: string
-          maxLength: 200
-        type:
-          $ref: '#/components/schemas/WarehouseType'
-        capacity:
-          type: integer
-          minimum: 1
-
-    WarehouseUpdateRequestDTO:
-      type: object
-      properties:
-        name:
-          type: string
-        location:
-          type: string
-        type:
-          $ref: '#/components/schemas/WarehouseType'
-        capacity:
-          type: integer
-          minimum: 1
-
-    WarehouseResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        location:
-          type: string
-        type:
-          $ref: '#/components/schemas/WarehouseType'
-        capacity:
-          type: integer
-
-    CatalogOverviewResponseDTO:
-      type: object
-      properties:
-        products:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductResponseDTO'
-        categories:
-          type: array
-          items:
-            $ref: '#/components/schemas/CategoryResponseDTO'
-        totalProducts:
-          type: integer
-        totalCategories:
-          type: integer
-
-    ###############################################################################
-    # INVENTORY
-    ###############################################################################
-    InventoryCreateRequestDTO:
-      type: object
-      required: [productId, warehouseId, quantity]
-      properties:
-        productId:
-          type: integer
-          format: int64
-        warehouseId:
-          type: integer
-          format: int64
-        quantity:
-          type: integer
-          minimum: 0
-
-    InventoryResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        productId:
-          type: integer
-          format: int64
-        productName:
-          type: string
-        productSku:
-          type: string
-        warehouseId:
-          type: integer
-          format: int64
-        warehouseName:
-          type: string
-        quantity:
-          type: integer
-        status:
-          $ref: '#/components/schemas/InventoryStatus'
-
-    ###############################################################################
-    # ORDERS
-    ###############################################################################
-    OrderCreateRequestDTO:
-      type: object
-      required: [buyerId]
-      properties:
-        buyerId:
-          type: integer
-          format: int64
-
-    OrderItemRequestDTO:
-      type: object
-      required: [productId, quantity]
-      properties:
-        productId:
-          type: integer
-          format: int64
-        quantity:
-          type: integer
-          minimum: 1
-
-    OrderItemResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        productId:
-          type: integer
-          format: int64
-        productName:
-          type: string
-        productSku:
-          type: string
-        quantity:
-          type: integer
-        unitPrice:
-          type: number
-          format: double
-        subtotal:
-          type: number
-          format: double
-
-    OrderResponseDTO:
+    OrderResponse:
       type: object
       properties:
         id:
@@ -3175,154 +714,28 @@ components:
           format: int64
         buyerEmail:
           type: string
-        orderDate:
-          type: string
-          format: date-time
         status:
-          $ref: '#/components/schemas/OrderStatus'
+          type: string
+          enum: [CART, PENDING_PAYMENT, PAID, DISPATCHED, DELIVERED, FINISHED, CANCELLED]
         totalAmount:
           type: number
-          format: double
         items:
           type: array
           items:
-            $ref: '#/components/schemas/OrderItemResponseDTO'
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              productId:
+                type: integer
+                format: int64
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
 
-    ###############################################################################
-    # INVOICES
-    ###############################################################################
-    InvoiceCreateRequestDTO:
-      type: object
-      required: [orderId]
-      properties:
-        orderId:
-          type: integer
-          format: int64
-        pdfUrl:
-          type: string
-
-    InvoiceResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        orderId:
-          type: integer
-          format: int64
-        invoiceNumber:
-          type: string
-        issueDate:
-          type: string
-          format: date-time
-        amount:
-          type: number
-          format: double
-        pdfUrl:
-          type: string
-        active:
-          type: boolean
-        paid:
-          type: boolean
-
-    ###############################################################################
-    # REFUNDS
-    ###############################################################################
-    RefundCreateRequestDTO:
-      type: object
-      required: [invoiceId, amount]
-      properties:
-        invoiceId:
-          type: integer
-          format: int64
-        returnRequestId:
-          type: integer
-          format: int64
-        amount:
-          type: number
-          format: double
-          minimum: 0.01
-
-    RefundResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        invoiceId:
-          type: integer
-          format: int64
-        returnRequestId:
-          type: integer
-          format: int64
-        amount:
-          type: number
-          format: double
-        status:
-          $ref: '#/components/schemas/RefundStatus'
-
-    ###############################################################################
-    # SHIPMENTS
-    ###############################################################################
-    ShipmentCreateRequestDTO:
-      type: object
-      required: [orderId, warehouseId]
-      properties:
-        orderId:
-          type: integer
-          format: int64
-        warehouseId:
-          type: integer
-          format: int64
-        trackingNumber:
-          type: string
-
-    ShipmentStatusUpdateRequestDTO:
-      type: object
-      required: [status]
-      properties:
-        status:
-          $ref: '#/components/schemas/ShipmentStatus'
-
-    ShipmentResponseDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        orderId:
-          type: integer
-          format: int64
-        warehouseId:
-          type: integer
-          format: int64
-        warehouseName:
-          type: string
-        trackingNumber:
-          type: string
-        status:
-          $ref: '#/components/schemas/ShipmentStatus'
-        shippedAt:
-          type: string
-          format: date-time
-        deliveredAt:
-          type: string
-          format: date-time
-
-    ###############################################################################
-    # RETURNS
-    ###############################################################################
-    ReturnCreateRequestDTO:
-      type: object
-      required: [orderId, reason]
-      properties:
-        orderId:
-          type: integer
-          format: int64
-        reason:
-          type: string
-
-    ReturnResponseDTO:
+    ReturnResponse:
       type: object
       properties:
         id:
@@ -3334,69 +747,30 @@ components:
         reason:
           type: string
         status:
-          $ref: '#/components/schemas/ReturnStatus'
+          type: string
+          enum: [REQUESTED, APPROVED, REJECTED, COMPLETED]
         requestedAt:
           type: string
           format: date-time
         resolvedAt:
-          type: string
+          type: [string, "null"]
           format: date-time
 
-    ###############################################################################
-    # AUDIT
-    ###############################################################################
-    AuditLogResponseDTO:
+    ErrorResponse:
       type: object
       properties:
-        id:
-          type: string
-        userId:
-          type: integer
-          format: int64
-        performedBy:
-          type: string
-        entityName:
-          type: string
-        entityId:
-          type: string
-        action:
-          type: string
-        details:
-          type: string
         timestamp:
           type: string
           format: date-time
-
-    ###############################################################################
-    # ENUMS (Value Objects)
-    ###############################################################################
-    UserRole:
-      type: string
-      enum: [BUYER, SELLER, WAREHOUSE_OPERATOR, ADMIN, SUPERVISOR]
-    UserStatus:
-      type: string
-      enum: [ACTIVE, BLOCKED]
-    BuyerCommercialStatus:
-      type: string
-      enum: [ACTIVE, INACTIVE, BLOCKED]
-    ProductType:
-      type: string
-      enum: [PHYSICAL, DIGITAL]
-    OrderStatus:
-      type: string
-      enum: [CART, PENDING_PAYMENT, PAID, DISPATCHED, DELIVERED, FINISHED, CANCELLED]
-    InventoryStatus:
-      type: string
-      enum: [AVAILABLE, DAMAGED, RESERVED]
-    RefundStatus:
-      type: string
-      enum: [PENDING, APPROVED, REJECTED, COMPLETED, FAILED]
-    ReturnStatus:
-      type: string
-      enum: [REQUESTED, APPROVED, REJECTED, COMPLETED, PROCESSED]
-    ShipmentStatus:
-      type: string
-      enum: [PENDING, IN_TRANSIT, DELIVERED, CANCELLED]
-    WarehouseType:
-      type: string
-      enum: [MARKETPLACE, SELLER]
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: [array, "null"]
+          items:
+            type: string

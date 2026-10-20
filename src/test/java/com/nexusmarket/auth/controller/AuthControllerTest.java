@@ -4,9 +4,11 @@ import tools.jackson.databind.ObjectMapper;
 import com.nexusmarket.adapters.rest.controllers.AuthController;
 import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
-import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
+import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
+import com.nexusmarket.domain.ports.in.model.LoginCommand;
+import com.nexusmarket.domain.ports.in.model.RegisterCommand;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +53,7 @@ class AuthControllerTest {
                 .primaryAddress("Calle 123 #45-67")
                 .build();
 
-        AuthResponseDTO response = AuthResponseDTO.builder()
+        AuthenticationResult response = AuthenticationResult.builder()
                 .tokenType("Bearer")
                 .token("fake.jwt.token")
                 .expiresIn(86400000L)
@@ -61,7 +63,7 @@ class AuthControllerTest {
                 .role(UserRole.BUYER)
                 .build();
 
-        when(authenticationUseCasePort.register(any(RegisterRequestDTO.class))).thenReturn(response);
+        when(authenticationUseCasePort.register(any(RegisterCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -75,7 +77,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.fullName").value("Juan Perez"))
                 .andExpect(jsonPath("$.role").value("BUYER"));
 
-        verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort).register(any(RegisterCommand.class));
     }
 
     @Test
@@ -90,7 +92,7 @@ class AuthControllerTest {
                 .companyName("Tienda Nexus")
                 .build();
 
-        AuthResponseDTO response = AuthResponseDTO.builder()
+        AuthenticationResult response = AuthenticationResult.builder()
                 .tokenType("Bearer")
                 .token("fake.jwt.token.seller")
                 .expiresIn(86400000L)
@@ -100,7 +102,7 @@ class AuthControllerTest {
                 .role(UserRole.SELLER)
                 .build();
 
-        when(authenticationUseCasePort.register(any(RegisterRequestDTO.class))).thenReturn(response);
+        when(authenticationUseCasePort.register(any(RegisterCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -109,7 +111,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("seller1@test.com"))
                 .andExpect(jsonPath("$.role").value("SELLER"));
 
-        verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort).register(any(RegisterCommand.class));
     }
 
     @Test
@@ -122,7 +124,7 @@ class AuthControllerTest {
                 .role(UserRole.ADMIN)
                 .build();
 
-        when(authenticationUseCasePort.register(any(RegisterRequestDTO.class)))
+        when(authenticationUseCasePort.register(any(RegisterCommand.class)))
                 .thenThrow(new BusinessRuleException(
                         "Self-registration is only allowed for BUYER and SELLER roles"));
 
@@ -131,7 +133,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnprocessableContent());
 
-        verify(authenticationUseCasePort).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort).register(any(RegisterCommand.class));
     }
 
     @Test
@@ -150,7 +152,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterCommand.class));
     }
 
     @Test
@@ -169,7 +171,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterCommand.class));
     }
 
     @Test
@@ -188,7 +190,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterCommand.class));
     }
 
     @Test
@@ -207,7 +209,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationUseCasePort, never()).register(any(RegisterRequestDTO.class));
+        verify(authenticationUseCasePort, never()).register(any(RegisterCommand.class));
     }
 
     // ---------- POST /api/v1/auth/login ----------
@@ -219,7 +221,7 @@ class AuthControllerTest {
                 .password("secret123")
                 .build();
 
-        AuthResponseDTO response = AuthResponseDTO.builder()
+        AuthenticationResult response = AuthenticationResult.builder()
                 .tokenType("Bearer")
                 .token("fake.jwt.token")
                 .expiresIn(86400000L)
@@ -229,7 +231,7 @@ class AuthControllerTest {
                 .role(UserRole.BUYER)
                 .build();
 
-        when(authenticationUseCasePort.login(any(LoginRequestDTO.class))).thenReturn(response);
+        when(authenticationUseCasePort.login(any(LoginCommand.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -240,7 +242,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("buyer1@test.com"))
                 .andExpect(jsonPath("$.role").value("BUYER"));
 
-        verify(authenticationUseCasePort).login(any(LoginRequestDTO.class));
+        verify(authenticationUseCasePort).login(any(LoginCommand.class));
     }
 
     @Test
@@ -251,7 +253,7 @@ class AuthControllerTest {
                 .password("wrong-password")
                 .build();
 
-        when(authenticationUseCasePort.login(any(LoginRequestDTO.class)))
+        when(authenticationUseCasePort.login(any(LoginCommand.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -259,7 +261,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
 
-        verify(authenticationUseCasePort).login(any(LoginRequestDTO.class));
+        verify(authenticationUseCasePort).login(any(LoginCommand.class));
     }
 
     @Test
@@ -275,7 +277,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationUseCasePort, never()).login(any(LoginRequestDTO.class));
+        verify(authenticationUseCasePort, never()).login(any(LoginCommand.class));
     }
 
     @Test
@@ -291,7 +293,7 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationUseCasePort, never()).login(any(LoginRequestDTO.class));
+        verify(authenticationUseCasePort, never()).login(any(LoginCommand.class));
     }
 }
 

@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.exceptions;
 
-public class InvalidStatusTransitionException extends RuntimeException {
+public class InvalidStatusTransitionException extends DomainException {
 
     private final String currentStatus;
     private final String targetStatus;

@@ -9,7 +9,7 @@ C4Container
     Person(user, "Usuario del sistema", "Comprador, vendedor, administrador, supervisor u operador de bodega")
 
     Container_Boundary(c1, "NexusMarket Application") {
-        Container(api, "API REST (Spring Boot 3.4)", "Java 17, Spring MVC, Spring Security + JWT", "Puerto 8080")
+        Container(api, "API REST (Spring Boot 4.0.0)", "Java 17, Spring MVC, Spring Security + JWT", "Puerto 8080")
         Container(controllers, "Controladores REST", "15 @RestController en adapters/rest/controllers", "Dentro de api")
         Container(useCases, "Casos de uso", "15 implementaciones de ports/in en adapters/useCases", "Dentro de api")
         Container(domain, "Núcleo de dominio", "Modelos, value objects, excepciones, servicios, puertos in/out", "Dentro de api")
@@ -42,7 +42,7 @@ C4Container
 
 | Contenedor | Tecnología | Detalle |
 |------------|------------|---------|
-| API REST | Spring Boot 3.4 / Java 17 | 15 controladores, Puerto 8080 |
+| API REST | Spring Boot 4.0.0 / Java 17 | 19 controladores, Puerto 8080 |
 | Adaptador JPA | Spring Data JPA + Hibernate | MySQL, 13 entidades, 13 repositorios |
 | Adaptador MongoDB | Spring Data MongoDB | Auditoría (AuditLog) |
 | Seguridad | Spring Security + JWT | Stateless, HMAC-SHA256, RBAC 5 roles |

@@ -1,6 +1,5 @@
 package com.nexusmarket.auth.filter;
 
-import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
 import com.nexusmarket.adapters.useCases.AuthenticationUseCaseImpl;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
@@ -27,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 /**
- * Test del servicio de auditoría de sesiones enfocado en la generación de eventos
- * cuando se rechaza un token por versión (ver) desactualizada.
+ * Test del servicio de auditorÃ­a de sesiones enfocado en la generaciÃ³n de eventos
+ * cuando se rechaza un token por versiÃ³n (ver) desactualizada.
  */
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterAuditTest {
@@ -61,7 +60,7 @@ class JwtAuthenticationFilterAuditTest {
                 .build();
         UserDetailsAdapter adapterV1 = new UserDetailsAdapter(user);
 
-        // Generar token con ver = 0 (versión obsoleta)
+        // Generar token con ver = 0 (versiÃ³n obsoleta)
         UserDetailsAdapter adapterV0 = new UserDetailsAdapter(
                 User.builder().id(1L).email("buyer@test.com")
                         .tokenVersion(0).role(UserRole.BUYER).status(UserStatus.ACTIVE).build());
@@ -70,14 +69,14 @@ class JwtAuthenticationFilterAuditTest {
         // El token con ver=0 debe ser rechazado contra usuario con ver=1
         assertThat(jwtService.validateToken(token, adapterV1)).isFalse();
 
-        // Extraer jti y verificar que se registraría TOKEN_REJECTED
+        // Extraer jti y verificar que se registrarÃ­a TOKEN_REJECTED
         String jti = jwtService.extractJti(token);
         Integer tokenVersion = jwtService.extractVersion(token);
 
         assertThat(jti).isNotNull();
         assertThat(tokenVersion).isEqualTo(0);
 
-        // Simular la llamada al servicio de auditoría (como haría el filtro)
+        // Simular la llamada al servicio de auditorÃ­a (como harÃ­a el filtro)
         sessionAuditService.recordTokenRejected("buyer@test.com", jti,
                 "token version obsolete", null, tokenVersion);
 
@@ -87,7 +86,7 @@ class JwtAuthenticationFilterAuditTest {
     }
 
     @Test
-    @DisplayName("token con ver actual es válido y no genera rechazo")
+    @DisplayName("token con ver actual es vÃ¡lido y no genera rechazo")
     void tokenWithCurrentVersionIsValid() {
         User user = User.builder()
                 .id(1L)
@@ -103,7 +102,7 @@ class JwtAuthenticationFilterAuditTest {
 
         assertThat(jwtService.validateToken(token, adapter)).isTrue();
 
-        // No se debería llamar al servicio de auditoría para tokens válidos
+        // No se deberÃ­a llamar al servicio de auditorÃ­a para tokens vÃ¡lidos
         verifyNoInteractions(sessionAuditService);
     }
 }

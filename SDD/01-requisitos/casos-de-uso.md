@@ -4,8 +4,8 @@ Cada requisito funcional (RF) se mapea a su **interfaz de caso de uso** en `doma
 
 | RF | Caso de uso (método) | Interfaz `domain/ports/in/` | Implementación `adapters/useCases/` | Módulo |
 |----|----------------------|-----------------------------|-------------------------------------|--------|
-| RF-001 | `register(RegisterRequestDTO)` | `AuthenticationUseCasePort` | `AuthenticationUseCaseImpl` | auth |
-| RF-002 | `login(LoginRequestDTO)` | `AuthenticationUseCasePort` | `AuthenticationUseCaseImpl` | auth |
+| RF-001 | `register(RegisterCommand)` | `AuthenticationUseCasePort` | `AuthenticationUseCaseImpl` | auth |
+| RF-002 | `login(LoginCommand)` | `AuthenticationUseCasePort` | `AuthenticationUseCaseImpl` | auth |
 | RF-003 | `createUser(email, fullName, password, role)` | `UserUseCasePort` | `UserUseCaseImpl` | users |
 | RF-004 | (resolución del principal autenticado, sin método de port dedicado) | `UserUseCasePort` (ctx de seguridad) | `UserUseCaseImpl` | users |
 | RF-005 | `getUserByIdOrThrow`, `getUserByEmailOrThrow`, `findAll`, `findByRole`, `blockUser`, `activateUser`, `changeRole` | `UserUseCasePort` | `UserUseCaseImpl` | users |

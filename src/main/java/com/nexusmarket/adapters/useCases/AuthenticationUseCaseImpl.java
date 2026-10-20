@@ -7,14 +7,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.nexusmarket.adapters.rest.dtos.requests.LoginRequestDTO;
-import com.nexusmarket.adapters.rest.dtos.requests.RegisterRequestDTO;
-import com.nexusmarket.adapters.rest.dtos.responses.AuthResponseDTO;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
+import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
+import com.nexusmarket.domain.ports.in.model.LoginCommand;
+import com.nexusmarket.domain.ports.in.model.RegisterCommand;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.services.UserManagementService;
@@ -28,7 +28,8 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
     private final UserUseCasePort userUseCasePort;
     private final BuyerUseCasePort buyerUseCasePort;
-    private final SellerUseCasePort sellerUseCasePort;    private final UserManagementService userManagementService;
+    private final SellerUseCasePort sellerUseCasePort;
+    private final UserManagementService userManagementService;
     private final SessionAuditService sessionAuditService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -55,34 +56,34 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
     @Override
     @Transactional
-    public AuthResponseDTO register(RegisterRequestDTO request) {
-        UserRole role = request.getRole();
+    public AuthenticationResult register(RegisterCommand command) {
+        UserRole role = command.getRole();
 
         if (role != UserRole.BUYER && role != UserRole.SELLER) {
             throw new BusinessRuleException("Self-registration is only allowed for BUYER and SELLER roles");
         }
 
         User user = userUseCasePort.createUser(
-                request.getEmail(),
-                request.getFullName(),
-                request.getPassword(),
+                command.getEmail(),
+                command.getFullName(),
+                command.getPassword(),
                 role);
 
         if (role == UserRole.BUYER) {
-            createBuyerProfile(user, request.getPrimaryAddress());
+            createBuyerProfile(user, command.getPrimaryAddress());
         } else {
-            createSellerProfile(user, request.getTaxId(), request.getCompanyName());
+            createSellerProfile(user, command.getTaxId(), command.getCompanyName());
         }
 
         String token = jwtService.generateToken(new UserDetailsAdapter(user));
-        return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
+        return AuthenticationResult.from(user, token, jwtExpiration);
     }
 
     @Override
-    public AuthResponseDTO login(LoginRequestDTO request) {
+    public AuthenticationResult login(LoginCommand command) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+                    new UsernamePasswordAuthenticationToken(command.getEmail(), command.getPassword()));
 
             UserDetailsAdapter principal = (UserDetailsAdapter) authentication.getPrincipal();
             User user = principal.getUser();
@@ -91,9 +92,9 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
             String jti = jwtService.extractJti(token);
             sessionAuditService.recordLogin(user.getEmail(), jti, null);
 
-            return AuthResponseDTO.fromEntity(user, token, jwtExpiration);
+            return AuthenticationResult.from(user, token, jwtExpiration);
         } catch (BadCredentialsException ex) {
-            sessionAuditService.recordLoginFailed(request.getEmail(), "bad credentials", null);
+            sessionAuditService.recordLoginFailed(command.getEmail(), "bad credentials", null);
             throw ex;
         }
     }

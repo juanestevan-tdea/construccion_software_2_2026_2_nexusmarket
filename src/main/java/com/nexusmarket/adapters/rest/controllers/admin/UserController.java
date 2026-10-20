@@ -42,6 +42,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponseDTO> getCurrentUser(@AuthenticationPrincipal UserDetailsAdapter principal) {
         if (principal == null || principal.getUser() == null) {
             throw new BadCredentialsException("No authenticated user found");

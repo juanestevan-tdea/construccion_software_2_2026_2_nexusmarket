@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -20,8 +22,12 @@ import com.nexusmarket.adapters.rest.dtos.requests.ProductCreateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.requests.ProductUpdateRequestDTO;
 import com.nexusmarket.adapters.rest.dtos.responses.ProductResponseDTO;
 import com.nexusmarket.adapters.rest.mappers.ProductRestMapper;
+import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Product;
+import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.ports.in.seller.ProductUseCasePort;
+import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
+import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,16 +39,21 @@ import lombok.RequiredArgsConstructor;
 public class ProductController {
 
     private final ProductUseCasePort productUseCasePort;
+    private final SellerRepositoryPort sellerRepositoryPort;
 
     @PostMapping
-    public ResponseEntity<ProductResponseDTO> createProduct(@Valid @RequestBody ProductCreateRequestDTO request) {
+    public ResponseEntity<ProductResponseDTO> createProduct(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @Valid @RequestBody ProductCreateRequestDTO request) {
+
+        Seller seller = currentSeller(principal);
         Product product = productUseCasePort.createProduct(
                 request.getSku(),
                 request.getName(),
                 request.getDescription(),
                 request.getPrice(),
                 request.getType(),
-                request.getSellerId(),
+                seller.getId(),
                 request.getCategoryId()
         );
         return new ResponseEntity<>(ProductRestMapper.toResponseDTO(product), HttpStatus.CREATED);
@@ -87,8 +98,12 @@ public class ProductController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id,
+    public ResponseEntity<ProductResponseDTO> updateProduct(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable Long id,
             @Valid @RequestBody ProductUpdateRequestDTO request) {
+
+        requireOwnership(id, principal);
         Product updated = productUseCasePort.updateProduct(
                 id,
                 request.getName(),
@@ -101,8 +116,38 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<ProductResponseDTO> deleteProduct(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable Long id) {
+
+        requireOwnership(id, principal);
         Product deactivated = productUseCasePort.deactivateProduct(id);
         return ResponseEntity.ok(ProductRestMapper.toResponseDTO(deactivated));
+    }
+
+    /**
+     * Resuelve el vendedor autenticado a partir del {@code userId} del token.
+     * El {@code sellerId} ya no se acepta desde el cuerpo: era suplantable.
+     */
+    private Seller currentSeller(UserDetailsAdapter principal) {
+        if (principal == null || principal.getUser() == null) {
+            throw new AccessDeniedException("No authenticated seller found");
+        }
+        Long userId = principal.getUser().getId();
+        return sellerRepositoryPort.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller", userId));
+    }
+
+    /**
+     * Verifica que el producto pertenezca al vendedor autenticado antes de
+     * permitir cualquier modificación. Evita que un vendedor altere o desactive
+     * productos de otro (403 Forbidden).
+     */
+    private void requireOwnership(Long productId, UserDetailsAdapter principal) {
+        Seller seller = currentSeller(principal);
+        Product product = productUseCasePort.getProductByIdOrThrow(productId);
+        if (!seller.getId().equals(product.getSellerId())) {
+            throw new AccessDeniedException("Seller does not own product " + productId);
+        }
     }
 }

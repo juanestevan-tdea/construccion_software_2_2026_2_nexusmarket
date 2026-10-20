@@ -41,9 +41,10 @@ C4Component
     title Componentes - Módulo Usuarios (users, buyers, sellers)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(ucCtrl, "UserController", "REST Controller", "/api/users")
-        Component(bCtrl, "BuyerController", "REST Controller", "/api/buyers")
-        Component(sCtrl, "SellerController", "REST Controller", "/api/sellers")
+        Component(ucCtrl, "UserController", "REST Controller", "/api/v1/admin/users")
+        Component(bCtrl, "BuyerController", "REST Controller", "/api/v1/buyer/buyers")
+        Component(bAdminCtrl, "BuyerManagementController", "REST Controller", "/api/v1/admin/buyers")
+        Component(sCtrl, "SellerController", "REST Controller", "/api/v1/seller/sellers")
 
         Component(uUc, "UserUseCaseImpl", "Caso de uso: usuarios", "implements UserUseCasePort")
         Component(bUc, "BuyerUseCaseImpl", "Caso de uso: compradores", "implements BuyerUseCasePort")
@@ -54,7 +55,9 @@ C4Component
         PortIn(sPi, "SellerUseCasePort", "Puerto de entrada")
 
         Component(uSvc, "UserManagementService", "Servicio de dominio", "usuarios")
-        Component(bSvc, "BuyerDomainService", "Servicio de dominio", "compradores")
+        Component(bCreate, "CreateBuyerService", "Servicio de dominio", "alta de comprador")
+        Component(bAddress, "AddBuyerAddressService", "Servicio de dominio", "direcciones")
+        Component(bStatus, "ChangeBuyerCommercialStatusService", "Servicio de dominio", "estado comercial")
         Component(sSvc, "SellerDomainService", "Servicio de dominio", "vendedores")
 
         PortOut(uPo, "UserRepositoryPort", "Puerto de salida")
@@ -74,12 +77,15 @@ C4Component
 
     Rel(ucCtrl, uUc, "Invoca", "Java")
     Rel(bCtrl, bUc, "Invoca", "Java")
+    Rel(bAdminCtrl, bUc, "Invoca (ADMIN)", "Java")
     Rel(sCtrl, sUc, "Invoca", "Java")
     Rel(uUc, uPi, "Implementa", "")
     Rel(bUc, bPi, "Implementa", "")
     Rel(sUc, sPi, "Implementa", "")
     Rel(uUc, uSvc, "Delega", "")
-    Rel(bUc, bSvc, "Delega", "")
+    Rel(bUc, bCreate, "Delega", "")
+    Rel(bUc, bAddress, "Delega", "")
+    Rel(bUc, bStatus, "Delega", "")
     Rel(sUc, sSvc, "Delega", "")
     Rel(uUc, uPo, "Persiste/consulta", "")
     Rel(bUc, bPo, "Persiste/consulta", "")
@@ -104,10 +110,10 @@ C4Component
     title Componentes - Módulo Catálogo (catalog)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(pCtrl, "ProductController", "REST Controller", "/api/products")
-        Component(cCtrl, "CategoryController", "REST Controller", "/api/categories")
-        Component(wCtrl, "WarehouseController", "REST Controller", "/api/warehouses")
-        Component(catCtrl, "CatalogController", "REST Controller", "/api/catalog")
+        Component(pCtrl, "ProductController", "REST Controller", "/api/v1/seller/products")
+        Component(cCtrl, "CategoryController", "REST Controller", "/api/v1/admin/categories")
+        Component(wCtrl, "WarehouseController", "REST Controller", "/api/v1/warehouse/warehouses")
+        Component(catCtrl, "CatalogController", "REST Controller", "/api/v1/catalog")
 
         Component(pUc, "ProductUseCaseImpl", "Caso de uso: productos", "implements ProductUseCasePort")
         Component(cUc, "CategoryUseCaseImpl", "Caso de uso: categorías", "implements CategoryUseCasePort")
@@ -172,7 +178,7 @@ C4Component
     title Componentes - Módulo Inventario (inventory)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(ctrl, "InventoryController", "REST Controller", "/api/inventories")
+        Component(ctrl, "InventoryController", "REST Controller", "/api/v1/warehouse/inventories")
         Component(uc, "InventoryUseCaseImpl", "Caso de uso: inventario", "implements InventoryUseCasePort")
         PortIn(pi, "InventoryUseCasePort", "Puerto de entrada")
 
@@ -205,7 +211,8 @@ C4Component
     title Componentes - Módulo Órdenes (orders)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(ctrl, "OrderController", "REST Controller", "/api/orders")
+        Component(ctrl, "OrderController", "REST Controller", "/api/v1/buyer/orders")
+        Component(whCtrl, "WarehouseOrderController", "REST Controller", "/api/v1/warehouse/orders")
         Component(uc, "OrderUseCaseImpl", "Caso de uso: órdenes", "implements OrderUseCasePort")
         PortIn(pi, "OrderUseCasePort", "Puerto de entrada")
 
@@ -222,6 +229,7 @@ C4Component
     }
 
     Rel(ctrl, uc, "Invoca", "Java")
+    Rel(whCtrl, uc, "Invoca (WAREHOUSE_OPERATOR)", "Java")
     Rel(uc, pi, "Implementa", "")
     Rel(uc, createSvc, "Delega", "")
     Rel(uc, calcSvc, "Delega", "")
@@ -243,8 +251,8 @@ C4Component
     title Componentes - Módulo Facturación (invoices, refunds)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(iCtrl, "InvoiceController", "REST Controller", "/api/invoices")
-        Component(rCtrl, "RefundController", "REST Controller", "/api/refunds")
+        Component(iCtrl, "InvoiceController", "REST Controller", "/api/v1/supervisor/invoices")
+        Component(rCtrl, "RefundController", "REST Controller", "/api/v1/supervisor/refunds")
 
         Component(iUc, "InvoiceUseCaseImpl", "Caso de uso: facturas", "implements InvoiceUseCasePort")
         Component(rUc, "RefundUseCaseImpl", "Caso de uso: reembolsos", "implements RefundUseCasePort")
@@ -296,7 +304,7 @@ C4Component
     title Componentes - Módulo Envíos (shipping / shipments)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(ctrl, "ShipmentController", "REST Controller", "/api/shipments")
+        Component(ctrl, "ShipmentController", "REST Controller", "/api/v1/warehouse/shipments")
         Component(uc, "ShipmentUseCaseImpl", "Caso de uso: envíos", "implements ShipmentUseCasePort")
         PortIn(pi, "ShipmentUseCasePort", "Puerto de entrada")
 
@@ -329,7 +337,7 @@ C4Component
     title Componentes - Módulo Devoluciones (returns)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(ctrl, "ReturnController", "REST Controller", "/api/returns")
+        Component(ctrl, "ReturnController", "REST Controller", "/api/v1/buyer/returns")
         Component(uc, "ReturnUseCaseImpl", "Caso de uso: devoluciones", "implements ReturnUseCasePort")
         PortIn(pi, "ReturnUseCasePort", "Puerto de entrada")
 
@@ -360,7 +368,7 @@ C4Component
     title Componentes - Módulo Auditoría (auditing)
 
     Container_Boundary(api, "NexusMarket API REST") {
-        Component(ctrl, "AuditController", "REST Controller", "/api/audit")
+        Component(ctrl, "AuditController", "REST Controller", "/api/v1/admin/audit")
         Component(uc, "AuditUseCaseImpl", "Caso de uso: auditoría", "implements AuditUseCasePort")
         PortIn(pi, "AuditUseCasePort", "Puerto de entrada")
 

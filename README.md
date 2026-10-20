@@ -1,209 +1,383 @@
 # 🛒 NexusMarket
 
 [![Java 17](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![Tests](https://img.shields.io/badge/Tests-94%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/Tests-149%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-Backend de marketplace multiproveedor construido con **Arquitectura Hexagonal (Ports & Adapters)** sobre **Spring Boot 3.4** y **Java 17**.
+Backend de un marketplace multiproveedor construido con **arquitectura hexagonal
+(Ports & Adapters)** sobre **Spring Boot 4.0.0**, **Spring Framework 7**,
+**Jackson 3** y **Java 17**.
+
+> Proyecto académico de Construcción de Software II — Tecnológico de Antioquia (TdeA).
+> No está desplegado en producción ni se presenta como un sistema terminado.
 
 ---
 
 ## 📦 Descripción
 
-**NexusMarket** es una plataforma backend para comercio electrónico que gestiona el ciclo completo de un marketplace: autenticación JWT, catálogo de productos, bodegas e inventario, órdenes, facturación, reembolsos, envíos, devoluciones y auditoría centralizada en MongoDB.
+**NexusMarket** centraliza en una API REST el ciclo de comercio electrónico de
+varios vendedores: autenticación con JWT, catálogo de productos y categorías,
+bodegas e inventario, órdenes, facturación, reembolsos, envíos, devoluciones y
+auditoría de operaciones y sesiones en MongoDB.
+
+El núcleo de dominio es independiente de Spring, JPA, MongoDB y HTTP. Las
+excepciones de dominio heredan de `DomainException` y el adaptador REST es el
+único que decide el código HTTP.
 
 ---
 
 ## 🏗️ Arquitectura
 
-El proyecto sigue el patrón **Ports & Adapters** con tres capas concéntricas:
-[ Clientes REST / HTTP ]
-│
-▼
-┌──────────────────────────────────────────────────────────────┐
-│ ADAPTERS: REST (Controllers) │
-└──────────────────────────────┬───────────────────────────────┘
-│ Invoca
-▼
-┌──────────────────────────────────────────────────────────────┐
-│ DOMAIN: Ports In (Use Cases) │
-│ adapters/useCases/ │
-└──────────────────────────────┬───────────────────────────────┘
-│ Orquesta
-▼
-┌──────────────────────────────────────────────────────────────┐
-│ DOMAIN CORE │
-│ - Models (POJOs) - Value Objects (Enums) │
-│ - Domain Services - Business Exceptions │
-│ - Ports Out (Interfaces) │
-└──────────────────────────────┬───────────────────────────────┘
-│ Satisface contrato
-▼
-┌──────────────────────────────────────────────────────────────┐
-│ ADAPTERS: PERSISTENCE (JPA & MongoDB) │
-│ - MySQL: Entities, Repositories, Mappers │
-│ - MongoDB: Documents, Repositories, Mappers │
-└──────────────────────────────────────────────────────────────┘
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ADAPTADORES DE ENTRADA                                           │
+│  REST Controllers · DTOs · Mappers · GlobalExceptionHandler      │
+│  Spring Security · JWT Authentication Filter                     │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │ invoca puertos de entrada
+┌───────────────────────────────▼──────────────────────────────────┐
+│ APLICACIÓN / DOMINIO                                             │
+│  domain/ports/in        → casos de uso e interfaces              │
+│  adapters/useCases      → implementaciones de los puertos        │
+│  domain/services        → reglas de negocio (SRP)                │
+│  domain/models          → entidades POJO                         │
+│  domain/valueobjects    → enums de dominio                       │
+│  domain/exceptions      → DomainException y subtipos             │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │ implementa puertos de salida
+┌───────────────────────────────▼──────────────────────────────────┐
+│ ADAPTADORES DE SALIDA                                            │
+│  JPA/MySQL: entidades, repositorios, mappers, adaptadores        │
+│  MongoDB: auditoría de operaciones y eventos de sesión           │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-text
+Decisiones de diseño relevantes:
+
+- Los servicios de dominio tienen una sola responsabilidad (por ejemplo,
+  `CreateBuyerService`, `AddBuyerAddressService` y
+  `ChangeBuyerCommercialStatusService` reemplazan al antiguo
+  `BuyerDomainService`).
+- `AuthenticationUseCasePort` usa `RegisterCommand`, `LoginCommand` y
+  `AuthenticationResult`; ya no importa DTOs de `adapters.rest`.
+- La autorización se aplica en dos niveles: reglas de ruta en `SecurityConfig`
+  y `@PreAuthorize` con `@EnableMethodSecurity`. Además, los controladores de
+  comprador y vendedor validan la **propiedad del recurso** contra el usuario
+  del token.
 
 ---
 
-## ⚙️ Stack Tecnológico
+## ⚙️ Stack tecnológico
 
 | Capa / Rol | Tecnología | Detalle |
 |---|---|---|
-| **Lenguaje** | Java 17 | OpenJDK / Eclipse Temurin LTS |
-| **Framework** | Spring Boot 3.4 | Spring MVC, IoC e inyección de dependencias |
-| **Seguridad** | Spring Security + JWT | Tokens HMAC-SHA256 stateless (JJWT 0.12.6) + BCrypt |
-| **Persistencia Relacional** | MySQL 8.x + Spring Data JPA | Hibernate ORM, transacciones ACID |
-| **Persistencia Documental** | MongoDB 6.x/7.x + Spring Data Mongo | Logs y trazabilidad de auditoría |
-| **Build** | Maven 3.9+ | Gestión de dependencias |
-| **Testing** | JUnit 5 + Mockito + Spring Test | 94 tests verdes |
-| **Docker** | Dockerfile multi-stage + docker-compose | MySQL + MongoDB + App |
+| Lenguaje | Java 17 | Verificado con Eclipse Temurin 17 y 21 |
+| Framework | Spring Boot 4.0.0 / Spring Framework 7 | Spring MVC, IoC, transacciones |
+| Seguridad | Spring Security 7 + JJWT 0.12.6 | JWT HMAC-SHA256 stateless, BCrypt |
+| JSON | Jackson 3 (`tools.jackson.*`) | Migrado desde Jackson 2 |
+| Persistencia relacional | MySQL 8 + Spring Data JPA / Hibernate | Transacciones ACID |
+| Persistencia documental | MongoDB 7 + Spring Data Mongo | Auditoría y eventos de sesión |
+| Build | Maven 3.9+ (wrapper incluido) | `mvnw` / `mvnw.cmd` |
+| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **149 pruebas** |
+| Contenedores | Dockerfile multi-stage + Docker Compose | MySQL + MongoDB + App |
+| CI | GitHub Actions | `./mvnw -B clean test` |
 
 ---
 
-## 📂 Estructura del Repositorio
+## 🧩 Módulos implementados
+
+| Módulo | Estado | Observaciones |
+|---|---|---|
+| Autenticación y sesiones | Implementado | Registro, login, logout, cambio de contraseña, auditoría de sesión en MongoDB |
+| Usuarios y roles | Implementado | CRUD administrativo, bloqueo/activación, cambio de rol |
+| Compradores y vendedores | Implementado | Perfil autoservicio ligado al usuario autenticado |
+| Catálogo y categorías | Implementado | Productos, categorías jerárquicas, búsqueda y detalle |
+| Inventario y bodegas | Implementado | Reserva, confirmación, daño y ajuste de stock |
+| Órdenes | Implementado | Carrito, ítems, checkout y ciclo de estados |
+| Facturación | Implementado | Generación y anulación de facturas |
+| Reembolsos | Implementado | Solicitud, aprobación y rechazo por supervisor |
+| Envíos | Implementado | Creación, seguimiento y cambios de estado |
+| Devoluciones | Implementado | Solicitud del comprador; aprobación/rechazo por supervisor |
+| Auditoría | Implementado | Operaciones en MongoDB y consulta administrativa |
+| Notificaciones | Stub | `NotificationPort` + `NoOpNotificationAdapter`, sin uso en casos de uso |
+
+---
+
+## 📂 Estructura del repositorio
+
+```
 construccion_software_2_2026_2_nexusmarket/
-├── domain/ # Núcleo de Dominio Puro
-│ ├── exceptions/ # 17 Excepciones de negocio
-│ ├── models/ # 14 POJOs (Order, User, Product...)
-│ ├── ports/
-│ │ ├── in/ # 15 Interfaces de Casos de Uso
-│ │ └── out/ # 13 Interfaces de Persistencia
-│ ├── services/ # 20 Servicios con reglas de negocio
-│ └── valueobjects/ # 10 Enums (OrderStatus, UserRole...)
-├── adapters/ # Adaptadores Externos
-│ ├── persistence/
-│ │ ├── jpa/ # Adaptador relacional
-│ │ │ ├── adapters/ # 12 Implementaciones de Ports Out
-│ │ │ ├── entities/ # 13 Entidades JPA
-│ │ │ ├── mappers/ # 13 Mappers Entity ↔ Domain
-│ │ │ └── repositories/ # 13 Spring Data JpaRepository
-│ │ └── mongodb/ # Adaptador NoSQL (auditoría)
-│ ├── rest/ # Adaptador API REST
-│ │ ├── controllers/ # 15 Controladores @RestController
-│ │ ├── dtos/ # DTOs requests + responses
-│ │ ├── exception/ # GlobalExceptionHandler, ErrorResponse
-│ │ └── mappers/ # Mappers DTO ↔ Domain
-│ └── useCases/ # 15 Implementaciones de ports/in
-├── infrastructure/ # Infraestructura Transversal
-│ ├── config/ # CorsConfig, JacksonConfig
-│ ├── notification/ # NotificationPort, NoOpNotificationAdapter
-│ └── security/ # JwtService, filtros, SecurityConfig
-├── SDD/ # Software Design Document
-├── pom.xml
+├── src/main/java/com/nexusmarket/
+│   ├── domain/
+│   │   ├── models/            # 14 entidades POJO
+│   │   ├── valueobjects/      # 11 enums de dominio
+│   │   ├── exceptions/        # DomainException + 17 excepciones concretas
+│   │   ├── ports/in/          # 15 puertos de entrada (+ modelos de comando)
+│   │   ├── ports/out/         # 14 puertos de salida
+│   │   └── services/          # 23 servicios de dominio con SRP
+│   ├── adapters/
+│   │   ├── rest/              # 19 controladores, DTOs, mappers, handler global
+│   │   ├── useCases/          # 15 implementaciones de puertos de entrada
+│   │   └── persistence/
+│   │       ├── jpa/           # 12 adaptadores, 13 entidades, 13 repositorios, 13 mappers
+│   │       └── mongodb/       # Auditoría y eventos de sesión
+│   └── infrastructure/
+│       ├── config/            # CORS, Jackson, async
+│       ├── notification/      # puerto y adaptador NoOp
+│       └── security/          # JWT, filtros, SecurityConfig, handlers 401/403
+├── src/test/java/             # 149 pruebas unitarias y de controlador
+├── SDD/                       # Software Design Document
+├── .github/workflows/ci.yml   # CI de compilación y pruebas
 ├── Dockerfile
 ├── docker-compose.yml
-├── DOCUMENTATION.md
+├── .env.example
+├── pom.xml
+├── README.md
 ├── SETUP.md
+├── DOCUMENTATION.md
 └── LICENSE
-
-text
-
----
-
-## 🚀 Cómo Ejecutar
-
-Consulta **[SETUP.md](SETUP.md)** para la guía paso a paso completa.
-
-### Resumen rápido
-
-1. **Crear base de datos en MySQL:**
-   ```sql
-   CREATE DATABASE nexusmarket CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-Compilar e instalar dependencias:
-
-bash
-mvn clean install -DskipTests
-Ejecutar la aplicación:
-
-bash
-mvn spring-boot:run
-La API queda disponible en http://localhost:8080.
-
-🔐 Seguridad
-Autenticación stateless mediante tokens Bearer JWT firmados con HMAC-SHA256.
-
-Control de acceso basado en roles (RBAC) con 5 roles:
-
-ADMIN: Control total del marketplace y auditoría.
-
-BUYER: Compras, órdenes, historial y devoluciones.
-
-SELLER: Publicación de productos y gestión de catálogos.
-
-SUPERVISOR: Aprobación y seguimiento de reembolsos.
-
-WAREHOUSE_OPERATOR: Gestión de bodegas, recepciones y despachos.
-
-Almacenamiento seguro de credenciales con BCrypt.
-
-### 🛡️ Seguridad en Producción
-
-Para despliegues productivos o entornos públicos es **estrictamente obligatorio** configurar la clave de firma JWT mediante la variable de entorno `JWT_SECRET`:
-
-- **Requisito mínimo:** Clave HMAC-SHA256 con al menos 256 bits (32+ caracteres) de entropía; se recomienda una cadena aleatoria de 64 caracteres alfanuméricos (512 bits).
-- **Riesgo:** El valor presente en `application.properties` es un fallback exclusivo para desarrollo local. El uso de dicha clave por defecto en producción compromete la autenticidad e integridad de todos los tokens emitidos.
-- **Rotación:** Se aconseja rotar la clave periódicamente (ej. cada 90 días) inyectando el nuevo valor en `$env:JWT_SECRET` o en la configuración del contenedor. La rotación invalida inmediatamente cualquier token emitido previamente.
-
-🧪 Testing
-Suite completa de pruebas unitarias y de integración con aislamiento mediante mocks.
-
-Total: 94 tests verdes (0 fallos, 0 errores, 0 omitidos).
-
-Herramientas: JUnit 5, Mockito, Spring Test.
-
-Comando:
-
-bash
-mvn clean test
-🐳 Docker
-Incluye Dockerfile multi-stage y docker-compose.yml para levantar MySQL + MongoDB + App:
-
-bash
-docker-compose up -d
-📚 Documentación
-DOCUMENTATION.md — Documentación técnica completa.
-
-SETUP.md — Guía de instalación, variables de entorno y troubleshooting.
-
-SDD/ — Software Design Document y especificaciones funcionales.
-
-✅ Estado del Proyecto
-✅ Arquitectura hexagonal completa (8 módulos de negocio)
-
-✅ 94 tests verdes
-
-✅ Autenticación JWT con roles
-
-✅ Persistencia híbrida (MySQL + MongoDB)
-
-✅ Docker + docker-compose
-
-📄 Licencia
-Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.
-
-text
-
-**Guarda con `Ctrl+S`.**
+```
 
 ---
 
-## 📄 Paso 2 — Crear `SDD/README.md`
+## 🚀 Requisitos previos
 
-### Paso 2a — Crear la carpeta y mover el PDF
+- **JDK 17** (`java -version`). El wrapper puede ejecutarse con JDK 17 o superior.
+- **Docker Desktop** con Docker Compose (recomendado para MySQL y MongoDB).
+- Puertos libres: `8080` (API), `3306` (MySQL) y `27017` (MongoDB).
+- Opcional: MySQL 8 y MongoDB 7 instalados localmente.
 
-En PowerShell:
+---
+
+## 🐳 Ejecución con Docker (recomendada)
 
 ```powershell
-cd "C:\Users\juane\Desktop\proyectos\construccion_software_2_2026_2_nexusmarket"
+Copy-Item .env.example .env
+# Edita .env y define contraseñas y JWT_SECRET
+docker compose up -d --build
+docker compose ps
+```
 
-# Crear carpeta SDD
-New-Item -ItemType Directory -Force -Path "SDD"
+La API queda en `http://localhost:8080`. Comprueba salud:
 
-# Ver el nombre exacto del PDF
-Get-ChildItem "Recursos_de_Clase"
+```powershell
+curl.exe -s http://localhost:8080/actuator/health
+```
+
+El stack incluye `healthcheck` en MySQL y MongoDB; la aplicación espera a que
+ambos estén saludables (`depends_on: condition: service_healthy`).
+
+Detener y limpiar:
+
+```powershell
+docker compose down
+# Para borrar también los datos:
+docker compose down -v
+```
+
+---
+
+## 💻 Ejecución local
+
+1. Crea la base de datos:
+
+```sql
+CREATE DATABASE nexusmarket CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+2. Levanta MySQL y MongoDB (o usa `docker compose up -d mysql mongodb`).
+3. Compila y ejecuta:
+
+```powershell
+.\mvnw.cmd clean package -DskipTests
+java -jar target\nexus-market-1.0.0-SNAPSHOT.jar
+```
+
+4. Alternativa en desarrollo:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+La guía detallada, incluida una prueba de humo con PowerShell, está en
+[SETUP.md](SETUP.md).
+
+---
+
+## 🔐 Variables de entorno
+
+| Variable | Obligatoria en producción | Descripción |
+|---|---|---|
+| `JWT_SECRET` | Sí | Clave HMAC de al menos 32 caracteres (se recomiendan 64). Rotarla invalida los tokens emitidos. |
+| `DB_URL` | Sí | JDBC URL de MySQL. |
+| `DB_USERNAME` | Sí | Usuario de MySQL. |
+| `DB_PASSWORD` | Sí | Contraseña de MySQL. |
+| `MONGODB_URI` | Sí | URI de MongoDB. |
+| `SERVER_PORT` | No | Puerto HTTP (por defecto `8080`). |
+| `MYSQL_ROOT_PASSWORD` | Solo Docker | Contraseña root del contenedor MySQL. |
+| `MYSQL_DATABASE` | Solo Docker | Nombre de la base de datos. |
+
+Los valores por defecto de `application.properties` son **fallbacks de
+desarrollo**. No deben usarse en producción. El archivo
+`application-local.properties` está ignorado por Git y no debe contener
+credenciales compartidas.
+
+---
+
+## 🔑 Seguridad y roles
+
+Roles definidos en `UserRole`: `ADMIN`, `BUYER`, `SELLER`, `SUPERVISOR` y
+`WAREHOUSE_OPERATOR`.
+
+| Ruta | Rol requerido |
+|---|---|
+| `/api/v1/auth/register`, `/api/v1/auth/login` | Público |
+| `/api/v1/auth/logout`, `/api/v1/auth/change-password` | Autenticado |
+| `/api/v1/admin/**` | `ADMIN` (excepto `/me`, autenticado) |
+| `/api/v1/seller/**` | `SELLER` |
+| `/api/v1/buyer/**` | `BUYER` |
+| `/api/v1/supervisor/**` | `SUPERVISOR` |
+| `/api/v1/warehouse/**` | `WAREHOUSE_OPERATOR` |
+| `GET /api/v1/catalog/**` | Autenticado |
+
+Controles adicionales implementados:
+
+- Un vendedor solo puede crear, actualizar o desactivar **sus propios**
+  productos. El `sellerId` se obtiene del token, no del cuerpo.
+- Un comprador solo puede consultar y operar **sus propias** órdenes y
+  devoluciones. `GET /api/v1/buyer/orders` ya no devuelve las órdenes de todos.
+- La aprobación, el rechazo y la finalización de devoluciones se movieron a
+  `/api/v1/supervisor/returns/**`.
+- Las transiciones logísticas `dispatch`, `deliver` y `finish` solo las puede
+  ejecutar un `WAREHOUSE_OPERATOR` en `/api/v1/warehouse/orders/{id}/...`.
+- El cambio de estado comercial de un comprador solo lo puede ejecutar un
+  `ADMIN` en `/api/v1/admin/buyers/{id}/status`.
+- Los perfiles de comprador y vendedor se resuelven con el `userId` del token;
+  no se aceptan identificadores de usuario en el cuerpo.
+
+Limitaciones de seguridad conocidas:
+
+- El fallback de `jwt.secret` en `application.properties` es público y solo
+  sirve para desarrollo.
+- No hay rotación automática de secretos ni revocación global fuera de
+  `tokenVersion`.
+- CORS está configurado de forma permisiva para desarrollo; debe restringirse
+  por entorno antes de un despliegue real.
+
+---
+
+## 🔌 Endpoints principales
+
+La lista completa (96 endpoints) está en
+[SDD/04-api/contratos-por-endpoint.md](SDD/04-api/contratos-por-endpoint.md) y
+en [SDD/04-api/openapi.yaml](SDD/04-api/openapi.yaml).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/api/v1/auth/register` | Registro de BUYER o SELLER |
+| `POST` | `/api/v1/auth/login` | Login y emisión de JWT |
+| `GET` | `/api/v1/catalog` | Catálogo activo |
+| `GET` | `/api/v1/catalog/search?query=` | Búsqueda de productos |
+| `POST` | `/api/v1/buyer/orders` | Crear orden para el comprador autenticado |
+| `POST` | `/api/v1/buyer/orders/{id}/items` | Añadir ítem a la orden |
+| `PATCH` | `/api/v1/buyer/orders/{id}/checkout` | Pasar a pago pendiente |
+| `PATCH` | `/api/v1/warehouse/orders/{id}/dispatch` | Despachar orden (bodega) |
+| `POST` | `/api/v1/seller/products` | Crear producto del vendedor autenticado |
+| `POST` | `/api/v1/warehouse/inventories` | Registrar inventario |
+| `PATCH` | `/api/v1/admin/buyers/{id}/status?newStatus=` | Cambiar estado comercial (admin) |
+| `POST` | `/api/v1/supervisor/invoices` | Generar factura |
+| `POST` | `/api/v1/supervisor/refunds` | Crear reembolso |
+| `PATCH` | `/api/v1/supervisor/returns/{id}/approve` | Aprobar devolución |
+
+Ejemplo de registro:
+
+```powershell
+$body = @{
+  email = "buyer@nexus.com"
+  fullName = "Buyer Demo"
+  password = "Test1234"
+  role = "BUYER"
+  primaryAddress = "Calle 50 #40-20"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/auth/register `
+  -ContentType "application/json" -Body $body
+```
+
+La contraseña debe tener al menos 8 caracteres, una letra y un número. La
+validación del DTO exige 8 caracteres; la política completa se aplica en
+`UserManagementService`.
+
+---
+
+## 🧪 Pruebas
+
+```powershell
+.\mvnw.cmd clean test
+```
+
+Resultado esperado:
+
+```
+Tests run: 149, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Las pruebas son unitarias y de controlador con Mockito; **no requieren MySQL
+ni MongoDB**. No hay pruebas E2E contra bases reales ni contra el stack Docker;
+esa verificación queda documentada como pendiente.
+
+Cobertura funcional relevante:
+
+- Servicios de dominio y casos de uso de todos los módulos.
+- Autenticación JWT, auditoría de sesión y cambio de contraseña.
+- Seguridad por rol y por propiedad de recurso (`ProductController`,
+  `OrderController`, `UserController`).
+- Contrato del `GlobalExceptionHandler` (404, 409, 422, 400, 500).
+- Contrato arquitectónico de excepciones de dominio.
+
+---
+
+## 📚 Documentación
+
+| Documento | Contenido |
+|---|---|
+| [SDD/README.md](SDD/README.md) | Índice del Software Design Document |
+| [SDD/00-introduccion](SDD/00-introduccion) | Propósito, alcance y glosario |
+| [SDD/01-requisitos](SDD/01-requisitos) | Requisitos funcionales, no funcionales y casos de uso |
+| [SDD/02-arquitectura](SDD/02-arquitectura) | C4 niveles 1–4 |
+| [SDD/03-dominio](SDD/03-dominio) | Modelo, reglas de negocio y eventos |
+| [SDD/04-api](SDD/04-api) | Contratos por endpoint y OpenAPI 3.1 |
+| [SDD/05-despliegue](SDD/05-despliegue) | Diagrama de despliegue |
+| [SDD/06-adaptadores](SDD/06-adaptadores) | Handler global, seguridad y persistencia |
+| [SDD/07-trazabilidad](SDD/07-trazabilidad) | Matriz requisito → código → prueba |
+| [SETUP.md](SETUP.md) | Instalación, variables y solución de problemas |
+| [DOCUMENTATION.md](DOCUMENTATION.md) | Documentación técnica extendida |
+
+---
+
+## ⚠️ Limitaciones conocidas
+
+1. **OpenAPI no se sirve automáticamente**: no se incluye `springdoc-openapi`.
+   El contrato se mantiene a mano en `SDD/04-api/openapi.yaml`.
+2. **Esquema con `ddl-auto=update`**: existe `db/migration/V1__add_token_version.sql`
+   pero Flyway no está habilitado; el script es informativo y no se ejecuta.
+3. **Sin transacciones distribuidas**: MySQL y MongoDB se actualizan por
+   separado. Un fallo entre ambos puede dejar la auditoría incompleta; no hay
+   patrón outbox implementado.
+4. **Notificaciones no conectadas**: el adaptador es un NoOp.
+5. **Sin pruebas de integración reales** contra MySQL/MongoDB ni pruebas E2E.
+6. **Listados autoservicio**: `GET /api/v1/buyer/buyers` y
+   `GET /api/v1/seller/sellers` devuelven solo el perfil propio. Los listados
+   globales deberían exponerse en rutas administrativas.
+7. **Listado global de productos en ruta de vendedor**:
+   `GET /api/v1/seller/products` sigue devolviendo productos de todos los
+   vendedores; se recomienda moverlo al catálogo o a una ruta administrativa.
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Consulta [LICENSE](LICENSE).

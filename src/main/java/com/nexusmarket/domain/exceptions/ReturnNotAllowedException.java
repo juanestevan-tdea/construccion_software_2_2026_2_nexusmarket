@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.exceptions;
 
-public class ReturnNotAllowedException extends RuntimeException {
+public class ReturnNotAllowedException extends DomainException {
 
     public ReturnNotAllowedException(String message) {
         super(message);

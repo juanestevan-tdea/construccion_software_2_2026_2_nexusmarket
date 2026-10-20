@@ -2,32 +2,34 @@
 
 Todos los requisitos se derivan de los endpoints reales de `adapters/rest/controllers/`. Cada uno indica el **actor**, el **caso de uso** (`domain/ports/in/*UseCasePort`) y los **criterios de aceptación** (CAC). Los códigos de error se rigen por `adapters/rest/exception/GlobalExceptionHandler.java` (400 validación, 401 auth, 403 forbidden, 404 not found, 409 conflict, 422 unprocessable, 500 fallback).
 
-Los roles requeridos reflejan la aplicación efectiva de `infrastructure/security/SecurityConfig.java`:
-- `PÚBLICO`: `/api/auth/**` (permitAll).
-- `AUTENTICADO (cualquier rol)`: la mayoría de endpoints (`anyRequest().authenticated()`).
-- `ADMIN`: `/api/users/**` excepto `GET /api/users/me`.
-- `ADMIN` o `SUPERVISOR`: `/api/audit/**`.
+Los roles requeridos reflejan la aplicación efectiva de `infrastructure/security/SecurityConfig.java` y de `@PreAuthorize`:
+- `PÚBLICO`: `/api/v1/auth/register`, `/api/v1/auth/login` y `/actuator/health`.
+- `AUTENTICADO`: `/api/v1/admin/users/me`, `/api/v1/auth/logout`, `/api/v1/auth/change-password` y `GET /api/v1/catalog/**`.
+- `ADMIN`: `/api/v1/admin/**` (excepto `/users/me`).
+- `BUYER`: `/api/v1/buyer/**`.
+- `SELLER`: `/api/v1/seller/**`.
+- `SUPERVISOR`: `/api/v1/supervisor/**`.
+- `WAREHOUSE_OPERATOR`: `/api/v1/warehouse/**`.
 
-> Nota de ajuste: el README del proyecto declara `SELLER`/`ADMIN` para escrituras de catálogo, pero `SecurityConfig` las protege solo como `AUTENTICADO`. Se documenta como gap en `SDD/README.md`.
-
+> La autorización se aplica por ruta (`SecurityConfig`) y por método (`@EnableMethodSecurity`). Además, los controladores de comprador y vendedor verifican la propiedad del recurso contra el usuario del token.
 ---
 
 ## Módulo: Autenticación (auth)
 
 ### RF-001 — Registro de usuario
 - **Actor:** visitante no autenticado.
-- **Endpoint:** `POST /api/auth/register` (`AuthController.register`).
-- **Caso de uso:** `AuthenticationUseCasePort.register(RegisterRequestDTO)` → `AuthResponseDTO`.
+- **Endpoint:** `POST /api/v1/auth/register` (`AuthController.register`).
+- **Caso de uso:** `AuthenticationUseCasePort.register(RegisterCommand)` → `AuthResponseDTO`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `AuthResponseDTO` (token `Bearer`, `expiresIn = 86400000` ms / 24 h, rol `BUYER` o `SELLER`).
   2. Email duplicado → `409 Conflict` (`DuplicateResourceException`).
-  3. Datos inválidos (email mal formado, contraseña < 6 caracteres, rol nulo) → `400 Bad Request` (`MethodArgumentNotValidException`).
+  3. Datos inválidos (email mal formado, contraseña < 8 caracteres, rol nulo) → `400 Bad Request` (`MethodArgumentNotValidException`).
   4. Endpoint público, sin token requerido.
 
 ### RF-002 — Login y obtención de JWT
 - **Actor:** usuario registrado.
-- **Endpoint:** `POST /api/auth/login` (`AuthController.login`).
-- **Caso de uso:** `AuthenticationUseCasePort.login(LoginRequestDTO)` → `AuthResponseDTO`.
+- **Endpoint:** `POST /api/v1/auth/login` (`AuthController.login`).
+- **Caso de uso:** `AuthenticationUseCasePort.login(LoginCommand)` → `AuthResponseDTO`.
 - **Criterios de aceptación:**
   1. Credenciales válidas → `200 OK` con JWT firmado HMAC-SHA256 y rol incrustado.
   2. Credenciales inválidas → `401 Unauthorized` (`AuthenticationException`).
@@ -39,7 +41,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-003 — Crear usuario
 - **Actor:** `ADMIN`.
-- **Endpoint:** `POST /api/users` (`UserController.createUser`).
+- **Endpoint:** `POST /api/v1/admin/users` (`UserController.createUser`).
 - **Caso de uso:** `UserUseCasePort.createUser(email, fullName, password, role)` → `User`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `UserResponseDTO`.
@@ -48,7 +50,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-004 — Consultar perfil propio
 - **Actor:** cualquier usuario autenticado.
-- **Endpoint:** `GET /api/users/me` (`UserController.getCurrentUser`).
+- **Endpoint:** `GET /api/v1/admin/users/me` (`UserController.getCurrentUser`).
 - **Caso de uso:** lectura del `UserDetailsAdapter` del `SecurityContextHolder` (no hay método dedicado en el port; se resuelve la autenticación vigente).
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `UserResponseDTO` del usuario autenticado.
@@ -56,7 +58,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-005 — Gestión de usuarios por administrador
 - **Actor:** `ADMIN`.
-- **Endpoints:** `GET /api/users/{id}`, `GET /api/users/email?email=`, `GET /api/users`, `GET /api/users/role/{role}`, `PATCH /api/users/{id}/block`, `PATCH /api/users/{id}/activate`, `PATCH /api/users/{id}/role?newRole=`.
+- **Endpoints:** `GET /api/v1/admin/users/{id}`, `GET /api/v1/admin/users/email?email=`, `GET /api/v1/admin/users`, `GET /api/v1/admin/users/role/{role}`, `PATCH /api/v1/admin/users/{id}/block`, `PATCH /api/v1/admin/users/{id}/activate`, `PATCH /api/v1/admin/users/{id}/role?newRole=`.
 - **Caso de uso:** `UserUseCasePort.getUserByIdOrThrow`, `getUserByEmailOrThrow`, `findAll`, `findByRole`, `blockUser`, `activateUser`, `changeRole`.
 - **Criterios de aceptación:**
   1. Cada consulta devuelve `200 OK` con `UserResponseDTO` (o lista).
@@ -69,8 +71,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Compradores (buyers)
 
 ### RF-006 — Crear comprador
-- **Actor:** autenticado.
-- **Endpoint:** `POST /api/buyers` (`BuyerController.createBuyer`).
+- **Actor:** `BUYER` (dueño del recurso).
+- **Endpoint:** `POST /api/v1/buyer/buyers` (`BuyerController.createBuyer`).
 - **Caso de uso:** `BuyerUseCasePort.createBuyer(userId, primaryAddress)` → `Buyer`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `BuyerResponseDTO` (incluye datos del `User` asociado).
@@ -78,21 +80,22 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Usuario inexistente → `404 Not Found`.
 
 ### RF-007 — Consultar y gestionar comprador
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/buyers/{id}`, `GET /api/buyers`, `GET /api/buyers/status/{status}`, `POST /api/buyers/{id}/addresses?address=`, `PATCH /api/buyers/{id}/status?newStatus=`.
-- **Caso de uso:** `BuyerUseCasePort.getBuyerByIdOrThrow`, `findAll`, `findByCommercialStatus`, `addAdditionalAddress`, `changeCommercialStatus`.
+- **Actor:** `BUYER` (dueño del recurso).
+- **Endpoints:** `GET /api/v1/buyer/buyers/{id}`, `GET /api/v1/buyer/buyers`, `GET /api/v1/buyer/buyers/status/{status}`, `POST /api/v1/buyer/buyers/{id}/addresses?address=`.
+- **Caso de uso:** `BuyerUseCasePort.getBuyerByIdOrThrow`, `findAll`, `findByCommercialStatus`, `addAdditionalAddress`.
 - **Criterios de aceptación:**
   1. Lecturas devuelven `200 OK` con `BuyerResponseDTO` (o lista).
   2. `BuyerCommercialStatus` inválido en path → `400 Bad Request`.
   3. Comprador inexistente → `404 Not Found`.
+- **Administración:** `changeCommercialStatus` solo es accesible por `ADMIN` mediante `PATCH /api/v1/admin/buyers/{id}/status?newStatus=` (`BuyerManagementController`). Antes vivía en la ruta del comprador y permitía auto-reactivarse.
 
 ---
 
 ## Módulo: Vendedores (sellers)
 
 ### RF-008 — Crear vendedor
-- **Actor:** autenticado.
-- **Endpoint:** `POST /api/sellers` (`SellerController.createSeller`).
+- **Actor:** `SELLER` (dueño del recurso).
+- **Endpoint:** `POST /api/v1/seller/sellers` (`SellerController.createSeller`).
 - **Caso de uso:** `SellerUseCasePort.createSeller(userId, taxId, companyName)` → `Seller`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `SellerResponseDTO` (incluye `User` asociado).
@@ -100,8 +103,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Usuario inexistente → `404 Not Found`.
 
 ### RF-009 — Consultar y gestionar vendedor
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/sellers/{id}`, `GET /api/sellers/taxId?taxId=`, `GET /api/sellers`, `PATCH /api/sellers/{id}/activate`, `PATCH /api/sellers/{id}/deactivate`, `PATCH /api/sellers/{id}/update`.
+- **Actor:** `SELLER` (dueño del recurso).
+- **Endpoints:** `GET /api/v1/seller/sellers/{id}`, `GET /api/v1/seller/sellers/taxId?taxId=`, `GET /api/v1/seller/sellers`, `PATCH /api/v1/seller/sellers/{id}/activate`, `PATCH /api/v1/seller/sellers/{id}/deactivate`, `PATCH /api/v1/seller/sellers/{id}/update`.
 - **Caso de uso:** `SellerUseCasePort.getSellerByIdOrThrow`, `getSellerByTaxIdOrThrow`, `findAll`, `activateSeller`, `deactivateSeller`, `updateSeller`.
 - **Criterios de aceptación:**
   1. Lecturas devuelven `200 OK` con `SellerResponseDTO` (o lista).
@@ -113,9 +116,9 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Catálogo — productos (catalog)
 
 ### RF-010 — Crear producto
-- **Actor:** autenticado (intención de negocio: `SELLER`/`ADMIN`).
-- **Endpoint:** `POST /api/products` (`ProductController.createProduct`).
-- **Caso de uso:** `ProductUseCasePort.createProduct(sku, name, description, price, type, sellerId, categoryId)` → `Product`.
+- **Actor:** `SELLER` (dueño del producto).
+- **Endpoint:** `POST /api/v1/seller/products` (`ProductController.createProduct`).
+- **Caso de uso:** `ProductUseCasePort.createProduct(sku, name, description, price, type, sellerIdDelToken, categoryId)` → `Product`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `ProductResponseDTO`.
   2. SKU duplicado → `409 Conflict` (`DuplicateResourceException`).
@@ -123,24 +126,24 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   4. Categoría o vendedor inexistentes → `404 Not Found`.
 
 ### RF-011 — Consultar producto por ID
-- **Actor:** autenticado.
-- **Endpoint:** `GET /api/products/{id}` (`ProductController.getProductById`).
+- **Actor:** `SELLER` (dueño del recurso).
+- **Endpoint:** `GET /api/v1/seller/products/{id}` (`ProductController.getProductById`).
 - **Caso de uso:** `ProductUseCasePort.getProductByIdOrThrow(id)` → `Product`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ProductResponseDTO`.
   2. Producto inexistente → `404 Not Found`.
 
 ### RF-012 — Listar y filtrar productos
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/products`, `GET /api/products/category/{categoryId}`, `GET /api/products/seller/{sellerId}`, `GET /api/products/price-range?min=&max=`.
+- **Actor:** `SELLER` (dueño del recurso).
+- **Endpoints:** `GET /api/v1/seller/products`, `GET /api/v1/seller/products/category/{categoryId}`, `GET /api/v1/seller/products/seller/{sellerId}`, `GET /api/v1/seller/products/price-range?min=&max=`.
 - **Caso de uso:** `ProductUseCasePort.findAll`, `findByCategory`, `findBySeller`, `findByPriceRange`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con lista de `ProductResponseDTO`.
   2. Parámetros `min`/`max` obligatorios y numéricos → `400 Bad Request` si faltan o mal formados.
 
 ### RF-013 — Actualizar producto
-- **Actor:** autenticado.
-- **Endpoint:** `PATCH /api/products/{id}` (`ProductController.updateProduct`).
+- **Actor:** `SELLER` (dueño del recurso).
+- **Endpoint:** `PATCH /api/v1/seller/products/{id}` (`ProductController.updateProduct`).
 - **Caso de uso:** `ProductUseCasePort.updateProduct(id, name, description, price, type, categoryId)` → `Product`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ProductResponseDTO` actualizado.
@@ -148,8 +151,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Precio inválido si se envía → `400 Bad Request`.
 
 ### RF-014 — Desactivar producto (soft delete)
-- **Actor:** autenticado.
-- **Endpoint:** `DELETE /api/products/{id}` (`ProductController.deleteProduct`).
+- **Actor:** `SELLER` (dueño del recurso).
+- **Endpoint:** `DELETE /api/v1/seller/products/{id}` (`ProductController.deleteProduct`).
 - **Caso de uso:** `ProductUseCasePort.deactivateProduct(id)` → `Product` (`active = false`).
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ProductResponseDTO` desactivado.
@@ -160,8 +163,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Catálogo — categorías (catalog)
 
 ### RF-015 — Crear categoría
-- **Actor:** autenticado (intención de negocio: `ADMIN`).
-- **Endpoint:** `POST /api/categories` (`CategoryController.createCategory`).
+- **Actor:** `ADMIN`.
+- **Endpoint:** `POST /api/v1/admin/categories` (`CategoryController.createCategory`).
 - **Caso de uso:** `CategoryUseCasePort.createCategory(name, description, parentId)` → `Category`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `CategoryResponseDTO`.
@@ -169,16 +172,16 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Nombre obligatorio → `400 Bad Request`.
 
 ### RF-016 — Consultar categorías
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/categories`, `GET /api/categories/roots`, `GET /api/categories/{id}`.
+- **Actor:** `ADMIN`.
+- **Endpoints:** `GET /api/v1/admin/categories`, `GET /api/v1/admin/categories/roots`, `GET /api/v1/admin/categories/{id}`.
 - **Caso de uso:** `CategoryUseCasePort.findAll`, `findRootCategories`, `getCategoryByIdOrThrow`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con lista o `CategoryResponseDTO`.
   2. Categoría inexistente → `404 Not Found`.
 
 ### RF-017 — Actualizar y eliminar categoría
-- **Actor:** autenticado (intención de negocio: `ADMIN`).
-- **Endpoints:** `PATCH /api/categories/{id}`, `DELETE /api/categories/{id}`.
+- **Actor:** `ADMIN`.
+- **Endpoints:** `PATCH /api/v1/admin/categories/{id}`, `DELETE /api/v1/admin/categories/{id}`.
 - **Caso de uso:** `CategoryUseCasePort.updateCategory(id, name, description, parentId)`, `deleteCategory(id)`.
 - **Criterios de aceptación:**
   1. `PATCH` → `200 OK` con `CategoryResponseDTO` actualizado.
@@ -191,8 +194,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Catálogo — bodegas (catalog)
 
 ### RF-018 — CRUD de bodegas
-- **Actor:** autenticado.
-- **Endpoints:** `POST /api/warehouses`, `GET /api/warehouses`, `GET /api/warehouses/{id}`, `GET /api/warehouses/type/{type}`, `PATCH /api/warehouses/{id}`.
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoints:** `POST /api/v1/warehouse/warehouses`, `GET /api/v1/warehouse/warehouses`, `GET /api/v1/warehouse/warehouses/{id}`, `GET /api/v1/warehouse/warehouses/type/{type}`, `PATCH /api/v1/warehouse/warehouses/{id}`.
 - **Caso de uso:** `WarehouseUseCasePort.createWarehouse`, `getWarehouseByIdOrThrow`, `findAll`, `findByType`, `updateWarehouse`.
 - **Criterios de aceptación:**
   1. `POST` → `201 Created` con `WarehouseResponseDTO`.
@@ -205,13 +208,13 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ## Módulo: Catálogo general y búsqueda (catalog)
 
-### RF-019 — Catálogo概览 y búsqueda de productos
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/catalog`, `GET /api/catalog/search?query=`, `GET /api/catalog/products/{id}`.
+### RF-019 — Catálogo y búsqueda de productos
+- **Actor:** cualquier usuario autenticado.
+- **Endpoints:** `GET /api/v1/catalog`, `GET /api/v1/catalog/search?query=`, `GET /api/v1/catalog/products/{id}`.
 - **Caso de uso:** `CatalogUseCasePort.getActiveProducts`, `getRootCategories`, `searchProducts(query)`, `getProductDetail(id)`.
 - **Criterios de aceptación:**
-  1. `GET /api/catalog` → `200 OK` con `CatalogOverviewResponseDTO` (productos activos + categorías raíz + totales).
-  2. `GET /api/catalog/search` → `200 OK` con lista de productos que coincidan con `query`.
+  1. `GET /api/v1/catalog` → `200 OK` con `CatalogOverviewResponseDTO` (productos activos + categorías raíz + totales).
+  2. `GET /api/v1/catalog/search` → `200 OK` con lista de productos que coincidan con `query`.
   3. Producto de detalle inexistente → `404 Not Found`.
 
 ---
@@ -219,24 +222,24 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Inventario (inventory)
 
 ### RF-020 — Crear registro de inventario
-- **Actor:** autenticado.
-- **Endpoint:** `POST /api/inventories` (`InventoryController.createInventory`).
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoint:** `POST /api/v1/warehouse/inventories` (`InventoryController.createInventory`).
 - **Caso de uso:** `InventoryUseCasePort.createInventory(productId, warehouseId, quantity)` → `Inventory`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `InventoryResponseDTO`.
   2. `productId`, `warehouseId`, `quantity` obligatorios (`quantity >= 0`) → `400 Bad Request`.
 
 ### RF-021 — Consultar inventario
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/inventories/{id}`, `GET /api/inventories`, `GET /api/inventories/product/{productId}`, `GET /api/inventories/warehouse/{warehouseId}`.
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoints:** `GET /api/v1/warehouse/inventories/{id}`, `GET /api/v1/warehouse/inventories`, `GET /api/v1/warehouse/inventories/product/{productId}`, `GET /api/v1/warehouse/inventories/warehouse/{warehouseId}`.
 - **Caso de uso:** `InventoryUseCasePort.getByIdOrThrow`, `findAll`, `findByProduct`, `findByWarehouse`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `InventoryResponseDTO` (o lista).
   2. Registro inexistente → `404 Not Found`.
 
 ### RF-022 — Operaciones de stock (reserva, pago, dañado, ajuste)
-- **Actor:** autenticado.
-- **Endpoints:** `PATCH /api/inventories/{id}/reserve?amount=`, `PATCH /api/inventories/{id}/confirm-payment`, `PATCH /api/inventories/{id}/mark-damaged`, `PATCH /api/inventories/{id}/adjust?amount=`.
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoints:** `PATCH /api/v1/warehouse/inventories/{id}/reserve?amount=`, `PATCH /api/v1/warehouse/inventories/{id}/confirm-payment`, `PATCH /api/v1/warehouse/inventories/{id}/mark-damaged`, `PATCH /api/v1/warehouse/inventories/{id}/adjust?amount=`.
 - **Caso de uso:** `InventoryUseCasePort.reserve`, `confirmPayment`, `markAsDamaged`, `adjust`.
 - **Criterios de aceptación:**
   1. Cada operación devuelve `200 OK` con `InventoryResponseDTO` actualizado.
@@ -251,15 +254,15 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-023 — Crear orden
 - **Actor:** `BUYER`.
-- **Endpoint:** `POST /api/orders` (`OrderController.createOrder`).
-- **Caso de uso:** `OrderUseCasePort.createOrder(buyerId)` → `Order` (estado `CART`).
+- **Endpoint:** `POST /api/v1/buyer/orders` (`OrderController.createOrder`).
+- **Caso de uso:** `OrderUseCasePort.createOrder(buyerIdDelToken)` → `Order` (estado `CART`).
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `OrderResponseDTO` (estado `CART`, ítems vacíos).
   2. Comprador inexistente → `404 Not Found`.
 
 ### RF-024 — Agregar y quitar ítems de orden
 - **Actor:** `BUYER` (dueño de la orden).
-- **Endpoints:** `POST /api/orders/{id}/items`, `DELETE /api/orders/{id}/items/{itemId}`.
+- **Endpoints:** `POST /api/v1/buyer/orders/{id}/items`, `DELETE /api/v1/buyer/orders/{id}/items/{itemId}`.
 - **Caso de uso:** `OrderUseCasePort.addItem(orderId, productId, quantity)`, `removeItem(orderId, itemId)`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `OrderResponseDTO` actualizado y `totalAmount` recalculado.
@@ -269,7 +272,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-025 — Checkout de orden
 - **Actor:** `BUYER`.
-- **Endpoint:** `PATCH /api/orders/{id}/checkout` (`OrderController.checkout`).
+- **Endpoint:** `PATCH /api/v1/buyer/orders/{id}/checkout` (`OrderController.checkout`).
 - **Caso de uso:** `OrderUseCasePort.checkout(id)` → `Order` (`PENDING_PAYMENT`).
 - **Criterios de aceptación:**
   1. Orden en `CART` con ítems → `200 OK`, estado pasa a `PENDING_PAYMENT`.
@@ -278,15 +281,15 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-026 — Confirmar pago de orden
 - **Actor:** `BUYER`.
-- **Endpoint:** `PATCH /api/orders/{id}/confirm-payment` (`OrderController.confirmPayment`).
+- **Endpoint:** `PATCH /api/v1/buyer/orders/{id}/confirm-payment` (`OrderController.confirmPayment`).
 - **Caso de uso:** `OrderUseCasePort.confirmPayment(id)` → `Order` (`PAID`).
 - **Criterios de aceptación:**
   1. Orden en `PENDING_PAYMENT` → `200 OK`, estado pasa a `PAID`.
   2. Otra estado → `409 Conflict` (`InvalidStatusTransitionException`).
 
 ### RF-027 — Despachar, entregar y finalizar orden
-- **Actor:** autenticado (intención de negocio: `WAREHOUSE_OPERATOR`).
-- **Endpoints:** `PATCH /api/orders/{id}/dispatch`, `PATCH /api/orders/{id}/deliver`, `PATCH /api/orders/{id}/finish`.
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoints:** `PATCH /api/v1/warehouse/orders/{id}/dispatch`, `PATCH /api/v1/warehouse/orders/{id}/deliver`, `PATCH /api/v1/warehouse/orders/{id}/finish` (`WarehouseOrderController`).
 - **Caso de uso:** `OrderUseCasePort.dispatch`, `deliver`, `finish`.
 - **Criterios de aceptación:**
   1. `dispatch`: requiere `PAID` → `DISPATCHED`.
@@ -296,16 +299,16 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-028 — Cancelar orden
 - **Actor:** `BUYER`.
-- **Endpoint:** `PATCH /api/orders/{id}/cancel` (`OrderController.cancel`).
+- **Endpoint:** `PATCH /api/v1/buyer/orders/{id}/cancel` (`OrderController.cancel`).
 - **Caso de uso:** `OrderUseCasePort.cancel(id)` → `Order` (`CANCELLED`).
 - **Criterios de aceptación:**
   1. Orden no `FINISHED` ni `DELIVERED` → `200 OK`, estado pasa a `CANCELLED`.
   2. Orden `FINISHED` o `DELIVERED` → `409 Conflict` (`InvalidStatusTransitionException`).
 
 ### RF-029 — Consultar órdenes
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/orders/{id}`, `GET /api/orders`, `GET /api/orders/buyer/{buyerId}`.
-- **Caso de uso:** `OrderUseCasePort.getByIdOrThrow`, `findAll`, `findByBuyer`.
+- **Actor:** `BUYER` (dueño del recurso).
+- **Endpoints:** `GET /api/v1/buyer/orders/{id}`, `GET /api/v1/buyer/orders`, `GET /api/v1/buyer/orders/buyer/{buyerId}`.
+- **Caso de uso:** `OrderUseCasePort.getByIdOrThrow`, `findByBuyer` (scoped al comprador autenticado).
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `OrderResponseDTO` (o lista).
   2. Orden inexistente → `404 Not Found`.
@@ -315,8 +318,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Facturación (billing / invoices)
 
 ### RF-030 — Generar factura
-- **Actor:** autenticado.
-- **Endpoint:** `POST /api/invoices` (`InvoiceController.generateInvoice`).
+- **Actor:** `SUPERVISOR`.
+- **Endpoint:** `POST /api/v1/supervisor/invoices` (`InvoiceController.generateInvoice`).
 - **Caso de uso:** `InvoiceUseCasePort.generateInvoice(orderId, pdfUrl)` → `Invoice`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `InvoiceResponseDTO`.
@@ -324,16 +327,16 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Orden inexistente → `404 Not Found`.
 
 ### RF-031 — Consultar facturas
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/invoices/{id}`, `GET /api/invoices/order/{orderId}`, `GET /api/invoices`.
+- **Actor:** `SUPERVISOR`.
+- **Endpoints:** `GET /api/v1/supervisor/invoices/{id}`, `GET /api/v1/supervisor/invoices/order/{orderId}`, `GET /api/v1/supervisor/invoices`.
 - **Caso de uso:** `InvoiceUseCasePort.getByIdOrThrow`, `findByOrder`, `findAll`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `InvoiceResponseDTO` (o lista).
   2. Factura inexistente → `404 Not Found`.
 
 ### RF-032 — Anular factura
-- **Actor:** autenticado.
-- **Endpoint:** `PATCH /api/invoices/{id}/void` (`InvoiceController.voidInvoice`).
+- **Actor:** `SUPERVISOR`.
+- **Endpoint:** `PATCH /api/v1/supervisor/invoices/{id}/void` (`InvoiceController.voidInvoice`).
 - **Caso de uso:** `InvoiceUseCasePort.voidInvoice(id)` → `Invoice`.
 - **Criterios de aceptación:**
   1. Factura pagable → `200 OK` con factura anulada.
@@ -344,8 +347,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Reembolsos (refunds)
 
 ### RF-033 — Crear reembolso
-- **Actor:** autenticado.
-- **Endpoint:** `POST /api/refunds` (`RefundController.createRefund`).
+- **Actor:** `SUPERVISOR`.
+- **Endpoint:** `POST /api/v1/supervisor/refunds` (`RefundController.createRefund`).
 - **Caso de uso:** `RefundUseCasePort.createRefund(invoiceId, returnRequestId, amount)` → `Refund` (estado `PENDING`).
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `RefundResponseDTO`.
@@ -353,16 +356,16 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Factura inexistente → `404 Not Found`.
 
 ### RF-034 — Consultar reembolsos
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/refunds/{id}`, `GET /api/refunds/invoice/{invoiceId}`, `GET /api/refunds`.
+- **Actor:** `SUPERVISOR`.
+- **Endpoints:** `GET /api/v1/supervisor/refunds/{id}`, `GET /api/v1/supervisor/refunds/invoice/{invoiceId}`, `GET /api/v1/supervisor/refunds`.
 - **Caso de uso:** `RefundUseCasePort.getByIdOrThrow`, `findByInvoice`, `findAll`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `RefundResponseDTO` (o lista).
   2. Reembolso inexistente → `404 Not Found`.
 
 ### RF-035 — Aprobar y rechazar reembolso
-- **Actor:** autenticado (intención de negocio: `SUPERVISOR`).
-- **Endpoints:** `PATCH /api/refunds/{id}/approve`, `PATCH /api/refunds/{id}/reject`.
+- **Actor:** `SUPERVISOR`.
+- **Endpoints:** `PATCH /api/v1/supervisor/refunds/{id}/approve`, `PATCH /api/v1/supervisor/refunds/{id}/reject`.
 - **Caso de uso:** `RefundUseCasePort.approveRefund(id)`, `rejectRefund(id)`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `RefundResponseDTO` estado `APPROVED` / `REJECTED`.
@@ -374,8 +377,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 ## Módulo: Envíos (shipping / shipments)
 
 ### RF-036 — Crear envío
-- **Actor:** autenticado.
-- **Endpoint:** `POST /api/shipments` (`ShipmentController.createShipment`).
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoint:** `POST /api/v1/warehouse/shipments` (`ShipmentController.createShipment`).
 - **Caso de uso:** `ShipmentUseCasePort.createShipment(orderId, warehouseId, trackingNumber)` → `Shipment` (estado `PENDING`).
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `ShipmentResponseDTO`.
@@ -383,16 +386,16 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Orden inexistente → `404 Not Found`.
 
 ### RF-037 — Consultar envío
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/shipments/{id}`, `GET /api/shipments/tracking/{trackingNumber}`, `GET /api/shipments/order/{orderId}`, `GET /api/shipments`.
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoints:** `GET /api/v1/warehouse/shipments/{id}`, `GET /api/v1/warehouse/shipments/tracking/{trackingNumber}`, `GET /api/v1/warehouse/shipments/order/{orderId}`, `GET /api/v1/warehouse/shipments`.
 - **Caso de uso:** `ShipmentUseCasePort.getByIdOrThrow`, `findByTracking`, `findByOrder`, `findAll`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ShipmentResponseDTO` (o lista).
   2. Envío/tracking inexistente → `404 Not Found` (`TrackingNotFoundException` para tracking).
 
 ### RF-038 — Actualizar estado de envío
-- **Actor:** autenticado (intención de negocio: `WAREHOUSE_OPERATOR`).
-- **Endpoint:** `PATCH /api/shipments/{id}/status` (`ShipmentController.updateStatus`).
+- **Actor:** `WAREHOUSE_OPERATOR`.
+- **Endpoint:** `PATCH /api/v1/warehouse/shipments/{id}/status` (`ShipmentController.updateStatus`).
 - **Caso de uso:** `ShipmentUseCasePort.updateStatus(id, ShipmentStatus)` → `Shipment`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ShipmentResponseDTO` actualizado.
@@ -405,7 +408,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 
 ### RF-039 — Crear devolución
 - **Actor:** `BUYER`.
-- **Endpoint:** `POST /api/returns` (`ReturnController.createReturn`).
+- **Endpoint:** `POST /api/v1/buyer/returns` (`ReturnController.createReturn`).
 - **Caso de uso:** `ReturnUseCasePort.createReturn(orderId, reason)` → `Return` (estado `REQUESTED`).
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `ReturnResponseDTO`.
@@ -414,16 +417,16 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   4. Fuera de ventana de devolución → `422 Unprocessable Entity` (`ReturnWindowExpiredException`).
 
 ### RF-040 — Consultar devoluciones
-- **Actor:** autenticado.
-- **Endpoints:** `GET /api/returns/{id}`, `GET /api/returns/order/{orderId}`, `GET /api/returns`.
+- **Actor:** `BUYER` (dueño del recurso).
+- **Endpoints:** `GET /api/v1/buyer/returns/{id}`, `GET /api/v1/buyer/returns/order/{orderId}`, `GET /api/v1/buyer/returns`.
 - **Caso de uso:** `ReturnUseCasePort.getByIdOrThrow`, `findByOrder`, `findAll`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ReturnResponseDTO` (o lista).
   2. Devolución inexistente → `404 Not Found`.
 
 ### RF-041 — Aprobar, rechazar y completar devolución
-- **Actor:** autenticado (intención de negocio: `SUPERVISOR` / `WAREHOUSE_OPERATOR`).
-- **Endpoints:** `PATCH /api/returns/{id}/approve`, `PATCH /api/returns/{id}/reject`, `PATCH /api/returns/{id}/complete`.
+- **Actor:** `SUPERVISOR`.
+- **Endpoints:** `PATCH /api/v1/supervisor/returns/{id}/approve`, `PATCH /api/v1/supervisor/returns/{id}/reject`, `PATCH /api/v1/supervisor/returns/{id}/complete`.
 - **Caso de uso:** `ReturnUseCasePort.approveReturn`, `rejectReturn`, `completeReturn`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con `ReturnResponseDTO` estado `APPROVED` / `REJECTED` / `COMPLETED`.
@@ -442,8 +445,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   2. Almacenamiento inmutable en MongoDB (`AuditLogMongoAdapter`).
 
 ### RF-043 — Consultar logs de auditoría
-- **Actor:** `ADMIN` o `SUPERVISOR`.
-- **Endpoints:** `GET /api/audit?userId=&entityName=&start=&end=`, `GET /api/audit/{id}`.
+- **Actor:** `ADMIN`.
+- **Endpoints:** `GET /api/v1/admin/audit?userId=&entityName=&start=&end=`, `GET /api/v1/admin/audit/{id}`.
 - **Caso de uso:** `AuditUseCasePort.findAll`, `findByUser`, `findByEntity`, `findByDateRange`, `getByIdOrThrow`.
 - **Criterios de aceptación:**
   1. Devuelve `200 OK` con lista de `AuditLogResponseDTO` (filtrada o completa) o un solo log.

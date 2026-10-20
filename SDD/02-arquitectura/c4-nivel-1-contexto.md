@@ -12,7 +12,7 @@ C4Context
     Person(supervisor, "Supervisor", "SUPERVISOR: aprueba y rechaza reembolsos y devoluciones")
     Person(warehouseOperator, "Operador de Bodega", "WAREHOUSE_OPERATOR: gestiona bodegas, recepciones y despachos")
 
-    System(nxm, "NexusMarket API REST", "Backend marketplace multi-vendedor. Spring Boot 3.4, Java 17, arquitectura hexagonal (ports & adapters).", "http://localhost:8080/api")
+    System(nxm, "NexusMarket API REST", "Backend marketplace multi-vendedor. Spring Boot 4.0.0, Java 17, arquitectura hexagonal (ports & adapters).", "http://localhost:8080/api")
 
     System_Ext(mysql, "MySQL 8.x", "Persistencia relacional transaccional: usuarios, compradores, vendedores, productos, categorías, bodegas, inventario, órdenes, ítems, facturas, reembolsos, envíos, devoluciones.", "jdbc:mysql://localhost:3306/nexusmarket")
     System_Ext(mongo, "MongoDB 7.x", "Persistencia documental de auditoría inmutable: logs de operaciones (AuditLog).", "mongodb://localhost:27017/nexusmarket_audit")
@@ -33,11 +33,11 @@ C4Context
 
 | Actor | Rol en el código | Endpoints principales |
 |-------|------------------|-----------------------|
-| Comprador | `BUYER` | `/api/orders`, `/api/returns`, `/api/users/me`, `/api/buyers` |
-| Vendedor | `SELLER` | `/api/products`, `/api/sellers` |
-| Administrador | `ADMIN` | `/api/users/**`, `/api/audit/**`, administración completa |
-| Supervisor | `SUPERVISOR` | `/api/audit/**`, aprobación de reembolsos/devoluciones |
-| Operador de Bodega | `WAREHOUSE_OPERATOR` | `/api/warehouses`, `/api/inventories`, `/api/shipments`, despacho de órdenes |
+| Comprador | `BUYER` | `/api/v1/buyer/orders`, `/api/v1/buyer/returns`, `/api/v1/admin/users/me`, `/api/v1/buyer/buyers` |
+| Vendedor | `SELLER` | `/api/v1/seller/products`, `/api/v1/seller/sellers` |
+| Administrador | `ADMIN` | `/api/v1/admin/users/**`, `/api/v1/admin/audit/**`, administración completa |
+| Supervisor | `SUPERVISOR` | `/api/v1/supervisor/**`: facturas, reembolsos y devoluciones |
+| Operador de Bodega | `WAREHOUSE_OPERATOR` | `/api/v1/warehouse/warehouses`, `/api/v1/warehouse/inventories`, `/api/v1/warehouse/shipments` |
 
 ## Sistemas externos
 
