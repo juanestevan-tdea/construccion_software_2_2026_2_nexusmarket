@@ -4,7 +4,9 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
-import com.nexusmarket.domain.services.BuyerDomainService;
+import com.nexusmarket.domain.services.AddBuyerAddressService;
+import com.nexusmarket.domain.services.ChangeBuyerCommercialStatusService;
+import com.nexusmarket.domain.services.CreateBuyerService;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,12 +18,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class BuyerUseCaseImpl implements BuyerUseCasePort {
 
-    private final BuyerDomainService buyerDomainService;
+    private final CreateBuyerService createBuyerService;
+    private final AddBuyerAddressService addBuyerAddressService;
+    private final ChangeBuyerCommercialStatusService changeBuyerCommercialStatusService;
     private final BuyerRepositoryPort buyerRepositoryPort;
 
     @Override
     public Buyer createBuyer(Long userId, String primaryAddress) {
-        return buyerDomainService.createBuyer(userId, primaryAddress);
+        return createBuyerService.createBuyer(userId, primaryAddress);
     }
 
     @Override
@@ -52,12 +56,12 @@ public class BuyerUseCaseImpl implements BuyerUseCasePort {
 
     @Override
     public Buyer addAdditionalAddress(Long id, String address) {
-        return buyerDomainService.addAdditionalAddress(id, address);
+        return addBuyerAddressService.addAdditionalAddress(id, address);
     }
 
     @Override
     public Buyer changeCommercialStatus(Long id, BuyerCommercialStatus newStatus) {
-        return buyerDomainService.changeCommercialStatus(id, newStatus);
+        return changeBuyerCommercialStatusService.changeCommercialStatus(id, newStatus);
     }
 }
 

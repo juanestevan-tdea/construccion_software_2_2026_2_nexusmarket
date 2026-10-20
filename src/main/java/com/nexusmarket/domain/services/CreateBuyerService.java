@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class BuyerDomainService {
+public class CreateBuyerService {
 
     private final BuyerRepositoryPort buyerRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
@@ -40,21 +40,4 @@ public class BuyerDomainService {
 
         return buyerRepositoryPort.save(buyer);
     }
-
-    @Transactional
-    public Buyer addAdditionalAddress(Long id, String address) {
-        Buyer buyer = buyerRepositoryPort.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Buyer", id));
-        buyer.addAdditionalAddress(address);
-        return buyerRepositoryPort.save(buyer);
-    }
-
-    @Transactional
-    public Buyer changeCommercialStatus(Long id, BuyerCommercialStatus newStatus) {
-        Buyer buyer = buyerRepositoryPort.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Buyer", id));
-        buyer.setCommercialStatus(newStatus);
-        return buyerRepositoryPort.save(buyer);
-    }
 }
-
