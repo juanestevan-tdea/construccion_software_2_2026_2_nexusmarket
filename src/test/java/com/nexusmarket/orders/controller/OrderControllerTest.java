@@ -19,8 +19,8 @@ import com.nexusmarket.adapters.rest.controllers.buyer.OrderController;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.OrderUseCasePort;
-import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
 import com.nexusmarket.domain.valueobjects.OrderStatus;
 import com.nexusmarket.domain.valueobjects.UserRole;
@@ -64,7 +64,7 @@ class OrderControllerTest {
     private OrderUseCasePort orderUseCasePort;
 
     @MockitoBean
-    private BuyerRepositoryPort buyerRepositoryPort;
+    private BuyerUseCasePort buyerUseCasePort;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -111,7 +111,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("createOrder usa el comprador del token")
     void createOrderUsesAuthenticatedBuyer() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
         when(orderUseCasePort.createOrder(20L)).thenReturn(order(100L, 20L));
 
         mockMvc.perform(post("/api/v1/buyer/orders")
@@ -126,7 +126,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("getOrderById permite al dueño")
     void getOrderByIdAllowsOwner() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
         when(orderUseCasePort.getByIdOrThrow(100L)).thenReturn(order(100L, 20L));
 
         mockMvc.perform(get("/api/v1/buyer/orders/100")
@@ -138,7 +138,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("getOrderById devuelve 403 para una orden ajena")
     void getOrderByIdForbidsOtherBuyer() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
         when(orderUseCasePort.getByIdOrThrow(100L)).thenReturn(order(100L, 99L));
 
         mockMvc.perform(get("/api/v1/buyer/orders/100")
@@ -150,7 +150,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("getAllOrders solo consulta las órdenes del comprador autenticado")
     void getAllOrdersScopesToAuthenticatedBuyer() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
         when(orderUseCasePort.findByBuyer(20L)).thenReturn(List.of(order(100L, 20L)));
 
         mockMvc.perform(get("/api/v1/buyer/orders")
@@ -165,7 +165,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("getOrdersByBuyer devuelve 403 si el id no coincide con el token")
     void getOrdersByBuyerForbidsDifferentBuyer() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
 
         mockMvc.perform(get("/api/v1/buyer/orders/buyer/99")
                         .with(authenticatedAs(buyerUser())))
@@ -177,7 +177,7 @@ class OrderControllerTest {
     @Test
     @DisplayName("addItem devuelve 403 para una orden ajena")
     void addItemForbidsOtherBuyer() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
         when(orderUseCasePort.getByIdOrThrow(100L)).thenReturn(order(100L, 99L));
 
         mockMvc.perform(post("/api/v1/buyer/orders/100/items")

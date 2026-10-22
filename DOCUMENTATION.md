@@ -1,4 +1,4 @@
-﻿# NexusMarket — Documentación técnica
+# NexusMarket — Documentación técnica
 
 > Documento extendido de apoyo. El diseño formal está en [`SDD/`](SDD/README.md)
 > y la guía de ejecución en [`SETUP.md`](SETUP.md).
@@ -86,15 +86,15 @@ El cuerpo de error es uniforme (`ErrorResponse`): `status`, `error`, `message`,
 ```
 com.nexusmarket/
 ├── domain/
-│   ├── models/          # 14 POJOs (User, Buyer, Seller, Product, Order...)
+│   ├── models/          # 15 modelos (incluye SessionEvent)
 │   ├── valueobjects/    # 11 enums (UserRole, OrderStatus, RefundStatus...)
 │   ├── exceptions/      # DomainException + 17 subtipos
-│   ├── ports/in/        # 15 puertos de entrada + modelos de comando
+│   ├── ports/in/        # 16 puertos de entrada + modelos de comando
 │   ├── ports/out/       # 14 puertos de persistencia
-│   └── services/        # 23 servicios con responsabilidad única
+│   └── services/        # 28 servicios con responsabilidad única
 ├── adapters/
 │   ├── rest/            # 19 controladores, DTOs, mappers, handler global
-│   ├── useCases/        # 15 implementaciones de puertos de entrada
+│   ├── useCases/        # 16 implementaciones de puertos de entrada
 │   └── persistence/
 │       ├── jpa/         # 12 adaptadores, 13 entidades, 13 repos, 13 mappers
 │       └── mongodb/     # auditoría de operaciones y eventos de sesión
@@ -115,8 +115,12 @@ El antiguo `BuyerDomainService` se dividió en:
 Otros servicios siguen el mismo criterio, por ejemplo `OrderCreateService`,
 `OrderCalculationService`, `OrderLifecycleService`, `InvoiceGenerateService`,
 `InvoiceVoidService`, `RefundApproveService`, `RefundProcessService`,
-`ShipmentCreateService`, `ShipmentStatusService`, `UserManagementService`,
-`SessionAuditService` y `RegisterAuditLogService`.
+`ShipmentCreateService`, `ShipmentStatusService`, `UserCreationService`,
+`UserQueryService`, `UserStatusService`, `SessionInvalidationService`,
+`PasswordChangeService`, `SessionAuditService` y `RegisterAuditLogService`.
+
+La división de `UserManagementService` y la matriz completa de hallazgos están
+en [`SDD/03-dominio/matriz-srp.md`](SDD/03-dominio/matriz-srp.md).
 
 ## 5. Flujo de una petición
 
@@ -126,7 +130,8 @@ Ejemplo: `POST /api/v1/seller/products`.
 2. `SecurityConfig` exige rol `SELLER` para `/api/v1/seller/**` y
    `@PreAuthorize` lo confirma a nivel de método.
 3. `ProductController` resuelve el vendedor desde el `userId` del token
-   (`SellerRepositoryPort.findByUserId`), no desde el cuerpo.
+   mediante `SellerUseCasePort.findByUserId`, no desde el cuerpo ni desde un
+   repositorio.
 4. El controller llama a `ProductUseCasePort.createProduct(...)`.
 5. `ProductUseCaseImpl` delega en `ProductDomainService`, que valida precio,
    SKU, categoría y vendedor activo.
@@ -138,8 +143,8 @@ Ejemplo: `POST /api/v1/seller/products`.
 
 | Módulo | Puertos de entrada | Puertos de salida | Servicios principales | Controladores |
 |---|---|---|---|---|
-| Auth | `AuthenticationUseCasePort` | `UserRepositoryPort`, `SessionAuditPort` | `UserManagementService`, `SessionAuditService` | `AuthController` |
-| Users | `UserUseCasePort` | `UserRepositoryPort` | `UserManagementService` | `UserController` |
+| Auth | `AuthenticationUseCasePort` | `UserRepositoryPort`, `SessionAuditPort` | `PasswordChangeService`, `SessionAuditService` | `AuthController` |
+| Users | `UserUseCasePort` | `UserRepositoryPort` | `UserCreationService`, `UserQueryService`, `UserStatusService`, `SessionInvalidationService` | `UserController` |
 | Buyers | `BuyerUseCasePort` | `BuyerRepositoryPort`, `UserRepositoryPort` | `CreateBuyerService`, `AddBuyerAddressService`, `ChangeBuyerCommercialStatusService` | `BuyerController`, `BuyerManagementController` |
 | Sellers | `SellerUseCasePort` | `SellerRepositoryPort`, `UserRepositoryPort` | `SellerDomainService` | `SellerController` |
 | Catalog | `ProductUseCasePort`, `CategoryUseCasePort`, `CatalogUseCasePort` | `ProductRepositoryPort`, `CategoryRepositoryPort` | `ProductDomainService`, `CategoryDomainService` | `ProductController`, `CategoryController`, `CatalogController` |
@@ -147,7 +152,7 @@ Ejemplo: `POST /api/v1/seller/products`.
 | Orders | `OrderUseCasePort` | `OrderRepositoryPort`, `BuyerRepositoryPort` | `OrderCreateService`, `OrderCalculationService`, `OrderLifecycleService` | `OrderController`, `WarehouseOrderController` |
 | Billing | `InvoiceUseCasePort`, `RefundUseCasePort` | `InvoiceRepositoryPort`, `RefundRepositoryPort` | `InvoiceGenerateService`, `InvoiceVoidService`, `RefundApproveService`, `RefundProcessService` | `InvoiceController`, `RefundController` |
 | Logistics | `ShipmentUseCasePort`, `ReturnUseCasePort` | `ShipmentRepositoryPort`, `ReturnRepositoryPort` | `ShipmentCreateService`, `ShipmentStatusService`, `ReturnProcessService` | `ShipmentController`, `ReturnController`, `ReturnManagementController` |
-| Audit | `AuditUseCasePort` | `AuditLogRepositoryPort` | `ConsultAuditLogsService`, `RegisterAuditLogService` | `AuditController`, `SessionEventController` |
+| Audit | `AuditUseCasePort`, `SessionEventQueryUseCasePort` | `AuditLogRepositoryPort`, `SessionAuditPort` | `ConsultAuditLogsService`, `RegisterAuditLogService`, `SessionAuditService` | `AuditController`, `SessionEventController` |
 
 ## 7. API REST
 
@@ -182,23 +187,30 @@ Resumen por prefijo:
 
 ## 8. Seguridad
 
-- JWT stateless firmado con HMAC-SHA256; `jti` y `tokenVersion` permiten
-  invalidar sesiones.
-- Contraseñas con BCrypt.
+- JWT stateless firmado explícitamente con HMAC-SHA256; `jti` se audita y
+  `tokenVersion` permite invalidar sesiones.
+- `JWT_SECRET` es obligatorio y se valida al arrancar (mínimo 32 bytes); no hay
+  fallback en el código. La firma, la expiración y la versión del token se
+  verifican en cada petición autenticada.
+- Al bloquear una cuenta se incrementa `tokenVersion` y el filtro JWT rechaza
+  usuarios no habilitados; un token emitido antes del bloqueo deja de servir.
+- Contraseñas con BCrypt y política común `PasswordPolicy` (8-72 caracteres, letra y número) en alta y cambio.
 - Autorización por ruta (`SecurityConfig`) **y** por método
   (`@EnableMethodSecurity` + `@PreAuthorize`).
 - Verificación de propiedad del recurso en compradores y vendedores: el
-  identificador se obtiene del token, no del cuerpo ni de un path arbitrario.
+  identificador se obtiene del token, no del cuerpo ni de un path arbitrario. En productos, las lecturas por ID y por `sellerId` también verifican propiedad.
 - Handlers REST para 401 (`RestAuthenticationEntryPoint`) y 403
   (`RestAccessDeniedHandler`) con el mismo formato `ErrorResponse`.
 - Auditoría de login, logout, login fallido y cambio de contraseña en MongoDB.
 
 Riesgos y pendientes:
 
-- El `jwt.secret` de `application.properties` es un fallback público de
-  desarrollo.
-- CORS es permisivo y debe restringirse por entorno.
-- No hay rotación automática de secretos.
+- El historial público de Git contiene credenciales antiguas de MongoDB. Deben
+  rotarse en el proveedor y el historial debe sanearse antes de publicar; ver
+  `SECURITY.md`. La reescritura no se ejecutó en esta misión.
+- CORS está limitado a localhost y se integra en la cadena de Security; debe externalizarse y restringirse por entorno.
+- No hay rotación automática de secretos ni revocación global más allá de
+  `tokenVersion` y del estado de la cuenta.
 
 ## 9. Persistencia
 
@@ -229,10 +241,11 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 .\mvnw.cmd clean test
 ```
 
-- **149 pruebas**, 0 fallos, 0 errores, 0 omitidas.
+- **211 pruebas**, 0 fallos, 0 errores, 0 omitidas.
 - Unitarias con Mockito para servicios y casos de uso.
 - `@WebMvcTest` para controladores, seguridad, roles y propiedad de recursos.
-- Pruebas del contrato del `GlobalExceptionHandler` y de la jerarquía
+- Transiciones inválidas de devolución, reembolso y envío (estados terminales).
+- Pruebas del contrato 400/401/403/404/409/422/500 del `GlobalExceptionHandler` y de la jerarquía
   `DomainException`.
 - No hay pruebas E2E contra MySQL/MongoDB ni contra el stack Docker.
 
@@ -241,8 +254,12 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 - `Dockerfile` multi-stage (build con Maven/JDK 17, runtime JRE 17, usuario no
   root).
 - `docker-compose.yml` con MySQL 8, MongoDB 7 y la app; healthchecks y
-  `depends_on: condition: service_healthy`.
-- `.env.example` documenta las variables sin secretos reales.
+  `depends_on: condition: service_healthy`. Compose exige
+  `MYSQL_ROOT_PASSWORD` y `JWT_SECRET`.
+- `.env.example` documenta las variables con valores ficticios. `.env` y los
+  perfiles locales están ignorados.
+- Maven excluye `application-local*` y `.env*` del JAR; `.dockerignore` evita
+  que entren en el contexto de construcción.
 - CI en `.github/workflows/ci.yml` compila y ejecuta las pruebas con JDK 17.
 
 ## 12. Limitaciones conocidas
@@ -261,6 +278,6 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 
 - Rama principal: `main`.
 - Compilación: `BUILD SUCCESS` con `release 17`; la suite local se ejecutó con JDK 21 (Temurin). El CI declara JDK 17.
-- Pruebas: 149 en verde.
+- Pruebas: 211 en verde.
 - Docker Compose: configuración validada con `docker compose config`.
 - No se ha validado un despliegue productivo.

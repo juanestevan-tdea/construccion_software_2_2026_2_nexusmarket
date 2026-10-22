@@ -1,10 +1,11 @@
 package com.nexusmarket.adapters.useCases;
 
-import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
-import com.nexusmarket.domain.ports.out.UserRepositoryPort;
-import com.nexusmarket.domain.services.UserManagementService;
+import com.nexusmarket.domain.services.SessionInvalidationService;
+import com.nexusmarket.domain.services.UserCreationService;
+import com.nexusmarket.domain.services.UserQueryService;
+import com.nexusmarket.domain.services.UserStatusService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,68 +13,73 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Adaptador de entrada para la administración de usuarios.
+ *
+ * <p>No accede a repositorios ni implementa reglas: delega cada operación en el
+ * servicio de dominio especializado.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class UserUseCaseImpl implements UserUseCasePort {
 
-    private final UserManagementService userManagementService;
-    private final UserRepositoryPort userRepositoryPort;
+    private final UserCreationService userCreationService;
+    private final UserQueryService userQueryService;
+    private final UserStatusService userStatusService;
+    private final SessionInvalidationService sessionInvalidationService;
 
     @Override
     public User createUser(String email, String fullName, String password, UserRole role) {
-        return userManagementService.createUser(email, fullName, password, role);
+        return userCreationService.createUser(email, fullName, password, role);
     }
 
     @Override
     public User getUserByIdOrThrow(Long id) {
-        return userRepositoryPort.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        return userQueryService.getUserByIdOrThrow(id);
     }
 
     @Override
     public User getUserByEmailOrThrow(String email) {
-        return userRepositoryPort.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User with email '" + email + "' was not found"));
+        return userQueryService.getUserByEmailOrThrow(email);
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return userRepositoryPort.findByEmail(email);
+        return userQueryService.findByEmail(email);
     }
 
     @Override
     public Optional<User> findById(Long id) {
-        return userRepositoryPort.findById(id);
+        return userQueryService.findById(id);
     }
 
     @Override
     public List<User> findAll() {
-        return userRepositoryPort.findAll();
+        return userQueryService.findAll();
     }
 
     @Override
     public List<User> findByRole(UserRole role) {
-        return userRepositoryPort.findByRole(role);
+        return userQueryService.findByRole(role);
     }
 
     @Override
     public User blockUser(Long id) {
-        return userManagementService.blockUser(id);
+        return userStatusService.blockUser(id);
     }
 
     @Override
     public User activateUser(Long id) {
-        return userManagementService.activateUser(id);
+        return userStatusService.activateUser(id);
     }
 
     @Override
     public User changeRole(Long id, UserRole newRole) {
-        return userManagementService.changeRole(id, newRole);
+        return userStatusService.changeRole(id, newRole);
     }
 
     @Override
     public User invalidateSessions(Long userId) {
-        return userManagementService.invalidateSessions(userId);
+        return sessionInvalidationService.invalidateSessions(userId);
     }
 }
-

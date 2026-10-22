@@ -20,7 +20,6 @@ import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
-import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
 import com.nexusmarket.domain.valueobjects.UserRole;
@@ -63,9 +62,6 @@ class BuyerControllerTest {
     private BuyerUseCasePort buyerUseCasePort;
 
     @MockitoBean
-    private BuyerRepositoryPort buyerRepositoryPort;
-
-    @MockitoBean
     private UserUseCasePort userUseCasePort;
 
     @MockitoBean
@@ -104,7 +100,7 @@ class BuyerControllerTest {
     @Test
     @DisplayName("getBuyerById permite al comprador autenticado")
     void getBuyerByIdAllowsSelf() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L, 1L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L, 1L)));
         when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user(1L, UserRole.BUYER));
 
         mockMvc.perform(get("/api/v1/buyer/buyers/20")
@@ -117,7 +113,7 @@ class BuyerControllerTest {
     @Test
     @DisplayName("getBuyerById devuelve 403 para el perfil de otro comprador")
     void getBuyerByIdForbidsOtherBuyer() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L, 1L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L, 1L)));
 
         mockMvc.perform(get("/api/v1/buyer/buyers/99")
                         .with(authenticatedAs(user(1L, UserRole.BUYER))))
@@ -146,7 +142,7 @@ class BuyerControllerTest {
     @Test
     @DisplayName("getAllBuyers devuelve solo el perfil propio")
     void getAllBuyersReturnsOnlySelf() throws Exception {
-        when(buyerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L, 1L)));
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L, 1L)));
         when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user(1L, UserRole.BUYER));
 
         mockMvc.perform(get("/api/v1/buyer/buyers")

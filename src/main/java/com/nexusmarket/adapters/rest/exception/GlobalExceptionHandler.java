@@ -81,14 +81,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        log.warn("Data integrity violation at {} ({})", request.getRequestURI(),
+                ex.getClass().getSimpleName());
         return build(HttpStatus.CONFLICT, "Database integrity constraint violation occurred", request, null);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLocking(
             OptimisticLockingFailureException ex, HttpServletRequest request) {
-        log.warn("Optimistic locking failure at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Optimistic locking failure at {} ({})", request.getRequestURI(),
+                ex.getClass().getSimpleName());
         return build(HttpStatus.CONFLICT, "Resource was updated concurrently by another transaction", request, null);
     }
 
@@ -217,7 +219,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMediaTypeNotSupported(
             HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
-        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage(), request, null);
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type", request, null);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -229,19 +231,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFound(
             NoResourceFoundException ex, HttpServletRequest request) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage(), request, null);
+        return build(HttpStatus.NOT_FOUND, "Resource not found", request, null);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotSupported(
             HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
-        return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request, null);
+        return build(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method not supported", request, null);
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoHandlerFound(
             NoHandlerFoundException ex, HttpServletRequest request) {
-        return build(HttpStatus.NOT_FOUND, "No handler found for " + request.getRequestURI(), request, null);
+        return build(HttpStatus.NOT_FOUND, "No handler found", request, null);
     }
 
     // ---------- Security exceptions ----------

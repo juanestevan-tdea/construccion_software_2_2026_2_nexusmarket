@@ -125,6 +125,17 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <!-- Local overrides may contain credentials; never package them. -->
+                    <exclude>application-local*</exclude>
+                    <exclude>application-dev*</exclude>
+                    <exclude>.env*</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <!-- Plugin de Spring Boot -->
             <plugin>

@@ -1,12 +1,16 @@
 package com.nexusmarket.users.service;
 
 import com.nexusmarket.adapters.useCases.UserUseCaseImpl;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
-import com.nexusmarket.domain.services.UserManagementService;
+import com.nexusmarket.domain.services.SessionInvalidationService;
+import com.nexusmarket.domain.services.UserCreationService;
+import com.nexusmarket.domain.services.UserQueryService;
+import com.nexusmarket.domain.services.UserStatusService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,8 +51,11 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        UserManagementService managementService = new UserManagementService(userRepositoryPort, passwordEncoder);
-        userUseCase = new UserUseCaseImpl(managementService, userRepositoryPort);
+        UserCreationService creationService = new UserCreationService(userRepositoryPort, passwordEncoder);
+        UserQueryService queryService = new UserQueryService(userRepositoryPort);
+        UserStatusService statusService = new UserStatusService(userRepositoryPort);
+        SessionInvalidationService invalidationService = new SessionInvalidationService(userRepositoryPort);
+        userUseCase = new UserUseCaseImpl(creationService, queryService, statusService, invalidationService);
     }
 
     // ---------- createUser: hashing (the security-critical case) ----------
@@ -83,6 +90,20 @@ class UserServiceTest {
         assertThatThrownBy(() -> userUseCase.createUser(
                 "taken@test.com", "Juan Perez", RAW_PASSWORD, UserRole.BUYER))
                 .isInstanceOf(DuplicateResourceException.class);
+
+        verify(userRepositoryPort, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    @DisplayName("createUser rechaza contraseñas que no cumplen la política antes de persistir")
+    void createUser_rejectsWeakPassword_beforePersisting() {
+        when(userRepositoryPort.existsByEmail("buyer1@test.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> userUseCase.createUser(
+                "buyer1@test.com", "Juan Perez", "12345678", UserRole.BUYER))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("letra y un número");
 
         verify(userRepositoryPort, never()).save(any(User.class));
         verify(passwordEncoder, never()).encode(anyString());
@@ -174,6 +195,29 @@ class UserServiceTest {
 
         assertThat(result).isSameAs(user);
         assertThat(result.getPassword()).isEqualTo(HASHED_PASSWORD);
+    }
+
+    @Test
+    @DisplayName("blockUser_IncrementsTokenVersion_ToRevokeExistingJwt")
+    void blockUser_incrementsTokenVersion_toRevokeExistingJwt() {
+        User user = User.builder()
+                .id(1L)
+                .email("buyer1@test.com")
+                .fullName("Juan Perez")
+                .password(HASHED_PASSWORD)
+                .role(UserRole.BUYER)
+                .status(UserStatus.ACTIVE)
+                .tokenVersion(4)
+                .build();
+
+        when(userRepositoryPort.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepositoryPort.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User blocked = userUseCase.blockUser(1L);
+
+        assertThat(blocked.getStatus()).isEqualTo(UserStatus.BLOCKED);
+        assertThat(blocked.getTokenVersion()).isEqualTo(5);
+        assertThat(blocked.getLastLogoutAt()).isNotNull();
     }
 }
 

@@ -22,8 +22,16 @@ public class ShipmentStatusService {
         Shipment shipment = shipmentRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment", id));
 
-        if (shipment.getStatus() == ShipmentStatus.DELIVERED && newStatus == ShipmentStatus.CANCELLED) {
-            throw new InvalidStatusTransitionException("DELIVERED", "CANCELLED");
+        if (newStatus == null) {
+            throw new InvalidStatusTransitionException(String.valueOf(shipment.getStatus()), "null");
+        }
+
+        // DELIVERED and CANCELLED are terminal states: a shipment must not be
+        // reopened or cancelled after it has already reached either state.
+        ShipmentStatus currentStatus = shipment.getStatus();
+        if ((currentStatus == ShipmentStatus.DELIVERED || currentStatus == ShipmentStatus.CANCELLED)
+                && newStatus != currentStatus) {
+            throw new InvalidStatusTransitionException(currentStatus.name(), newStatus.name());
         }
 
         shipment.setStatus(newStatus);

@@ -3,17 +3,14 @@ package com.nexusmarket.billing.service;
 import com.nexusmarket.adapters.useCases.InvoiceUseCaseImpl;
 import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
-import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.ports.in.supervisor.InvoiceUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
-import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
 import com.nexusmarket.domain.services.InvoiceGenerateService;
 import com.nexusmarket.domain.services.InvoiceVoidService;
 import com.nexusmarket.domain.valueobjects.OrderStatus;
-import com.nexusmarket.domain.valueobjects.RefundStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,9 +33,6 @@ class InvoiceServiceTest {
     @Mock
     private OrderRepositoryPort orderRepositoryPort;
 
-    @Mock
-    private RefundRepositoryPort refundRepositoryPort;
-
     private InvoiceUseCasePort invoiceUseCase;
 
     private Order order;
@@ -52,7 +45,7 @@ class InvoiceServiceTest {
         order.setTotalAmount(BigDecimal.valueOf(250.00));
 
         InvoiceGenerateService generateService = new InvoiceGenerateService(invoiceRepositoryPort, orderRepositoryPort);
-        InvoiceVoidService voidService = new InvoiceVoidService(invoiceRepositoryPort, refundRepositoryPort);
+        InvoiceVoidService voidService = new InvoiceVoidService(invoiceRepositoryPort);
         invoiceUseCase = new InvoiceUseCaseImpl(generateService, voidService, invoiceRepositoryPort, orderRepositoryPort);
     }
 
@@ -91,12 +84,33 @@ class InvoiceServiceTest {
     }
 
     @Test
-    void voidInvoice_ThrowsRefundNotAllowedException_WhenPaidAndNoApprovedRefund() {
+    void voidInvoice_Success_WhenInvoiceIsUnpaidAndActive() {
+        Invoice invoice = Invoice.builder().id(5L).paid(false).active(true).build();
+        when(invoiceRepositoryPort.findById(5L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepositoryPort.save(any(Invoice.class))).thenAnswer(i -> i.getArgument(0));
+
+        Invoice response = invoiceUseCase.voidInvoice(5L);
+
+        assertFalse(response.getActive());
+        verify(invoiceRepositoryPort).save(invoice);
+    }
+
+    @Test
+    void voidInvoice_ThrowsInvoiceNotPayableException_WhenPaid() {
         Invoice invoice = Invoice.builder().id(5L).paid(true).active(true).build();
         when(invoiceRepositoryPort.findById(5L)).thenReturn(Optional.of(invoice));
-        when(refundRepositoryPort.findByInvoiceIdAndStatus(5L, RefundStatus.APPROVED)).thenReturn(Collections.emptyList());
 
-        assertThrows(RefundNotAllowedException.class, () -> invoiceUseCase.voidInvoice(5L));
+        assertThrows(InvoiceNotPayableException.class, () -> invoiceUseCase.voidInvoice(5L));
+        verify(invoiceRepositoryPort, never()).save(any(Invoice.class));
+    }
+
+    @Test
+    void voidInvoice_ThrowsInvoiceNotPayableException_WhenAlreadyInactive() {
+        Invoice invoice = Invoice.builder().id(5L).paid(false).active(false).build();
+        when(invoiceRepositoryPort.findById(5L)).thenReturn(Optional.of(invoice));
+
+        assertThrows(InvoiceNotPayableException.class, () -> invoiceUseCase.voidInvoice(5L));
+        verify(invoiceRepositoryPort, never()).save(any(Invoice.class));
     }
 }
 

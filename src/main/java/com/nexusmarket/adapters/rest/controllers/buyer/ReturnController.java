@@ -21,9 +21,9 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.Return;
+import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
+import com.nexusmarket.domain.ports.in.buyer.OrderUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.ReturnUseCasePort;
-import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
-import com.nexusmarket.domain.ports.out.OrderRepositoryPort;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
 import jakarta.validation.Valid;
@@ -43,8 +43,8 @@ import lombok.RequiredArgsConstructor;
 public class ReturnController {
 
     private final ReturnUseCasePort returnUseCasePort;
-    private final BuyerRepositoryPort buyerRepositoryPort;
-    private final OrderRepositoryPort orderRepositoryPort;
+    private final BuyerUseCasePort buyerUseCasePort;
+    private final OrderUseCasePort orderUseCasePort;
 
     @PostMapping
     public ResponseEntity<ReturnResponseDTO> createReturn(
@@ -87,8 +87,7 @@ public class ReturnController {
             @AuthenticationPrincipal UserDetailsAdapter principal) {
 
         Long buyerId = currentBuyer(principal).getId();
-        List<ReturnResponseDTO> list = orderRepositoryPort.findByBuyerId(buyerId).stream()
-                .flatMap(order -> returnUseCasePort.findByOrder(order.getId()).stream())
+        List<ReturnResponseDTO> list = returnUseCasePort.findAllByBuyerId(buyerId).stream()
                 .map(ReturnRestMapper::toResponseDTO)
                 .toList();
         return ResponseEntity.ok(list);
@@ -99,13 +98,12 @@ public class ReturnController {
             throw new AccessDeniedException("No authenticated buyer found");
         }
         Long userId = principal.getUser().getId();
-        return buyerRepositoryPort.findByUserId(userId)
+        return buyerUseCasePort.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer", userId));
     }
 
     private void requireOrderOwnership(Long orderId, Long buyerId) {
-        Order order = orderRepositoryPort.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+        Order order = orderUseCasePort.getByIdOrThrow(orderId);
         if (!order.getBuyerId().equals(buyerId)) {
             throw new AccessDeniedException("Buyers can only access their own returns");
         }

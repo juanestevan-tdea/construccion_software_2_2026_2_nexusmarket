@@ -22,8 +22,8 @@ import com.nexusmarket.adapters.rest.mappers.OrderRestMapper;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
+import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.OrderUseCasePort;
-import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
 import jakarta.validation.Valid;
@@ -36,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class OrderController {
 
     private final OrderUseCasePort orderUseCasePort;
-    private final BuyerRepositoryPort buyerRepositoryPort;
+    private final BuyerUseCasePort buyerUseCasePort;
 
     @PostMapping
     public ResponseEntity<OrderResponseDTO> createOrder(
@@ -133,7 +133,7 @@ public class OrderController {
             throw new AccessDeniedException("No authenticated buyer found");
         }
         Long userId = principal.getUser().getId();
-        return buyerRepositoryPort.findByUserId(userId)
+        return buyerUseCasePort.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer", userId));
     }
 

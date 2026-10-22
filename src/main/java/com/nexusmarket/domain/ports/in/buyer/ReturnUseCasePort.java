@@ -12,6 +12,8 @@ public interface ReturnUseCasePort {
 
     List<Return> findByOrder(Long orderId);
 
+    List<Return> findAllByBuyerId(Long buyerId);
+
     List<Return> findAll();
 
     Return approveReturn(Long id);

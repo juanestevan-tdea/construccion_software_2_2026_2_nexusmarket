@@ -62,6 +62,32 @@ class ShipmentServiceTest {
     }
 
     @Test
+    void updateStatus_ThrowsException_WhenReopeningDeliveredShipment() {
+        Shipment shipment = Shipment.builder()
+                .id(2L)
+                .status(ShipmentStatus.DELIVERED)
+                .build();
+        when(shipmentRepositoryPort.findById(2L)).thenReturn(Optional.of(shipment));
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> shipmentUseCase.updateStatus(2L, ShipmentStatus.PENDING));
+        verify(shipmentRepositoryPort, never()).save(any(Shipment.class));
+    }
+
+    @Test
+    void updateStatus_ThrowsException_WhenReactivatingCancelledShipment() {
+        Shipment shipment = Shipment.builder()
+                .id(3L)
+                .status(ShipmentStatus.CANCELLED)
+                .build();
+        when(shipmentRepositoryPort.findById(3L)).thenReturn(Optional.of(shipment));
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> shipmentUseCase.updateStatus(3L, ShipmentStatus.IN_TRANSIT));
+        verify(shipmentRepositoryPort, never()).save(any(Shipment.class));
+    }
+
+    @Test
     void updateStatus_Success() {
         Shipment shipment = Shipment.builder()
                 .id(1L)

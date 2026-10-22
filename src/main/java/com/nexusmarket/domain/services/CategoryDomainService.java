@@ -11,6 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 public class CategoryDomainService {
@@ -64,6 +67,7 @@ public class CategoryDomainService {
             }
             Category parent = categoryRepositoryPort.findById(parentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Category", parentId));
+            ensureNoCycle(id, parent);
             category.setParentId(parent.getId());
             category.setParentName(parent.getName());
         }
@@ -80,7 +84,32 @@ public class CategoryDomainService {
             throw new CategoryHasProductsException("Category", "id", id);
         }
 
+        if (!categoryRepositoryPort.findByParentId(id).isEmpty()) {
+            throw new BusinessRuleException("Cannot delete a category that has subcategories");
+        }
+
         categoryRepositoryPort.delete(category);
+    }
+
+    private void ensureNoCycle(Long categoryId, Category parent) {
+        Set<Long> visited = new HashSet<>();
+        Category current = parent;
+
+        while (current != null) {
+            if (categoryId.equals(current.getId())) {
+                throw new BusinessRuleException("Category hierarchy cannot contain cycles");
+            }
+            if (current.getId() != null && !visited.add(current.getId())) {
+                throw new BusinessRuleException("Category hierarchy already contains a cycle");
+            }
+
+            Long nextParentId = current.getParentId();
+            if (nextParentId == null) {
+                return;
+            }
+            current = categoryRepositoryPort.findById(nextParentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category", nextParentId));
+        }
     }
 }
 

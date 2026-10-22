@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,7 +20,7 @@ import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.seller.ProductUseCasePort;
-import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
+import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.domain.valueobjects.ProductType;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
@@ -27,6 +28,7 @@ import com.nexusmarket.infrastructure.security.CustomUserDetailsService;
 import com.nexusmarket.infrastructure.security.JwtService;
 import com.nexusmarket.infrastructure.security.RestAccessDeniedHandler;
 import com.nexusmarket.infrastructure.security.RestAuthenticationEntryPoint;
+import com.nexusmarket.infrastructure.config.CorsConfig;
 import com.nexusmarket.infrastructure.security.SecurityConfig;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 import com.nexusmarket.domain.services.SessionAuditService;
@@ -41,8 +43,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,7 +61,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     SecurityConfig.class,
     RestAuthenticationEntryPoint.class,
     RestAccessDeniedHandler.class,
-    CustomUserDetailsService.class
+    CustomUserDetailsService.class,
+    CorsConfig.class
 })
 class ProductControllerTest {
 
@@ -70,7 +76,7 @@ class ProductControllerTest {
     private ProductUseCasePort productUseCasePort;
 
     @MockitoBean
-    private SellerRepositoryPort sellerRepositoryPort;
+    private SellerUseCasePort sellerUseCasePort;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -118,7 +124,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("createProduct usa el vendedor del token e ignora un sellerId suplantado")
     void createProductUsesAuthenticatedSeller() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
         when(productUseCasePort.createProduct(
                 eq("SKU-1"), eq("Phone"), eq("desc"), eq(new BigDecimal("100.00")),
                 eq(ProductType.PHYSICAL), eq(10L), eq(2L)))
@@ -145,7 +151,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("createProduct devuelve 404 si el usuario no tiene perfil de vendedor")
     void createProductReturns404WhenSellerProfileMissing() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.empty());
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/v1/seller/products")
                         .with(authenticatedAs(sellerUser()))
@@ -161,7 +167,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("updateProduct permite al dueño del producto")
     void updateProductAllowsOwner() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
         when(productUseCasePort.getProductByIdOrThrow(5L)).thenReturn(product(5L, 10L));
         when(productUseCasePort.updateProduct(eq(5L), any(), any(), any(), any(), any()))
                 .thenReturn(product(5L, 10L));
@@ -179,7 +185,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("updateProduct devuelve 403 si el producto es de otro vendedor")
     void updateProductForbidsOtherSeller() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
         when(productUseCasePort.getProductByIdOrThrow(5L)).thenReturn(product(5L, 99L));
 
         mockMvc.perform(patch("/api/v1/seller/products/5")
@@ -195,7 +201,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("deleteProduct devuelve 403 si el producto es de otro vendedor")
     void deleteProductForbidsOtherSeller() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
         when(productUseCasePort.getProductByIdOrThrow(5L)).thenReturn(product(5L, 99L));
 
         mockMvc.perform(delete("/api/v1/seller/products/5")
@@ -203,5 +209,53 @@ class ProductControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(productUseCasePort, never()).deactivateProduct(any());
+    }
+
+    @Test
+    @DisplayName("getProductById permite al dueño del producto")
+    void getProductByIdAllowsOwner() throws Exception {
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(productUseCasePort.getProductByIdOrThrow(5L)).thenReturn(product(5L, 10L));
+
+        mockMvc.perform(get("/api/v1/seller/products/5")
+                        .with(authenticatedAs(sellerUser())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.sellerId").value(10));
+    }
+
+    @Test
+    @DisplayName("getProductById devuelve 403 si el producto es de otro vendedor")
+    void getProductByIdForbidsOtherSeller() throws Exception {
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(productUseCasePort.getProductByIdOrThrow(5L)).thenReturn(product(5L, 99L));
+
+        mockMvc.perform(get("/api/v1/seller/products/5")
+                        .with(authenticatedAs(sellerUser())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    @DisplayName("getProductsBySeller devuelve 403 si se consulta el catálogo de otro vendedor")
+    void getProductsBySellerForbidsOtherSeller() throws Exception {
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+
+        mockMvc.perform(get("/api/v1/seller/products/seller/99")
+                        .with(authenticatedAs(sellerUser())))
+                .andExpect(status().isForbidden());
+
+        verify(productUseCasePort, never()).findBySeller(any());
+    }
+
+    @Test
+    @DisplayName("el preflight CORS se resuelve antes de la autorización JWT")
+    void corsPreflightIsAllowedForConfiguredOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/seller/products")
+                        .header(HttpHeaders.ORIGIN, "http://localhost:5173")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
+                        "http://localhost:5173"));
     }
 }

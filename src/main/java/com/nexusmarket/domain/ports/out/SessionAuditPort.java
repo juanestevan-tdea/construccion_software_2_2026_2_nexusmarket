@@ -1,36 +1,31 @@
 package com.nexusmarket.domain.ports.out;
 
-import com.nexusmarket.domain.valueobjects.SessionEventType;
-
-import java.time.Instant;
+import com.nexusmarket.domain.models.SessionEvent;
+import com.nexusmarket.domain.ports.in.model.PageResult;
+import com.nexusmarket.domain.ports.in.model.SessionEventQuery;
 
 /**
- * Puerto de salida para registrar eventos de sesión de auditoría.
+ * Puerto de salida para registrar y consultar eventos de sesión de auditoría.
  * La implementación concreta (MongoDB) vive en el adaptador;
  * el dominio solo conoce este contrato.
  */
 public interface SessionAuditPort {
 
     /**
-     * Datos de un evento de sesión. Inmutable, sin depender de tecnología de persistencia.
-     */
-    record SessionEventData(
-            String userEmail,
-            SessionEventType type,
-            String tokenId,      // jti del token (nullable)
-            String reason,       // motivo del rechazo/fallo (nullable)
-            String ipAddress,
-            String userAgent,
-            Integer tokenVersion,
-            Instant occurredAt
-    ) {
-    }
-
-    /**
      * Registra un evento de sesión.
-     * La implementación debe tolerar fallos de persistencia sin romper el flujo de negocio.
+     * Los fallos de persistencia se propagan al llamador. El servicio de
+     * aplicación que consume este puerto decide si la auditoría puede tolerarse
+     * sin romper el flujo de negocio; el adaptador no oculta el error.
      *
      * @param event datos del evento
      */
-    void record(SessionEventData event);
+    void record(SessionEvent event);
+
+    /**
+     * Consulta paginada de eventos de sesión.
+     *
+     * @param query filtros y paginación
+     * @return página de eventos
+     */
+    PageResult<SessionEvent> find(SessionEventQuery query);
 }

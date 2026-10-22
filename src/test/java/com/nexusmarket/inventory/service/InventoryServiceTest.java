@@ -82,6 +82,12 @@ class InventoryServiceTest {
     }
 
     @Test
+    void createInventory_ThrowsBusinessRuleException_WhenQuantityIsNull() {
+        assertThrows(BusinessRuleException.class, ()
+                -> inventoryUseCase.createInventory(1L, 1L, null));
+    }
+
+    @Test
     void createInventory_ThrowsWarehouseCapacityExceededException_WhenCapacityExceeded() {
         when(productRepositoryPort.findById(1L)).thenReturn(Optional.of(product));
         when(warehouseRepositoryPort.findById(1L)).thenReturn(Optional.of(warehouse));
@@ -113,6 +119,34 @@ class InventoryServiceTest {
         when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
 
         assertThrows(BusinessRuleException.class, () -> inventoryUseCase.reserve(1L, 10));
+    }
+
+    @Test
+    void reserve_ThrowsBusinessRuleException_WhenAmountIsZero() {
+        Inventory inv = new Inventory();
+        inv.setId(1L);
+        inv.setStatus(InventoryStatus.AVAILABLE);
+        inv.setQuantity(4);
+
+        when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
+
+        assertThrows(BusinessRuleException.class, () -> inventoryUseCase.reserve(1L, 0));
+    }
+
+    @Test
+    void reserve_ThrowsBusinessRuleException_WhenAmountIsNegative() {
+        Inventory inv = new Inventory();
+        inv.setId(1L);
+        inv.setStatus(InventoryStatus.AVAILABLE);
+        inv.setQuantity(4);
+
+        when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
+
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class,
+                () -> inventoryUseCase.reserve(1L, -3));
+        assertEquals("Reservation amount must be greater than zero", exception.getMessage());
+        assertEquals(4, inv.getQuantity());
+        assertEquals(InventoryStatus.AVAILABLE, inv.getStatus());
     }
 
     @Test

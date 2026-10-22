@@ -26,8 +26,8 @@ public class InventoryManagementService {
 
     @Transactional
     public Inventory createInventory(Long productId, Long warehouseId, Integer quantity) {
-        if (quantity < 0) {
-            throw new BusinessRuleException("Initial inventory quantity cannot be negative");
+        if (quantity == null || quantity < 0) {
+            throw new BusinessRuleException("Initial inventory quantity cannot be null or negative");
         }
 
         Product product = productRepositoryPort.findById(productId)

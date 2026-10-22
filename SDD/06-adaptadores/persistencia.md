@@ -61,11 +61,12 @@ Convenciones:
 | `SessionEventDocument` | Evento de sesión: login, login fallido, logout, cambio de contraseña |
 | `AuditLogMongoAdapter` | Implementa `AuditLogRepositoryPort` |
 | `SessionEventMongoAdapter` | Implementa `SessionAuditPort` |
-| `SessionEventController` | Consulta administrativa de eventos |
+| `SessionEventQueryUseCaseImpl` | Consulta administrativa de eventos a través de `SessionAuditPort` |
 
 - TTL de 90 días (`@Indexed(expireAfter = "PT7776000S")`).
 - La auditoría es best-effort: un fallo de Mongo no revierte la operación de
-  MySQL; se registra en el log.
+  MySQL. `SessionAuditService` captura y registra el fallo una sola vez; el adaptador no lo oculta ni lo registra de nuevo.
+- La consulta administrativa elige una consulta derivada distinta según los filtros opcionales; así `email` o `type` ausentes no se interpretan como igualdad `null` en MongoDB.
 - No hay transacciones distribuidas ni patrón outbox.
 
 ## Esquema y migraciones

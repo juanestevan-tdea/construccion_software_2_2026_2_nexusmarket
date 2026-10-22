@@ -72,11 +72,11 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 ## RN-007 — La reserva de inventario no puede exceder la cantidad disponible
 
-**Prosa:** Al reservar unidades de un registro de inventario, la cantidad a reservar debe ser menor o igual a la `quantity` actual y el inventario no debe estar `DAMAGED`.
+**Prosa:** Al reservar unidades de un registro de inventario, la cantidad a reservar debe ser mayor que cero, menor o igual a la `quantity` actual, y el inventario no debe estar `DAMAGED`.
 
-**Invariante en código:** `inventory.status != InventoryStatus.DAMAGED && inventory.quantity >= amount`
+**Invariante en código:** `amount > 0 && inventory.status != InventoryStatus.DAMAGED && inventory.quantity >= amount`
 
-**Origen:** `Inventory.reserve(int)` lanza `BusinessRuleException("Cannot reserve damaged inventory")` o `BusinessRuleException("Insufficient quantity")` → `422 Unprocessable Entity`.
+**Origen:** `Inventory.reserve(int)` lanza `BusinessRuleException("Reservation amount must be greater than zero")`, `BusinessRuleException("Cannot reserve damaged inventory")` o `BusinessRuleException("Insufficient quantity")` → `422 Unprocessable Entity`.
 
 ---
 
@@ -94,9 +94,9 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Prosa:** No se puede borrar una categoría que tenga productos asociados.
 
-**Invariante en código:** `productRepositoryPort.findByCategoryId(categoryId).isEmpty()` (antes de `delete`).
+**Invariante en código:** `productRepositoryPort.findByCategoryId(categoryId).isEmpty()` y `categoryRepositoryPort.findByParentId(categoryId).isEmpty()` (antes de `delete`). Tampoco se permite crear un ciclo al cambiar de padre.
 
-**Origen:** `CategoryUseCaseImpl.deleteCategory` lanza `CategoryHasProductsException` → `409 Conflict`.
+**Origen:** `CategoryDomainService.deleteCategory` lanza `CategoryHasProductsException` → `409 Conflict` si tiene productos, o `BusinessRuleException` → `422 Unprocessable Entity` si tiene subcategorías. `updateCategory` recorre los ancestros y lanza `BusinessRuleException` si detecta un ciclo.
 
 ---
 
@@ -106,17 +106,19 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `invoice.active == true && invoice.paid == false` (precondición de anulación).
 
-**Origen:** `InvoiceUseCaseImpl.voidInvoice` / `InvoiceVoidService` lanza `InvoiceNotPayableException` → `422 Unprocessable Entity`; `InvoiceAlreadyExistsException` si se duplica → `409 Conflict`.
+**Origen:** `InvoiceVoidService.voidInvoice` valida `active == true && paid == false` y lanza `InvoiceNotPayableException` → `422 Unprocessable Entity`. La generación duplicada lanza `InvoiceAlreadyExistsException` → `409 Conflict`. La anulación no consulta reembolsos: un reembolso aprobado no habilita anular una factura pagada.
+
+**Observación de diseño (pendiente):** `InvoiceGenerateService` crea la factura con `paid = true` y no existe un endpoint para marcarla como impaga. Por tanto, el camino exitoso de anulación solo es alcanzable con datos heredados o importados. La coherencia entre generación y anulación requiere una decisión funcional; no se cambió el comportamiento para no inventar un flujo de pago de factura.
 
 ---
 
 ## RN-011 — El monto de un reembolso no puede exceder el total facturado
 
-**Prosa:** Al crear un reembolso vinculado a una factura, el monto solicitado no puede ser mayor al monto de la factura.
+**Prosa:** Al crear un reembolso vinculado a una factura, el monto solicitado debe ser mayor que cero y no puede ser mayor al monto de la factura. La suma de reembolsos `PENDING`, `APPROVED` y `COMPLETED` de la misma factura tampoco puede exceder el total. La factura debe estar activa y pagada.
 
-**Invariante en código:** `refund.amount.compareTo(invoice.amount) <= 0`
+**Invariante en código:** `amount > 0 && amount <= invoice.amount && sum(refunds PENDING/APPROVED/COMPLETED) + amount <= invoice.amount && invoice.active == true && invoice.paid == true`
 
-**Origen:** `RefundUseCaseImpl.createRefund` / `RefundProcessService` lanza `RefundAmountExceededException` → `422 Unprocessable Entity`.
+**Origen:** `RefundUseCaseImpl.createRefund` / `RefundProcessService` lanza `RefundAmountExceededException` → `422 Unprocessable Entity` si el monto individual o acumulado excede, o `RefundNotAllowedException` → `422 Unprocessable Entity` si el monto no es positivo o la factura está inactiva/impaga.
 
 ---
 
@@ -126,7 +128,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `refund.status == RefundStatus.PENDING` (precondición de `approveRefund` / `rejectRefund`).
 
-**Origen:** `RefundUseCaseImpl.approveRefund` / `rejectRefund`; si ya fue procesado → `InvalidStatusTransitionException` → `409 Conflict`.
+**Origen:** `RefundApproveService`; si el estado no es `PENDING` lanza `InvalidStatusTransitionException(current, target)` → `409 Conflict`, conforme a RF-035. `RefundProcessService` usa `RefundNotAllowedException` para montos inválidos o facturas inactivas/impagas.
 
 ---
 
@@ -142,11 +144,11 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 ## RN-014 — Una devolución ya procesada no se puede aprobar, rechazar ni completar dos veces
 
-**Prosa:** Una vez que una devolución alcanza un estado final (`COMPLETED`, `PROCESSED`, `REJECTED`), no admite nuevas transiciones.
+**Prosa:** Una vez que una devolución sale de `REQUESTED`, no se puede volver a aprobar ni rechazar. Solo una devolución `APPROVED` puede completarse; los estados finales (`COMPLETED`, `PROCESSED`, `REJECTED`) no admiten nuevas transiciones.
 
-**Invariante en código:** `return.status == ReturnStatus.REQUESTED` (precondición de `approveReturn` / `rejectReturn` / `completeReturn`).
+**Invariante en código:** `approveReturn` y `rejectReturn` exigen `return.status == ReturnStatus.REQUESTED`; `completeReturn` exige `APPROVED`. Cualquier otro estado en esas operaciones se considera ya procesado.
 
-**Origen:** `ReturnUseCaseImpl` lanza `ReturnAlreadyProcessedException` → `409 Conflict`; `ReturnNotAllowedException` → `422 Unprocessable Entity`.
+**Origen:** `ReturnProcessService` lanza `ReturnAlreadyProcessedException` → `409 Conflict` para una devolución ya procesada; solo completar una devolución todavía `REQUESTED` lanza `ReturnNotAllowedException` → `422 Unprocessable Entity`.
 
 ---
 
@@ -177,3 +179,11 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 **Invariante en código:** `SecurityConfig.authorizeHttpRequests` mapea patrones de ruta a `hasRole(...)` / `hasAnyRole(...)`.
 
 **Origen:** `SecurityConfig.java` (líneas 52-62).
+
+## RN-018 - Estados terminales del envío
+
+**Prosa:** Un envío en DELIVERED o CANCELLED es terminal; no puede reabrirse ni cambiar a otro estado.
+
+**Invariante en código:** shipment.status not in {DELIVERED, CANCELLED} || target == shipment.status.
+
+**Origen:** ShipmentStatusService.updateStatus lanza InvalidStatusTransitionException -> 409 Conflict. Estado nulo también se rechaza.

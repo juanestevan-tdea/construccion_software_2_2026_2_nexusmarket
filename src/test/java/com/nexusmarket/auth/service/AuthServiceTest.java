@@ -11,8 +11,8 @@ import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
+import com.nexusmarket.domain.services.PasswordChangeService;
 import com.nexusmarket.domain.services.SessionAuditService;
-import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
@@ -53,7 +54,7 @@ class AuthServiceTest {
     private SellerUseCasePort sellerUseCasePort;
 
     @Mock
-    private UserManagementService userManagementService;
+    private PasswordChangeService passwordChangeService;
 
     @Mock
     private SessionAuditService sessionAuditService;
@@ -69,7 +70,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthenticationUseCaseImpl(
-                userUseCasePort, buyerUseCasePort, sellerUseCasePort, userManagementService,
+                userUseCasePort, buyerUseCasePort, sellerUseCasePort, passwordChangeService,
                 sessionAuditService, jwtService, authenticationManager, ONE_DAY_MS);
     }
 
@@ -372,6 +373,25 @@ class AuthServiceTest {
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verifyNoInteractions(jwtService, userUseCasePort, buyerUseCasePort, sellerUseCasePort);
+    }
+
+    @Test
+    @DisplayName("login audita también una cuenta deshabilitada sin emitir token")
+    void login_auditsDisabledAccount_whenAuthenticationFails() {
+        LoginCommand request = LoginCommand.builder()
+                .email("blocked@test.com")
+                .password("secret123")
+                .build();
+
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new DisabledException("User is disabled"));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(DisabledException.class);
+
+        verify(sessionAuditService).recordLoginFailed(
+                "blocked@test.com", "account unavailable", null, null);
+        verify(jwtService, never()).generateToken(any());
     }
 }
 

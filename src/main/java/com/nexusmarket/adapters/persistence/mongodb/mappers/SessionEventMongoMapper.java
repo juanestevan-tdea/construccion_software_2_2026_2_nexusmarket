@@ -1,17 +1,17 @@
 package com.nexusmarket.adapters.persistence.mongodb.mappers;
 
 import com.nexusmarket.adapters.persistence.mongodb.documents.SessionEventDocument;
-import com.nexusmarket.domain.ports.out.SessionAuditPort;
+import com.nexusmarket.domain.models.SessionEvent;
 import lombok.experimental.UtilityClass;
 
 /**
- * Mapper entre el DTO de entrada del puerto ({@link SessionAuditPort.SessionEventData})
- * y el documento MongoDB ({@link SessionEventDocument}).
+ * Mapper entre el modelo de dominio {@link SessionEvent} y el documento MongoDB
+ * ({@link SessionEventDocument}).
  */
 @UtilityClass
 public class SessionEventMongoMapper {
 
-    public SessionEventDocument toDocument(SessionAuditPort.SessionEventData data) {
+    public SessionEventDocument toDocument(SessionEvent data) {
         if (data == null) {
             return null;
         }
@@ -27,11 +27,11 @@ public class SessionEventMongoMapper {
                 .build();
     }
 
-    public SessionAuditPort.SessionEventData toData(SessionEventDocument document) {
+    public SessionEvent toDomain(SessionEventDocument document) {
         if (document == null) {
             return null;
         }
-        return new SessionAuditPort.SessionEventData(
+        return new SessionEvent(
                 document.getUserEmail(),
                 document.getEventType(),
                 document.getTokenId(),

@@ -1,6 +1,6 @@
 # Casos de uso y trazabilidad RF → Código
 
-Cada requisito funcional (RF) se mapea a su **interfaz de caso de uso** en `domain/ports/in/` y a su **implementación** en `adapters/useCases/`. Todos los 15 puertos de entrada aparecen referenciados al menos una vez.
+Cada requisito funcional (RF) se mapea a su **interfaz de caso de uso** en `domain/ports/in/` y a su **implementación** en `adapters/useCases/`. Todos los 16 puertos de entrada aparecen referenciados al menos una vez.
 
 | RF | Caso de uso (método) | Interfaz `domain/ports/in/` | Implementación `adapters/useCases/` | Módulo |
 |----|----------------------|-----------------------------|-------------------------------------|--------|
@@ -47,10 +47,11 @@ Cada requisito funcional (RF) se mapea a su **interfaz de caso de uso** en `doma
 | RF-041 | `approveReturn(id)`, `rejectReturn(id)`, `completeReturn(id)` | `ReturnUseCasePort` | `ReturnUseCaseImpl` | returns |
 | RF-042 | `log(userId, performedBy, entityName, entityId, action, details)` | `AuditUseCasePort` | `AuditUseCaseImpl` | auditing |
 | RF-043 | `findAll`, `findByUser`, `findByEntity`, `findByDateRange`, `getByIdOrThrow` | `AuditUseCasePort` | `AuditUseCaseImpl` | auditing |
+| RF-043 (sesiones) | `findSessionEvents(SessionEventQuery)` | `SessionEventQueryUseCasePort` | `SessionEventQueryUseCaseImpl` | auditing |
 
 ## Cobertura de puertos de entrada
 
-Todos los 15 puertos de `domain/ports/in/` están cubiertos:
+Todos los 16 puertos de `domain/ports/in/` están cubiertos:
 
 1. `AuthenticationUseCasePort` → RF-001, RF-002
 2. `UserUseCasePort` → RF-003, RF-004, RF-005
@@ -67,3 +68,4 @@ Todos los 15 puertos de `domain/ports/in/` están cubiertos:
 13. `ShipmentUseCasePort` → RF-036…RF-038
 14. `ReturnUseCasePort` → RF-039…RF-041
 15. `AuditUseCasePort` → RF-042, RF-043
+16. `SessionEventQueryUseCasePort` → RF-043 (consulta administrativa de sesiones)

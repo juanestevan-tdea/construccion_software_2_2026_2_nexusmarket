@@ -3,7 +3,7 @@
 [![Java 17](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![Tests](https://img.shields.io/badge/Tests-149%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/Tests-211%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 Backend de un marketplace multiproveedor construido con **arquitectura hexagonal
@@ -80,7 +80,7 @@ Decisiones de diseño relevantes:
 | Persistencia relacional | MySQL 8 + Spring Data JPA / Hibernate | Transacciones ACID |
 | Persistencia documental | MongoDB 7 + Spring Data Mongo | Auditoría y eventos de sesión |
 | Build | Maven 3.9+ (wrapper incluido) | `mvnw` / `mvnw.cmd` |
-| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **149 pruebas** |
+| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **211 pruebas** |
 | Contenedores | Dockerfile multi-stage + Docker Compose | MySQL + MongoDB + App |
 | CI | GitHub Actions | `./mvnw -B clean test` |
 
@@ -111,15 +111,15 @@ Decisiones de diseño relevantes:
 construccion_software_2_2026_2_nexusmarket/
 ├── src/main/java/com/nexusmarket/
 │   ├── domain/
-│   │   ├── models/            # 14 entidades POJO
+│   │   ├── models/            # 15 modelos (incluye SessionEvent)
 │   │   ├── valueobjects/      # 11 enums de dominio
 │   │   ├── exceptions/        # DomainException + 17 excepciones concretas
-│   │   ├── ports/in/          # 15 puertos de entrada (+ modelos de comando)
+│   │   ├── ports/in/          # 16 puertos de entrada (+ modelos de comando)
 │   │   ├── ports/out/         # 14 puertos de salida
-│   │   └── services/          # 23 servicios de dominio con SRP
+│   │   └── services/          # 28 servicios de dominio con SRP
 │   ├── adapters/
 │   │   ├── rest/              # 19 controladores, DTOs, mappers, handler global
-│   │   ├── useCases/          # 15 implementaciones de puertos de entrada
+│   │   ├── useCases/          # 16 implementaciones de puertos de entrada
 │   │   └── persistence/
 │   │       ├── jpa/           # 12 adaptadores, 13 entidades, 13 repositorios, 13 mappers
 │   │       └── mongodb/       # Auditoría y eventos de sesión
@@ -127,7 +127,7 @@ construccion_software_2_2026_2_nexusmarket/
 │       ├── config/            # CORS, Jackson, async
 │       ├── notification/      # puerto y adaptador NoOp
 │       └── security/          # JWT, filtros, SecurityConfig, handlers 401/403
-├── src/test/java/             # 149 pruebas unitarias y de controlador
+├── src/test/java/             # 211 pruebas unitarias y de controlador
 ├── SDD/                       # Software Design Document
 ├── .github/workflows/ci.yml   # CI de compilación y pruebas
 ├── Dockerfile
@@ -187,15 +187,24 @@ docker compose down -v
 CREATE DATABASE nexusmarket CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-2. Levanta MySQL y MongoDB (o usa `docker compose up -d mysql mongodb`).
-3. Compila y ejecuta:
+2. Copia `.env.example` a `.env`, define `MYSQL_ROOT_PASSWORD` y `JWT_SECRET`, y levanta MySQL y MongoDB (o usa `docker compose up -d mysql mongodb`).
+3. Define las variables obligatorias en la misma sesión:
+
+```powershell
+$env:DB_PASSWORD = "<tu-password-local>"
+$bytes = New-Object byte[] 64
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$env:JWT_SECRET = [Convert]::ToBase64String($bytes)
+```
+
+4. Compila y ejecuta:
 
 ```powershell
 .\mvnw.cmd clean package -DskipTests
 java -jar target\nexus-market-1.0.0-SNAPSHOT.jar
 ```
 
-4. Alternativa en desarrollo:
+5. Alternativa en desarrollo:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -208,21 +217,26 @@ La guía detallada, incluida una prueba de humo con PowerShell, está en
 
 ## 🔐 Variables de entorno
 
-| Variable | Obligatoria en producción | Descripción |
+| Variable | Obligatoria | Descripción |
 |---|---|---|
-| `JWT_SECRET` | Sí | Clave HMAC de al menos 32 caracteres (se recomiendan 64). Rotarla invalida los tokens emitidos. |
-| `DB_URL` | Sí | JDBC URL de MySQL. |
-| `DB_USERNAME` | Sí | Usuario de MySQL. |
-| `DB_PASSWORD` | Sí | Contraseña de MySQL. |
-| `MONGODB_URI` | Sí | URI de MongoDB. |
+| `JWT_SECRET` | Sí | Clave HMAC de al menos 32 bytes aleatorios (se recomiendan 64). **Sin fallback**: la aplicación falla al arrancar si falta o es demasiado corta. Rotarla invalida los tokens emitidos. |
+| `JWT_EXPIRATION` | No | Vida del token en milisegundos (por defecto `86400000`, 24 h). |
+| `DB_URL` | Producción | JDBC URL de MySQL; por defecto apunta a `localhost`. |
+| `DB_USERNAME` | Producción | Usuario de MySQL; por defecto `root` en desarrollo local. |
+| `DB_PASSWORD` | Sí | Contraseña de MySQL. **Sin fallback** en la configuración versionada. |
+| `MONGODB_URI` | Producción | URI de MongoDB; por defecto apunta a MongoDB local. |
 | `SERVER_PORT` | No | Puerto HTTP (por defecto `8080`). |
-| `MYSQL_ROOT_PASSWORD` | Solo Docker | Contraseña root del contenedor MySQL. |
+| `JPA_SHOW_SQL` | No | `false` por defecto; activar solo en depuración local. |
+| `LOG_LEVEL`, `SQL_LOG_LEVEL`, `MONGODB_LOG_LEVEL` | No | Niveles SLF4J; `INFO` por defecto para no filtrar consultas/datos. |
+| `MYSQL_ROOT_PASSWORD` | Solo Docker | Contraseña root del contenedor MySQL; Compose la exige. |
 | `MYSQL_DATABASE` | Solo Docker | Nombre de la base de datos. |
 
-Los valores por defecto de `application.properties` son **fallbacks de
-desarrollo**. No deben usarse en producción. El archivo
-`application-local.properties` está ignorado por Git y no debe contener
-credenciales compartidas.
+No hay fallback para `JWT_SECRET` ni para `DB_PASSWORD`. Define los secretos en
+`.env` (ignorado por Git) o en variables de entorno del proceso. Los perfiles
+locales (`application-local*.properties`) están ignorados y excluidos tanto de
+Maven como de Docker; no deben contener credenciales compartidas ni publicarse.
+Si una credencial estuvo expuesta, debe rotarse en el proveedor y revisarse el
+plan de saneamiento de [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -244,7 +258,7 @@ Roles definidos en `UserRole`: `ADMIN`, `BUYER`, `SELLER`, `SUPERVISOR` y
 
 Controles adicionales implementados:
 
-- Un vendedor solo puede crear, actualizar o desactivar **sus propios**
+- Un vendedor solo puede crear, consultar por ID, listar por `sellerId`, actualizar o desactivar **sus propios**
   productos. El `sellerId` se obtiene del token, no del cuerpo.
 - Un comprador solo puede consultar y operar **sus propias** órdenes y
   devoluciones. `GET /api/v1/buyer/orders` ya no devuelve las órdenes de todos.
@@ -259,11 +273,17 @@ Controles adicionales implementados:
 
 Limitaciones de seguridad conocidas:
 
-- El fallback de `jwt.secret` en `application.properties` es público y solo
-  sirve para desarrollo.
-- No hay rotación automática de secretos ni revocación global fuera de
-  `tokenVersion`.
-- CORS está configurado de forma permisiva para desarrollo; debe restringirse
+- `JWT_SECRET` es obligatorio y se valida al arrancar (mínimo 32 bytes); no hay
+  un valor por defecto en el código. Los tokens se firman explícitamente con
+  HS256 y se valida firma, expiración y `tokenVersion`.
+- Al bloquear una cuenta se incrementa `tokenVersion` y el filtro JWT rechaza
+  usuarios no habilitados. Un token emitido antes del bloqueo deja de servir.
+- No hay rotación automática de secretos ni revocación global más allá de
+  `tokenVersion`/estado de la cuenta.
+- El historial público de Git contiene credenciales antiguas de MongoDB. Deben
+  rotarse en el proveedor y el historial debe sanearse antes de publicar; ver
+  [SECURITY.md](SECURITY.md). La misión actual no reescribió el historial.
+- CORS está configurado para desarrollo con orígenes localhost; se aplica antes de la autorización JWT y debe restringirse
   por entorno antes de un despliegue real.
 
 ---
@@ -306,9 +326,9 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/auth/register `
   -ContentType "application/json" -Body $body
 ```
 
-La contraseña debe tener al menos 8 caracteres, una letra y un número. La
-validación del DTO exige 8 caracteres; la política completa se aplica en
-`UserManagementService`.
+La contraseña debe tener entre 8 y 72 caracteres, al menos una letra y un
+número. La misma política (`PasswordPolicy`) se aplica en el DTO, en el alta
+administrativa y en el cambio de contraseña; no depende solo del controlador.
 
 ---
 
@@ -321,7 +341,7 @@ validación del DTO exige 8 caracteres; la política completa se aplica en
 Resultado esperado:
 
 ```
-Tests run: 149, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 211, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -335,7 +355,8 @@ Cobertura funcional relevante:
 - Autenticación JWT, auditoría de sesión y cambio de contraseña.
 - Seguridad por rol y por propiedad de recurso (`ProductController`,
   `OrderController`, `UserController`).
-- Contrato del `GlobalExceptionHandler` (404, 409, 422, 400, 500).
+- Contrato del `GlobalExceptionHandler` (400, 401, 403, 404, 409, 422, 500).
+- Preflight CORS antes de la autorización JWT.
 - Contrato arquitectónico de excepciones de dominio.
 
 ---
@@ -355,6 +376,7 @@ Cobertura funcional relevante:
 | [SDD/07-trazabilidad](SDD/07-trazabilidad) | Matriz requisito → código → prueba |
 | [SETUP.md](SETUP.md) | Instalación, variables y solución de problemas |
 | [DOCUMENTATION.md](DOCUMENTATION.md) | Documentación técnica extendida |
+| [SECURITY.md](SECURITY.md) | Secretos, rotación y plan de saneamiento del historial |
 
 ---
 

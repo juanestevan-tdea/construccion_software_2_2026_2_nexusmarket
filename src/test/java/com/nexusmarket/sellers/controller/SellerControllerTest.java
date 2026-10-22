@@ -19,7 +19,6 @@ import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
-import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
 import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
@@ -58,9 +57,6 @@ class SellerControllerTest {
 
     @MockitoBean
     private SellerUseCasePort sellerUseCasePort;
-
-    @MockitoBean
-    private SellerRepositoryPort sellerRepositoryPort;
 
     @MockitoBean
     private UserUseCasePort userUseCasePort;
@@ -102,7 +98,7 @@ class SellerControllerTest {
     @Test
     @DisplayName("getSellerById permite al vendedor autenticado")
     void getSellerByIdAllowsSelf() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
         when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user(1L, UserRole.SELLER));
 
         mockMvc.perform(get("/api/v1/seller/sellers/10")
@@ -114,7 +110,7 @@ class SellerControllerTest {
     @Test
     @DisplayName("getSellerById devuelve 403 para el perfil de otro vendedor")
     void getSellerByIdForbidsOtherSeller() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
 
         mockMvc.perform(get("/api/v1/seller/sellers/99")
                         .with(authenticatedAs(user(1L, UserRole.SELLER))))
@@ -144,7 +140,7 @@ class SellerControllerTest {
     @Test
     @DisplayName("getSellerByTaxId devuelve 403 si el taxId es de otro vendedor")
     void getSellerByTaxIdForbidsOtherSeller() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
 
         mockMvc.perform(get("/api/v1/seller/sellers/taxId")
                         .param("taxId", "TAX-99")
@@ -155,7 +151,7 @@ class SellerControllerTest {
     @Test
     @DisplayName("getAllSellers devuelve solo el perfil propio")
     void getAllSellersReturnsOnlySelf() throws Exception {
-        when(sellerRepositoryPort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
+        when(sellerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(seller(10L, 1L)));
         when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user(1L, UserRole.SELLER));
 
         mockMvc.perform(get("/api/v1/seller/sellers")

@@ -1,5 +1,6 @@
 package com.nexusmarket.auth.service;
 
+import com.nexusmarket.domain.models.SessionEvent;
 import com.nexusmarket.domain.ports.out.SessionAuditPort;
 import com.nexusmarket.domain.services.SessionAuditService;
 import com.nexusmarket.domain.valueobjects.SessionEventType;
@@ -10,7 +11,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -20,41 +20,37 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SessionAuditServiceTest {
 
-    @Mock
-    private SessionAuditPort sessionAuditPort;
+    private static final String IP = "192.168.1.100";
+    private static final String USER_AGENT = "Mozilla/5.0 Test";
 
     @Mock
-    private HttpServletRequest request;
+    private SessionAuditPort sessionAuditPort;
 
     private SessionAuditService sessionAuditService;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         sessionAuditService = new SessionAuditService(sessionAuditPort);
-        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
-        when(request.getRemoteAddr()).thenReturn("192.168.1.100");
-        when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0 Test");
     }
 
     @Test
-    @DisplayName("recordLogin llama al puerto con tipo LOGIN y datos del request")
+    @DisplayName("recordLogin llama al puerto con tipo LOGIN y metadatos del cliente")
     void recordLogin_callsPortWithLoginEvent() {
         String email = "buyer@test.com";
         String jti = UUID.randomUUID().toString();
 
-        sessionAuditService.recordLogin(email, jti, request);
+        sessionAuditService.recordLogin(email, jti, IP, USER_AGENT);
 
-        ArgumentCaptor<SessionAuditPort.SessionEventData> captor =
-                ArgumentCaptor.forClass(SessionAuditPort.SessionEventData.class);
+        ArgumentCaptor<SessionEvent> captor = ArgumentCaptor.forClass(SessionEvent.class);
         verify(sessionAuditPort, times(1)).record(captor.capture());
 
-        SessionAuditPort.SessionEventData event = captor.getValue();
+        SessionEvent event = captor.getValue();
         assertThat(event.userEmail()).isEqualTo(email);
         assertThat(event.type()).isEqualTo(SessionEventType.LOGIN);
         assertThat(event.tokenId()).isEqualTo(jti);
         assertThat(event.reason()).isNull();
-        assertThat(event.ipAddress()).isEqualTo("192.168.1.100");
-        assertThat(event.userAgent()).isEqualTo("Mozilla/5.0 Test");
+        assertThat(event.ipAddress()).isEqualTo(IP);
+        assertThat(event.userAgent()).isEqualTo(USER_AGENT);
         assertThat(event.tokenVersion()).isNull();
         assertThat(event.occurredAt()).isNotNull();
         assertThat(event.occurredAt()).isBeforeOrEqualTo(Instant.now());
@@ -68,19 +64,18 @@ class SessionAuditServiceTest {
         String reason = "token version obsolete";
         Integer tokenVersion = 0;
 
-        sessionAuditService.recordTokenRejected(email, jti, reason, request, tokenVersion);
+        sessionAuditService.recordTokenRejected(email, jti, reason, IP, USER_AGENT, tokenVersion);
 
-        ArgumentCaptor<SessionAuditPort.SessionEventData> captor =
-                ArgumentCaptor.forClass(SessionAuditPort.SessionEventData.class);
+        ArgumentCaptor<SessionEvent> captor = ArgumentCaptor.forClass(SessionEvent.class);
         verify(sessionAuditPort, times(1)).record(captor.capture());
 
-        SessionAuditPort.SessionEventData event = captor.getValue();
+        SessionEvent event = captor.getValue();
         assertThat(event.userEmail()).isEqualTo(email);
         assertThat(event.type()).isEqualTo(SessionEventType.TOKEN_REJECTED);
         assertThat(event.tokenId()).isEqualTo(jti);
         assertThat(event.reason()).isEqualTo(reason);
         assertThat(event.tokenVersion()).isEqualTo(tokenVersion);
-        assertThat(event.ipAddress()).isEqualTo("192.168.1.100");
+        assertThat(event.ipAddress()).isEqualTo(IP);
     }
 
     @Test
@@ -89,13 +84,12 @@ class SessionAuditServiceTest {
         String email = "attacker@test.com";
         String reason = "bad credentials";
 
-        sessionAuditService.recordLoginFailed(email, reason, request);
+        sessionAuditService.recordLoginFailed(email, reason, IP, USER_AGENT);
 
-        ArgumentCaptor<SessionAuditPort.SessionEventData> captor =
-                ArgumentCaptor.forClass(SessionAuditPort.SessionEventData.class);
+        ArgumentCaptor<SessionEvent> captor = ArgumentCaptor.forClass(SessionEvent.class);
         verify(sessionAuditPort, times(1)).record(captor.capture());
 
-        SessionAuditPort.SessionEventData event = captor.getValue();
+        SessionEvent event = captor.getValue();
         assertThat(event.userEmail()).isEqualTo(email);
         assertThat(event.type()).isEqualTo(SessionEventType.LOGIN_FAILED);
         assertThat(event.tokenId()).isNull();
@@ -108,16 +102,27 @@ class SessionAuditServiceTest {
     void recordTokenInvalid_nullEmail() {
         String jti = UUID.randomUUID().toString();
 
-        sessionAuditService.recordTokenInvalid(jti, "invalid signature", request, null);
+        sessionAuditService.recordTokenInvalid(jti, "invalid signature", IP, USER_AGENT, null);
 
-        ArgumentCaptor<SessionAuditPort.SessionEventData> captor =
-                ArgumentCaptor.forClass(SessionAuditPort.SessionEventData.class);
+        ArgumentCaptor<SessionEvent> captor = ArgumentCaptor.forClass(SessionEvent.class);
         verify(sessionAuditPort, times(1)).record(captor.capture());
 
-        SessionAuditPort.SessionEventData event = captor.getValue();
+        SessionEvent event = captor.getValue();
         assertThat(event.userEmail()).isNull();
         assertThat(event.type()).isEqualTo(SessionEventType.TOKEN_INVALID);
         assertThat(event.tokenId()).isEqualTo(jti);
+    }
+
+    @Test
+    @DisplayName("los metadatos ausentes se normalizan a unknown")
+    void missingMetadata_isNormalized() {
+        sessionAuditService.recordLogin("buyer@test.com", "jti-123", null, " ");
+
+        ArgumentCaptor<SessionEvent> captor = ArgumentCaptor.forClass(SessionEvent.class);
+        verify(sessionAuditPort).record(captor.capture());
+
+        assertThat(captor.getValue().ipAddress()).isEqualTo("unknown");
+        assertThat(captor.getValue().userAgent()).isEqualTo("unknown");
     }
 
     @Test
@@ -128,7 +133,7 @@ class SessionAuditServiceTest {
                 .when(sessionAuditPort).record(any());
 
         // No debe lanzar excepción
-        sessionAuditService.recordLogin(email, "jti-123", request);
+        sessionAuditService.recordLogin(email, "jti-123", IP, USER_AGENT);
 
         verify(sessionAuditPort, times(1)).record(any());
     }

@@ -3,6 +3,8 @@ package com.nexusmarket.adapters.rest.exception;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,6 +66,24 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("AuthenticationException -> 401 sin revelar el motivo")
+    void authenticationFailureMapsTo401() throws Exception {
+        mockMvc.perform(get("/test/authentication"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    @Test
+    @DisplayName("AccessDeniedException -> 403 sin revelar detalles internos")
+    void accessDeniedMapsTo403() throws Exception {
+        mockMvc.perform(get("/test/access-denied"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("You do not have permission to access this resource"));
+    }
+
+    @Test
     @DisplayName("InvalidStatusTransitionException -> 409 con detalles")
     void invalidTransitionMapsTo409WithDetails() throws Exception {
         mockMvc.perform(get("/test/transition"))
@@ -107,6 +127,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/duplicate")
         void duplicate() {
             throw new DuplicateResourceException("User", "email", "a@b.com");
+        }
+
+        @GetMapping("/test/authentication")
+        void authentication() {
+            throw new BadCredentialsException("Bad credentials");
+        }
+
+        @GetMapping("/test/access-denied")
+        void accessDenied() {
+            throw new AccessDeniedException("internal ownership detail");
         }
 
         @GetMapping("/test/transition")

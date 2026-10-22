@@ -28,8 +28,16 @@ public class RefundProcessService {
 
     @Transactional
     public Refund createRefund(Long invoiceId, Long returnRequestId, BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new RefundNotAllowedException("Refund", "amount", amount);
+        }
+
         Invoice invoice = invoiceRepositoryPort.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice", invoiceId));
+
+        if (!Boolean.TRUE.equals(invoice.getActive())) {
+            throw new RefundNotAllowedException("Invoice", "active", "false");
+        }
 
         if (!Boolean.TRUE.equals(invoice.getPaid())) {
             throw new RefundNotAllowedException("Invoice", "paid", "false");
@@ -41,7 +49,9 @@ public class RefundProcessService {
 
         List<Refund> existingRefunds = refundRepositoryPort.findByInvoiceId(invoice.getId());
         BigDecimal currentRefunded = existingRefunds.stream()
-                .filter(r -> r.getStatus() == RefundStatus.PENDING || r.getStatus() == RefundStatus.APPROVED)
+                .filter(r -> r.getStatus() == RefundStatus.PENDING
+                        || r.getStatus() == RefundStatus.APPROVED
+                        || r.getStatus() == RefundStatus.COMPLETED)
                 .map(Refund::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

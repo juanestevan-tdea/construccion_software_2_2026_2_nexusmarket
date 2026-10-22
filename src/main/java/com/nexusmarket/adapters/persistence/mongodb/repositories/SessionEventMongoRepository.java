@@ -5,7 +5,6 @@ import com.nexusmarket.domain.valueobjects.SessionEventType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,11 +22,14 @@ public interface SessionEventMongoRepository extends MongoRepository<SessionEven
 
     List<SessionEventDocument> findByOccurredAtBetween(Instant start, Instant end);
 
-    /**
-     * Consulta paginada y filtrada de eventos de sesión.
-     * Los parámetros opcionales (null) se ignoran en el filtro.
-     */
-    @Query(value = "{'userEmail': ?0, 'eventType': ?1, 'occurredAt': {'$gte': ?2, '$lte': ?3}}")
-    Page<SessionEventDocument> findByFilters(String userEmail, SessionEventType eventType,
-                                             Instant start, Instant end, Pageable pageable);
+    Page<SessionEventDocument> findByOccurredAtBetween(Instant start, Instant end, Pageable pageable);
+
+    Page<SessionEventDocument> findByUserEmailAndOccurredAtBetween(String userEmail, Instant start,
+            Instant end, Pageable pageable);
+
+    Page<SessionEventDocument> findByEventTypeAndOccurredAtBetween(SessionEventType eventType,
+            Instant start, Instant end, Pageable pageable);
+
+    Page<SessionEventDocument> findByUserEmailAndEventTypeAndOccurredAtBetween(String userEmail,
+            SessionEventType eventType, Instant start, Instant end, Pageable pageable);
 }

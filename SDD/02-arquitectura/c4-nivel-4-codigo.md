@@ -17,11 +17,19 @@ classDiagram
         +register(RegisterCommand) AuthenticationResult
         +login(LoginCommand) AuthenticationResult
     }
-    class UserManagementService {
+    class PasswordChangeService {
         <<domain service>>
-        +createUser(email, fullName, password, role) User
         +changePassword(Long, String, String) User
+    }
+    class UserUseCasePort {
+        <<interface>>
+        +createUser(email, fullName, password, role) User
         +invalidateSessions(Long) User
+    }
+    class SessionAuditService {
+        <<application service>>
+        +recordLogin(String, String, String, String) void
+        +recordLoginFailed(String, String, String, String) void
     }
     class JwtService {
         <<infrastructure>>
@@ -78,14 +86,15 @@ classDiagram
     }
 
     AuthenticationUseCaseImpl ..|> AuthenticationUseCasePort : implements
-    AuthenticationUseCaseImpl --> UserManagementService : uses
+    AuthenticationUseCaseImpl --> UserUseCasePort : uses
+    AuthenticationUseCaseImpl --> PasswordChangeService : uses
+    AuthenticationUseCaseImpl --> SessionAuditService : audits
     AuthenticationUseCaseImpl --> JwtService : uses
-    AuthenticationUseCaseImpl ..> UserRepositoryPort : depends
     UserJpaAdapter ..|> UserRepositoryPort : implements
     UserJpaAdapter --> UserJpaRepository : uses
     UserJpaAdapter --> UserJpaMapper : maps
     UserJpaRepository --> UserJpaEntity : persists
-    UserManagementService ..> UserRepositoryPort : depends
+    PasswordChangeService ..> UserRepositoryPort : depends
 ```
 
 ---
@@ -112,8 +121,24 @@ classDiagram
         +activateUser(Long) User
         +changeRole(Long, UserRole) User
     }
-    class UserManagementService {
+    class UserCreationService {
         <<domain service>>
+        +createUser(email, fullName, password, role) User
+    }
+    class UserQueryService {
+        <<domain service>>
+        +getUserByIdOrThrow(Long) User
+        +findAll() List<User>
+    }
+    class UserStatusService {
+        <<domain service>>
+        +blockUser(Long) User
+        +activateUser(Long) User
+        +changeRole(Long, UserRole) User
+    }
+    class SessionInvalidationService {
+        <<domain service>>
+        +invalidateSessions(Long) User
     }
     class UserRepositoryPort {
         <<interface>>
@@ -176,14 +201,20 @@ classDiagram
     UserUseCaseImpl ..|> UserUseCasePort : implements
     BuyerUseCaseImpl ..|> BuyerUseCasePort : implements
     SellerUseCaseImpl ..|> SellerUseCasePort : implements
-    UserUseCaseImpl --> UserManagementService : uses
+    UserUseCaseImpl --> UserCreationService : uses
+    UserUseCaseImpl --> UserQueryService : uses
+    UserUseCaseImpl --> UserStatusService : uses
+    UserUseCaseImpl --> SessionInvalidationService : uses
     BuyerUseCaseImpl --> CreateBuyerService : uses
     BuyerUseCaseImpl --> AddBuyerAddressService : uses
     BuyerUseCaseImpl --> ChangeBuyerCommercialStatusService : uses
     SellerUseCaseImpl --> SellerDomainService : uses
-    UserUseCaseImpl ..> UserRepositoryPort : depends
     BuyerUseCaseImpl ..> BuyerRepositoryPort : depends
     SellerUseCaseImpl ..> SellerRepositoryPort : depends
+    UserCreationService ..> UserRepositoryPort : depends
+    UserQueryService ..> UserRepositoryPort : depends
+    UserStatusService ..> UserRepositoryPort : depends
+    SessionInvalidationService ..> UserRepositoryPort : depends
     UserJpaAdapter ..|> UserRepositoryPort : implements
     BuyerJpaAdapter ..|> BuyerRepositoryPort : implements
     SellerJpaAdapter ..|> SellerRepositoryPort : implements

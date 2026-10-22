@@ -26,7 +26,7 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Product;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.ports.in.seller.ProductUseCasePort;
-import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
+import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
 import jakarta.validation.Valid;
@@ -39,7 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductController {
 
     private final ProductUseCasePort productUseCasePort;
-    private final SellerRepositoryPort sellerRepositoryPort;
+    private final SellerUseCasePort sellerUseCasePort;
 
     @PostMapping
     public ResponseEntity<ProductResponseDTO> createProduct(
@@ -60,8 +60,11 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable Long id) {
-        return ResponseEntity.ok(ProductRestMapper.toResponseDTO(productUseCasePort.getProductByIdOrThrow(id)));
+    public ResponseEntity<ProductResponseDTO> getProductById(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable Long id) {
+        Product product = requireOwnedProduct(id, principal);
+        return ResponseEntity.ok(ProductRestMapper.toResponseDTO(product));
     }
 
     @GetMapping
@@ -81,7 +84,13 @@ public class ProductController {
     }
 
     @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<ProductResponseDTO>> getProductsBySeller(@PathVariable Long sellerId) {
+    public ResponseEntity<List<ProductResponseDTO>> getProductsBySeller(
+            @AuthenticationPrincipal UserDetailsAdapter principal,
+            @PathVariable Long sellerId) {
+        Seller seller = currentSeller(principal);
+        if (!seller.getId().equals(sellerId)) {
+            throw new AccessDeniedException("Seller does not own seller resource " + sellerId);
+        }
         List<ProductResponseDTO> products = productUseCasePort.findBySeller(sellerId).stream()
                 .map(ProductRestMapper::toResponseDTO)
                 .toList();
@@ -103,7 +112,7 @@ public class ProductController {
             @PathVariable Long id,
             @Valid @RequestBody ProductUpdateRequestDTO request) {
 
-        requireOwnership(id, principal);
+        requireOwnedProduct(id, principal);
         Product updated = productUseCasePort.updateProduct(
                 id,
                 request.getName(),
@@ -120,7 +129,7 @@ public class ProductController {
             @AuthenticationPrincipal UserDetailsAdapter principal,
             @PathVariable Long id) {
 
-        requireOwnership(id, principal);
+        requireOwnedProduct(id, principal);
         Product deactivated = productUseCasePort.deactivateProduct(id);
         return ResponseEntity.ok(ProductRestMapper.toResponseDTO(deactivated));
     }
@@ -134,20 +143,21 @@ public class ProductController {
             throw new AccessDeniedException("No authenticated seller found");
         }
         Long userId = principal.getUser().getId();
-        return sellerRepositoryPort.findByUserId(userId)
+        return sellerUseCasePort.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", userId));
     }
 
     /**
      * Verifica que el producto pertenezca al vendedor autenticado antes de
-     * permitir cualquier modificación. Evita que un vendedor altere o desactive
-     * productos de otro (403 Forbidden).
+     * consultarlo, modificarlo o desactivarlo. Evita que un vendedor acceda a
+     * productos de otro cambiando el identificador en la URL (403 Forbidden).
      */
-    private void requireOwnership(Long productId, UserDetailsAdapter principal) {
+    private Product requireOwnedProduct(Long productId, UserDetailsAdapter principal) {
         Seller seller = currentSeller(principal);
         Product product = productUseCasePort.getProductByIdOrThrow(productId);
         if (!seller.getId().equals(product.getSellerId())) {
             throw new AccessDeniedException("Seller does not own product " + productId);
         }
+        return product;
     }
 }

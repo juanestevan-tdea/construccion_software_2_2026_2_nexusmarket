@@ -7,8 +7,8 @@ import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
+import com.nexusmarket.domain.services.PasswordChangeService;
 import com.nexusmarket.domain.services.SessionAuditService;
-import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -41,7 +41,7 @@ class TokenInvalidationServiceTest {
     private UserRepositoryPort userRepositoryPort;
 
     @Mock
-    private UserManagementService userManagementService;
+    private PasswordChangeService passwordChangeService;
 
     @Mock
     private SessionAuditService sessionAuditService;
@@ -66,7 +66,7 @@ class TokenInvalidationServiceTest {
         // Mockear getUserByIdOrThrow para logout/changePassword
         when(userUseCasePort.getUserByIdOrThrow(1L)).thenReturn(user(1L, "buyer@test.com", 1));
         authService = new AuthenticationUseCaseImpl(
-                userUseCasePort, buyerUseCasePort, sellerUseCasePort, userManagementService,
+                userUseCasePort, buyerUseCasePort, sellerUseCasePort, passwordChangeService,
                 sessionAuditService, jwtService, authenticationManager, TTL_MS);
     }
 
@@ -118,7 +118,7 @@ class TokenInvalidationServiceTest {
 
         // cambio de contraseña incrementa tokenVersion a 1
         User updated = user(1L, "buyer@test.com", 1);
-        when(userManagementService.changePassword(1L, "old-password", "NewPass123"))
+        when(passwordChangeService.changePassword(1L, "old-password", "NewPass123"))
                 .thenReturn(updated);
 
         authService.changePassword(1L, "old-password", "NewPass123");

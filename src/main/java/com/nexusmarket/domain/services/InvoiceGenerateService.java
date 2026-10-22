@@ -33,7 +33,9 @@ public class InvoiceGenerateService {
                 && order.getStatus() != OrderStatus.DISPATCHED
                 && order.getStatus() != OrderStatus.DELIVERED
                 && order.getStatus() != OrderStatus.FINISHED) {
-            throw new InvoiceNotPayableException("Order", "status", order.getStatus().name());
+            throw new InvoiceNotPayableException(String.format(
+                    "Cannot generate invoice for order '%s' in status '%s'. Order must be PAID or later.",
+                    orderId, order.getStatus()));
         }
 
         if (invoiceRepositoryPort.existsByOrderIdAndActiveTrue(order.getId())) {

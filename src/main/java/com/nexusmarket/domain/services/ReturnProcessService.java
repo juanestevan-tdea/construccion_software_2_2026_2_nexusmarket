@@ -59,10 +59,7 @@ public class ReturnProcessService {
 
     @Transactional
     public Return approveReturn(Long id) {
-        Return returnEntity = getByIdOrThrow(id);
-        if (returnEntity.getStatus() == ReturnStatus.COMPLETED || returnEntity.getStatus() == ReturnStatus.PROCESSED) {
-            throw new ReturnAlreadyProcessedException("Return", "id", id);
-        }
+        Return returnEntity = getPendingReturn(id);
         returnEntity.setStatus(ReturnStatus.APPROVED);
         returnEntity.setResolvedAt(LocalDateTime.now());
         return returnRepositoryPort.save(returnEntity);
@@ -70,10 +67,7 @@ public class ReturnProcessService {
 
     @Transactional
     public Return rejectReturn(Long id) {
-        Return returnEntity = getByIdOrThrow(id);
-        if (returnEntity.getStatus() == ReturnStatus.COMPLETED || returnEntity.getStatus() == ReturnStatus.PROCESSED) {
-            throw new ReturnAlreadyProcessedException("Return", "id", id);
-        }
+        Return returnEntity = getPendingReturn(id);
         returnEntity.setStatus(ReturnStatus.REJECTED);
         returnEntity.setResolvedAt(LocalDateTime.now());
         return returnRepositoryPort.save(returnEntity);
@@ -82,15 +76,23 @@ public class ReturnProcessService {
     @Transactional
     public Return completeReturn(Long id) {
         Return returnEntity = getByIdOrThrow(id);
-        if (returnEntity.getStatus() == ReturnStatus.COMPLETED || returnEntity.getStatus() == ReturnStatus.PROCESSED) {
-            throw new ReturnAlreadyProcessedException("Return", "id", id);
+        if (returnEntity.getStatus() == ReturnStatus.REQUESTED) {
+            throw new ReturnNotAllowedException("Return", "status", "Return must be approved before completing");
         }
         if (returnEntity.getStatus() != ReturnStatus.APPROVED) {
-            throw new ReturnNotAllowedException("Return", "status", "Return must be approved before completing");
+            throw new ReturnAlreadyProcessedException("Return", "id", id);
         }
         returnEntity.setStatus(ReturnStatus.COMPLETED);
         returnEntity.setResolvedAt(LocalDateTime.now());
         return returnRepositoryPort.save(returnEntity);
+    }
+
+    private Return getPendingReturn(Long id) {
+        Return returnEntity = getByIdOrThrow(id);
+        if (returnEntity.getStatus() != ReturnStatus.REQUESTED) {
+            throw new ReturnAlreadyProcessedException("Return", "id", id);
+        }
+        return returnEntity;
     }
 
     private Return getByIdOrThrow(Long id) {

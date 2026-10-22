@@ -14,7 +14,8 @@ C4Component
         Component(ctrl, "AuthController", "REST Controller", "Spring MVC @RestController")
         Component(uc, "AuthenticationUseCaseImpl", "Caso de uso: autenticación", "implements AuthenticationUseCasePort")
         PortIn(pi, "AuthenticationUseCasePort", "Puerto de entrada")
-        Component(svc, "UserManagementService", "Servicio de dominio", "valida credenciales BCrypt")
+        Component(svc, "PasswordChangeService", "Servicio de dominio", "cambio de contraseña")
+        Component(audit, "SessionAuditService", "Servicio de aplicación", "auditoría de sesiones")
         Component(jwt, "JwtService", "Genera/valida JWT", "infrastructure/security")
         PortOut(po, "UserRepositoryPort", "Puerto de salida")
         Component(adapter, "UserJpaAdapter", "Adaptador JPA (User)", "implements UserRepositoryPort")
@@ -22,11 +23,12 @@ C4Component
         ContainerDb(mysql, "MySQL 8.x", "Tabla usuarios", "JDBC")
     }
 
-    Rel(ctrl, uc, "Invoca", "register / login")
+    Rel(ctrl, uc, "Invoca", "register / login / logout / changePassword")
     Rel(uc, pi, "Implementa", "Java interface")
-    Rel(uc, svc, "Delega validación", "Java")
-    Rel(svc, jwt, "Genera token", "JJWT")
-    Rel(uc, po, "Consulta usuario", "Java interface")
+    Rel(uc, svc, "Delega cambio de contraseña", "Java")
+    Rel(uc, audit, "Registra eventos", "Java")
+    Rel(uc, jwt, "Genera token", "JJWT")
+    Rel(svc, po, "Consulta y guarda usuario", "Java interface")
     Rel(adapter, po, "Implementa", "Java interface")
     Rel(adapter, repo, "Llama", "Spring Data")
     Rel(repo, mysql, "SQL", "JDBC")
@@ -54,7 +56,10 @@ C4Component
         PortIn(bPi, "BuyerUseCasePort", "Puerto de entrada")
         PortIn(sPi, "SellerUseCasePort", "Puerto de entrada")
 
-        Component(uSvc, "UserManagementService", "Servicio de dominio", "usuarios")
+        Component(uCreate, "UserCreationService", "Servicio de dominio", "alta de usuario")
+        Component(uQuery, "UserQueryService", "Servicio de dominio", "consultas")
+        Component(uStatus, "UserStatusService", "Servicio de dominio", "estado y rol")
+        Component(uSession, "SessionInvalidationService", "Servicio de dominio", "revocación de JWT")
         Component(bCreate, "CreateBuyerService", "Servicio de dominio", "alta de comprador")
         Component(bAddress, "AddBuyerAddressService", "Servicio de dominio", "direcciones")
         Component(bStatus, "ChangeBuyerCommercialStatusService", "Servicio de dominio", "estado comercial")
@@ -82,12 +87,18 @@ C4Component
     Rel(uUc, uPi, "Implementa", "")
     Rel(bUc, bPi, "Implementa", "")
     Rel(sUc, sPi, "Implementa", "")
-    Rel(uUc, uSvc, "Delega", "")
+    Rel(uUc, uCreate, "Delega alta", "")
+    Rel(uUc, uQuery, "Delega consultas", "")
+    Rel(uUc, uStatus, "Delega estado/rol", "")
+    Rel(uUc, uSession, "Delega revocación", "")
     Rel(bUc, bCreate, "Delega", "")
     Rel(bUc, bAddress, "Delega", "")
     Rel(bUc, bStatus, "Delega", "")
     Rel(sUc, sSvc, "Delega", "")
-    Rel(uUc, uPo, "Persiste/consulta", "")
+    Rel(uCreate, uPo, "Persiste/consulta", "")
+    Rel(uQuery, uPo, "Consulta", "")
+    Rel(uStatus, uPo, "Persiste/consulta", "")
+    Rel(uSession, uPo, "Persiste/consulta", "")
     Rel(bUc, bPo, "Persiste/consulta", "")
     Rel(sUc, sPo, "Persiste/consulta", "")
     Rel(uAdapter, uPo, "Implementa", "")
@@ -389,6 +400,21 @@ C4Component
     Rel(adapter, po, "Implementa", "")
     Rel(adapter, repo, "Llama", "")
     Rel(repo, mongo, "CRUD documental", "")
+```
+
+### Consulta de eventos de sesión
+
+La consulta administrativa de sesiones no usa `AuditUseCasePort`; tiene su propio
+flujo de solo lectura:
+
+```text
+SessionEventController
+  → SessionEventQueryUseCasePort
+  → SessionEventQueryUseCaseImpl (normaliza page/size)
+  → ConsultSessionEventsService
+  → SessionAuditPort.find(SessionEventQuery)
+  → SessionAuditMongoAdapter
+  → SessionEventMongoRepository
 ```
 
 ---

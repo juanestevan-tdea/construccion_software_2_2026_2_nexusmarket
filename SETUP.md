@@ -18,7 +18,17 @@ raíz del repositorio, salvo indicación contraria.
    - Si `127.0.0.1:27017` lo ocupa un `mongod` ajeno a Docker, apuntar la app al
      contenedor con `MONGODB_URI=mongodb://[::1]:27017/nexusmarket_audit`.
 
-## 1. Levantar las bases de datos
+## 1. Configurar secretos y levantar las bases de datos
+
+Crea el archivo local `.env` a partir del ejemplo y define valores propios.
+Compose exige `MYSQL_ROOT_PASSWORD` y `JWT_SECRET`; no hay contraseñas por
+defecto en el archivo versionado.
+
+```powershell
+Copy-Item .env.example .env
+# Edita .env: MYSQL_ROOT_PASSWORD, DB_PASSWORD y JWT_SECRET.
+# No reutilices los valores de ejemplo.
+```
 
 Opción A — solo MySQL y MongoDB:
 
@@ -26,20 +36,18 @@ Opción A — solo MySQL y MongoDB:
 docker compose up -d mysql mongodb
 docker compose ps
 docker exec nexusmarket-mongo mongosh --quiet --eval "db.runCommand({ping:1})"
-docker exec nexusmarket-mysql mysql -uroot -proot -e "SELECT VERSION();"
+docker exec nexusmarket-mysql mysql -uroot -p"<tu-password>" -e "SELECT VERSION();"
 ```
 
 Opción B — stack completo (bases + aplicación):
 
 ```powershell
-Copy-Item .env.example .env
-# Edita .env: contraseñas y JWT_SECRET
 docker compose up -d --build
 ```
 
 El `docker-compose.yml` declara `healthcheck` para MySQL y MongoDB; la app
-espera a que ambos estén saludables. Credenciales por defecto de desarrollo:
-usuario `root` / clave `root` (sobrescribibles con `MYSQL_ROOT_PASSWORD`).
+espera a que ambos estén saludables. La contraseña root se toma de
+`MYSQL_ROOT_PASSWORD` en `.env`; no se usa `root/root` por defecto.
 
 ## 2. Compilar y correr las pruebas
 
@@ -50,7 +58,7 @@ usuario `root` / clave `root` (sobrescribibles con `MYSQL_ROOT_PASSWORD`).
 Resultado esperado:
 
 ```
-Tests run: 149, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 211, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -60,11 +68,23 @@ las bases estén levantadas.
 
 ## 3. Empaquetar y arrancar la aplicación
 
+`JWT_SECRET` y `DB_PASSWORD` son obligatorios. Define ambos en la misma sesión
+antes de arrancar; el valor de `DB_PASSWORD` debe coincidir con el de MySQL.
+
 ```powershell
+# Solo si no vienen ya del entorno:
+$env:DB_PASSWORD = "<tu-password-local>"
+$bytes = New-Object byte[] 64
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$env:JWT_SECRET = [Convert]::ToBase64String($bytes)
+
 .\mvnw.cmd -q -DskipTests package
 $env:SERVER_PORT="8080"   # u "8081" si el 8080 está ocupado
 java -jar target\nexus-market-1.0.0-SNAPSHOT.jar
 ```
+
+Si `JWT_SECRET` falta o tiene menos de 32 bytes, la aplicación falla al
+arrancar con un mensaje explícito; no se genera ni se usa una clave fija.
 
 Al arrancar, Hibernate crea/actualiza las tablas en `nexusmarket` y Mongo queda
 listo para crear las colecciones de auditoría con el primer evento. Verificar
@@ -75,9 +95,23 @@ curl.exe -s http://127.0.0.1:8080/actuator/health
 # {"status":"UP"}
 ```
 
-> Variables opcionales en la misma sesión antes de `java -jar`:
-> `$env:DB_USERNAME`, `$env:DB_PASSWORD`, `$env:DB_URL`, `$env:MONGODB_URI`,
-> `$env:JWT_SECRET`, `$env:SERVER_PORT`. Ver tabla en `README.md`.
+> Variables de la misma sesión antes de `java -jar`: `DB_PASSWORD` y
+> `JWT_SECRET` son obligatorias. También puedes ajustar `DB_USERNAME`, `DB_URL`,
+> `MONGODB_URI`, `JWT_EXPIRATION` y `SERVER_PORT`. Ver tabla en `README.md`.
+
+### Secretos, perfiles locales y artefactos
+
+- `.env` está ignorado por Git y `.env.example` solo contiene valores ficticios.
+- `application-local*.properties`, `application-dev.properties`, `config/` y
+  material de claves están ignorados. Maven excluye los perfiles locales del
+  JAR y `.dockerignore` evita que entren en el contexto de Docker.
+- No publiques un `target/` ni una imagen construidos antes de estas
+  correcciones. Regénéralos con `.\mvnw.cmd clean package` y
+  `docker compose build --no-cache app`; el JAR resultante no debe contener
+  `application-local.properties` ni `.env`.
+- Si una credencial estuvo expuesta en Git, no basta con borrar el archivo:
+  rótala en el proveedor y sigue el plan de [SECURITY.md](SECURITY.md). La
+  reescritura del historial requiere autorización y aún no se ejecutó.
 
 ## 4. Prueba de humo end-to-end (registro → login → uso → logout)
 
@@ -116,7 +150,7 @@ curl.exe -s http://127.0.0.1:8080/actuator/health
 
 6. Verificar persistencia:
    ```powershell
-   docker exec nexusmarket-mysql mysql -uroot -proot --batch -e "SHOW TABLES FROM nexusmarket;"
+   docker exec nexusmarket-mysql mysql -uroot -p"<tu-password>" --batch -e "SHOW TABLES FROM nexusmarket;"
    docker exec nexusmarket-mongo mongosh --quiet nexusmarket_audit --eval "db.audit_logs.countDocuments()"
    ```
 
@@ -148,18 +182,22 @@ docker compose down -v    # elimina también los datos
 | `SERVER_PORT` | `8080` | Puerto HTTP de Spring Boot |
 | `DB_URL` | `jdbc:mysql://localhost:3306/nexusmarket?...` | JDBC URL de MySQL |
 | `DB_USERNAME` | `root` | Usuario de MySQL |
-| `DB_PASSWORD` | `root` | Contraseña de MySQL |
+| `DB_PASSWORD` | **Sin valor por defecto** | Contraseña de MySQL; obligatoria |
 | `MONGODB_URI` | `mongodb://localhost:27017/nexusmarket_audit` | URI de MongoDB |
-| `JWT_SECRET` | Fallback de desarrollo | Firma HMAC-SHA256; **obligatorio en producción** |
-| `MYSQL_ROOT_PASSWORD` | `root` | Solo Docker Compose |
+| `JWT_SECRET` | **Sin valor por defecto** | Firma HMAC-SHA256; obligatoria y de al menos 32 bytes |
+| `JWT_EXPIRATION` | `86400000` | Vida del token en milisegundos (24 h) |
+| `MYSQL_ROOT_PASSWORD` | **Sin valor por defecto** | Solo Docker Compose; obligatoria |
 | `MYSQL_DATABASE` | `nexusmarket` | Solo Docker Compose |
 
-> `jwt.expiration` está fijado en `application.properties` (24 h) y no se
-> externaliza actualmente.
+> `jwt.expiration` se puede sobrescribir con `JWT_EXPIRATION`; su valor por
+> defecto es 24 h.
 
 ## 8. Verificación de la configuración Docker
 
 ```powershell
-docker compose config --quiet   # valida sintaxis y variables
+docker compose config --quiet   # requiere .env con las variables obligatorias
 docker compose build app        # construye la imagen multi-stage
 ```
+
+No publiques ni distribuyas imágenes construidas antes de eliminar los
+perfiles locales; reconstruye con `--no-cache`.

@@ -41,6 +41,13 @@ public class ReturnUseCaseImpl implements ReturnUseCasePort {
     }
 
     @Override
+    public List<Return> findAllByBuyerId(Long buyerId) {
+        return orderRepositoryPort.findByBuyerId(buyerId).stream()
+                .flatMap(order -> returnRepositoryPort.findByOrderId(order.getId()).stream())
+                .toList();
+    }
+
+    @Override
     public List<Return> findAll() {
         return returnRepositoryPort.findAll();
     }

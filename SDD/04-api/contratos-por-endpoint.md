@@ -146,7 +146,11 @@ devuelven `403` si el producto pertenece a otro vendedor.
 | GET | `/roots` | ADMIN | — | `200` lista |
 | GET | `/{id}` | ADMIN | — | `200` `CategoryResponseDTO` |
 | PATCH | `/{id}` | ADMIN | `CategoryUpdateRequestDTO` | `200` `CategoryResponseDTO` |
-| DELETE | `/{id}` | ADMIN | — | `204`; `409` si tiene productos |
+| DELETE | `/{id}` | ADMIN | - | `204`; `409` si tiene productos |
+
+Errores: `409` categoría con productos (`CategoryHasProductsException`); `422`
+ciclo de jerarquía o categoría con subcategorías (`BusinessRuleException`);
+`404` categoría inexistente.
 
 ## 8. Órdenes (comprador) — `/api/v1/buyer/orders`
 
@@ -189,6 +193,10 @@ otro comprador → `403`.
 > Antes vivían bajo `/api/v1/buyer/returns`, permitiendo que un comprador
 > aprobara su propia devolución. Fueron movidas en la auditoría.
 
+Errores: `404` devolución inexistente; `409` devolución ya procesada
+(`ReturnAlreadyProcessedException`, RF-041); `422` completar una devolución que
+aún no está aprobada (`ReturnNotAllowedException`).
+
 ## 11. Bodegas — `/api/v1/warehouse/warehouses`
 
 | Método | Ruta | Rol | Petición | Respuesta |
@@ -208,13 +216,14 @@ otro comprador → `403`.
 | GET | `/` | WAREHOUSE_OPERATOR | — | `200` lista |
 | GET | `/product/{productId}` | WAREHOUSE_OPERATOR | — | `200` lista |
 | GET | `/warehouse/{warehouseId}` | WAREHOUSE_OPERATOR | — | `200` lista |
-| PATCH | `/{id}/reserve?quantity=` | WAREHOUSE_OPERATOR | query | `200` |
-| PATCH | `/{id}/confirm-payment?quantity=` | WAREHOUSE_OPERATOR | query | `200` |
-| PATCH | `/{id}/mark-damaged?quantity=` | WAREHOUSE_OPERATOR | query | `200` |
-| PATCH | `/{id}/adjust?newQuantity=` | WAREHOUSE_OPERATOR | query | `200` |
+| PATCH | `/{id}/reserve?amount=` | WAREHOUSE_OPERATOR | query `amount` (> 0) | `200` |
+| PATCH | `/{id}/confirm-payment` | WAREHOUSE_OPERATOR | — | `200` |
+| PATCH | `/{id}/mark-damaged` | WAREHOUSE_OPERATOR | — | `200` |
+| PATCH | `/{id}/adjust?amount=` | WAREHOUSE_OPERATOR | query `amount` (delta) | `200` |
 
 Errores: `422` capacidad excedida (`WarehouseCapacityExceededException`) o
-regla de inventario.
+regla de inventario (`BusinessRuleException`), incluida una reserva con
+`amount <= 0`.
 
 ## 13. Envíos — `/api/v1/warehouse/shipments`
 
@@ -261,7 +270,10 @@ Errores: `409` factura ya existe, `422` factura no pagable o no anulable.
 | PATCH | `/{id}/approve` | SUPERVISOR | — | `200` |
 | PATCH | `/{id}/reject` | SUPERVISOR | — | `200` |
 
-Errores: `422` monto excedido o reembolso no permitido.
+Errores: `404` factura o devolución inexistente; `422` monto excedido, monto
+inválido o factura inactiva/impaga (`RefundAmountExceededException`,
+`RefundNotAllowedException`); `409` reembolso ya procesado en aprobar/rechazar
+(`InvalidStatusTransitionException`, RF-035).
 
 ## 16. Auditoría (admin) — `/api/v1/admin`
 

@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -21,13 +22,17 @@ public class JwtService {
 
     private static final String ROLES_CLAIM = "roles";
     private static final String VERSION_CLAIM = "ver";
+    private static final int MIN_SECRET_BYTES = 32;
 
     private final String secret;
     private final long expiration;
 
     public JwtService(@Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expiration) {
-        this.secret = secret;
+        this.secret = validateSecret(secret);
+        if (expiration <= 0) {
+            throw new IllegalStateException("jwt.expiration must be greater than zero");
+        }
         this.expiration = expiration;
     }
 
@@ -56,7 +61,7 @@ public class JwtService {
                 .subject(userDetails.getUsername())
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -86,7 +91,7 @@ public class JwtService {
             }
 
             // La versión del token debe coincidir con la versión actual del usuario
-            if (!tokenVersion.equals(userVersion)) {
+            if (!Objects.equals(tokenVersion, userVersion)) {
                 return false;
             }
 
@@ -120,5 +125,16 @@ public class JwtService {
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private static String validateSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET must be configured");
+        }
+        if (secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least " + MIN_SECRET_BYTES + " bytes long");
+        }
+        return secret;
     }
 }

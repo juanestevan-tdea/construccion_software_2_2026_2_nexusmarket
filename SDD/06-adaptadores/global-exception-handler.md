@@ -57,13 +57,34 @@ excepciones concretas heredan de la base y no llevan anotaciones
 | `WarehouseCapacityExceededException` | 422 | `ErrorResponse` |
 | `PaymentGatewayException` | 502 | `ErrorResponse` |
 | `DomainException` no mapeada | 400 | `ErrorResponse` + log WARN |
+
+`InvoiceNotPayableException` se usa para dos condiciones del mismo concepto:
+orden no facturable al generar y factura pagada/inactiva al anular. Ambas
+devuelven 422; el mensaje lo construye el servicio y no expone detalles internos.
+`InvalidStatusTransitionException` también representa un reembolso ya procesado
+(409, RF-035) y `ReturnAlreadyProcessedException` una devolución ya procesada
+(409, RF-041); ambos mensajes describen el estado actual sin filtrar datos
+internos.
+
+### Excepciones de framework y seguridad
+
+| Excepción | Código | Cuerpo |
+|---|---|---|
 | `MethodArgumentNotValidException` | 400 | `ErrorResponse` + `details` por campo |
 | `AuthenticationException` | 401 | `ErrorResponse` |
 | `AccessDeniedException` | 403 | `ErrorResponse` |
+| `HttpMediaTypeNotSupportedException` | 415 | mensaje genérico |
+| `HttpRequestMethodNotSupportedException` | 405 | mensaje genérico |
+| `NoResourceFoundException` | 404 | mensaje genérico |
 | `Exception` | 500 | mensaje genérico, sin stack trace |
 
 Spring selecciona el handler **más específico** por tipo; el orden de
 declaración no altera el resultado.
+
+Los mensajes de excepciones de framework (`415`, `405`, rutas inexistentes) se
+normalizan para no devolver rutas internas ni detalles del contenedor. Las
+violaciones de integridad y bloqueos optimistas se registran con la URI y el
+tipo de excepción, sin volcar el mensaje SQL ni valores de columnas.
 
 ## Formato de error
 
@@ -77,6 +98,9 @@ declaración no altera el resultado.
   "details": ["Current status: CART", "Target status: PAID"]
 }
 ```
+
+- 401 para `AuthenticationException`, con mensaje genérico.
+- 403 para `AccessDeniedException`, sin exponer el detalle de propiedad.
 
 ## Seguridad del error 500
 

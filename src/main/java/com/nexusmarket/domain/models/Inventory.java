@@ -25,10 +25,13 @@ public class Inventory {
     private InventoryStatus status;
 
     public void reserve(int amount) {
+        if (amount <= 0) {
+            throw new BusinessRuleException("Reservation amount must be greater than zero");
+        }
         if (this.status == InventoryStatus.DAMAGED) {
             throw new BusinessRuleException("Cannot reserve damaged inventory");
         }
-        if (this.quantity < amount) {
+        if (this.quantity == null || this.quantity < amount) {
             throw new BusinessRuleException("Insufficient quantity");
         }
         this.quantity -= amount;
@@ -36,6 +39,12 @@ public class Inventory {
     }
 
     public void release(int amount) {
+        if (amount <= 0) {
+            throw new BusinessRuleException("Release amount must be greater than zero");
+        }
+        if (this.quantity == null) {
+            throw new BusinessRuleException("Inventory quantity is not initialized");
+        }
         this.quantity += amount;
         this.status = InventoryStatus.AVAILABLE;
     }
@@ -52,6 +61,9 @@ public class Inventory {
     }
 
     public void adjust(int amount) {
+        if (this.quantity == null) {
+            throw new BusinessRuleException("Inventory quantity is not initialized");
+        }
         if (this.quantity + amount < 0) {
             throw new BusinessRuleException("Quantity cannot be negative");
         }

@@ -2,8 +2,10 @@ package com.nexusmarket.adapters.useCases;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,12 +18,11 @@ import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
 import com.nexusmarket.domain.ports.in.model.LoginCommand;
 import com.nexusmarket.domain.ports.in.model.RegisterCommand;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
+import com.nexusmarket.domain.services.PasswordChangeService;
 import com.nexusmarket.domain.services.SessionAuditService;
-import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.infrastructure.security.JwtService;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
-import org.springframework.security.authentication.BadCredentialsException;
 
 @Service
 public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
@@ -29,7 +30,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
     private final UserUseCasePort userUseCasePort;
     private final BuyerUseCasePort buyerUseCasePort;
     private final SellerUseCasePort sellerUseCasePort;
-    private final UserManagementService userManagementService;
+    private final PasswordChangeService passwordChangeService;
     private final SessionAuditService sessionAuditService;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -39,7 +40,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
             UserUseCasePort userUseCasePort,
             BuyerUseCasePort buyerUseCasePort,
             SellerUseCasePort sellerUseCasePort,
-            UserManagementService userManagementService,
+            PasswordChangeService passwordChangeService,
             SessionAuditService sessionAuditService,
             JwtService jwtService,
             AuthenticationManager authenticationManager,
@@ -47,7 +48,7 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
         this.userUseCasePort = userUseCasePort;
         this.buyerUseCasePort = buyerUseCasePort;
         this.sellerUseCasePort = sellerUseCasePort;
-        this.userManagementService = userManagementService;
+        this.passwordChangeService = passwordChangeService;
         this.sessionAuditService = sessionAuditService;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
@@ -90,11 +91,14 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
 
             String token = jwtService.generateToken(principal);
             String jti = jwtService.extractJti(token);
-            sessionAuditService.recordLogin(user.getEmail(), jti, null);
+            sessionAuditService.recordLogin(user.getEmail(), jti, null, null);
 
             return AuthenticationResult.from(user, token, jwtExpiration);
-        } catch (BadCredentialsException ex) {
-            sessionAuditService.recordLoginFailed(command.getEmail(), "bad credentials", null);
+        } catch (AuthenticationException ex) {
+            String reason = ex instanceof BadCredentialsException
+                    ? "bad credentials"
+                    : "account unavailable";
+            sessionAuditService.recordLoginFailed(command.getEmail(), reason, null, null);
             throw ex;
         }
     }
@@ -102,17 +106,15 @@ public class AuthenticationUseCaseImpl implements AuthenticationUseCasePort {
     @Override
     @Transactional
     public void logout(Long userId) {
-        userUseCasePort.invalidateSessions(userId);
-        User user = userUseCasePort.getUserByIdOrThrow(userId);
-        sessionAuditService.recordLogout(user.getEmail(), null, null);
+        User user = userUseCasePort.invalidateSessions(userId);
+        sessionAuditService.recordLogout(user.getEmail(), null, null, null);
     }
 
     @Override
     @Transactional
     public void changePassword(Long userId, String currentPassword, String newPassword) {
-        userManagementService.changePassword(userId, currentPassword, newPassword);
-        User user = userUseCasePort.getUserByIdOrThrow(userId);
-        sessionAuditService.recordPasswordChange(user.getEmail(), null, null);
+        User user = passwordChangeService.changePassword(userId, currentPassword, newPassword);
+        sessionAuditService.recordPasswordChange(user.getEmail(), null, null, null);
     }
 
     private void createBuyerProfile(User user, String primaryAddress) {

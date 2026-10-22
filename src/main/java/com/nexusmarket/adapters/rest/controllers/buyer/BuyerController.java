@@ -23,7 +23,6 @@ import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
-import com.nexusmarket.domain.ports.out.BuyerRepositoryPort;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
@@ -42,7 +41,6 @@ import lombok.RequiredArgsConstructor;
 public class BuyerController {
 
     private final BuyerUseCasePort buyerUseCasePort;
-    private final BuyerRepositoryPort buyerRepositoryPort;
     private final UserUseCasePort userUseCasePort;
 
     @PostMapping
@@ -110,7 +108,7 @@ public class BuyerController {
 
     private Buyer currentBuyer(UserDetailsAdapter principal) {
         Long userId = authenticatedUserId(principal);
-        return buyerRepositoryPort.findByUserId(userId)
+        return buyerUseCasePort.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer", userId));
     }
 

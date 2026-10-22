@@ -37,9 +37,9 @@ C4Deployment
 
 | Servicio | Imagen | Puerto host → contenedor | Volúmenes | Variables de entorno clave |
 |----------|--------|--------------------------|-----------|----------------------------|
-| `mysql` | `mysql:8.0` | 3306 → 3306 | `mysql_data` → `/var/lib/mysql` | `MYSQL_ROOT_PASSWORD=root`, `MYSQL_DATABASE=nexusmarket` |
+| `mysql` | `mysql:8.0` | 3306 → 3306 | `mysql_data` → `/var/lib/mysql` | `MYSQL_ROOT_PASSWORD` (obligatoria, desde `.env`), `MYSQL_DATABASE=nexusmarket` |
 | `mongodb` | `mongo:7` | 27017 → 27017 | `mongodb_data` → `/data/db` | — |
-| `app` | build (Dockerfile) | 8080 → 8080 | — | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MONGODB_URI` |
+| `app` | build (Dockerfile) | 8080 → 8080 | — | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MONGODB_URI`, `JWT_SECRET` (obligatoria) |
 
 ## Red y volúmenes
 

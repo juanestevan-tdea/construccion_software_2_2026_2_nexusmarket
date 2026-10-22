@@ -7,7 +7,6 @@ import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.buyer.BuyerUseCasePort;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
 import com.nexusmarket.domain.services.SessionAuditService;
-import com.nexusmarket.domain.services.UserManagementService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import com.nexusmarket.domain.valueobjects.UserStatus;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -78,11 +77,11 @@ class JwtAuthenticationFilterAuditTest {
 
         // Simular la llamada al servicio de auditorÃ­a (como harÃ­a el filtro)
         sessionAuditService.recordTokenRejected("buyer@test.com", jti,
-                "token version obsolete", null, tokenVersion);
+                "token version obsolete", "127.0.0.1", "JUnit", tokenVersion);
 
         verify(sessionAuditService, times(1))
                 .recordTokenRejected("buyer@test.com", jti,
-                        "token version obsolete", null, 0);
+                        "token version obsolete", "127.0.0.1", "JUnit", 0);
     }
 
     @Test

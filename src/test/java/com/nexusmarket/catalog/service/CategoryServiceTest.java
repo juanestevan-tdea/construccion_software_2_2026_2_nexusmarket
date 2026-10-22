@@ -7,6 +7,7 @@ import com.nexusmarket.domain.ports.in.admin.CategoryUseCasePort;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.domain.services.CategoryDomainService;
+import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
@@ -76,12 +77,35 @@ class CategoryServiceTest {
     }
 
     @Test
+    void deleteCategory_ThrowsBusinessRuleException_WhenCategoryHasSubcategories() {
+        Category child = Category.builder().id(2L).name("Novels").parentId(1L).build();
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepositoryPort.findByCategoryId(1L)).thenReturn(Collections.emptyList());
+        when(categoryRepositoryPort.findByParentId(1L)).thenReturn(List.of(child));
+
+        assertThrows(BusinessRuleException.class, () -> categoryUseCase.deleteCategory(1L));
+        verify(categoryRepositoryPort, never()).delete(any(Category.class));
+    }
+
+    @Test
     void deleteCategory_Success() {
         when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepositoryPort.findByParentId(1L)).thenReturn(Collections.emptyList());
         when(productRepositoryPort.findByCategoryId(1L)).thenReturn(Collections.emptyList());
 
         assertDoesNotThrow(() -> categoryUseCase.deleteCategory(1L));
         verify(categoryRepositoryPort).delete(category);
+    }
+
+    @Test
+    void updateCategory_ThrowsBusinessRuleException_WhenParentIsDescendant() {
+        Category child = Category.builder().id(2L).name("Novels").parentId(1L).build();
+        when(categoryRepositoryPort.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepositoryPort.findById(2L)).thenReturn(Optional.of(child));
+
+        assertThrows(BusinessRuleException.class,
+                () -> categoryUseCase.updateCategory(1L, null, null, 2L));
+        verify(categoryRepositoryPort, never()).save(any(Category.class));
     }
 
     @Test

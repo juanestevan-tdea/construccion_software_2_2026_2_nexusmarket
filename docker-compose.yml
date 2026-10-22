@@ -4,14 +4,14 @@ services:
     container_name: nexusmarket-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-nexusmarket}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -47,11 +47,11 @@ services:
     environment:
       DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nexusmarket}?useSSL=false&serverTimezone=America/Bogota&allowPublicKeyRetrieval=true
       DB_USERNAME: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       MONGODB_URI: mongodb://mongodb:27017/nexusmarket_audit
-      # Fallback SOLO para desarrollo local. En producción exporta JWT_SECRET
-      # en el host antes de `docker compose up -d`.
-      JWT_SECRET: ${JWT_SECRET:-dev-only-docker-secret-override-in-production-0123456789abcdef}
+      # JWT_SECRET is required; define it in .env or the host environment
+      # before running docker compose up -d.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
     depends_on:
       mysql:
         condition: service_healthy

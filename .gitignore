@@ -26,4 +26,14 @@ Thumbs.db
 !.env.example
 application-local.properties
 application-local.yml
+application-local*.properties
+application-local*.yml
+application-dev.properties
 application-dev.yml
+
+# Local configuration and key material
+config/
+secrets/
+*.pem
+*.p12
+*.jks

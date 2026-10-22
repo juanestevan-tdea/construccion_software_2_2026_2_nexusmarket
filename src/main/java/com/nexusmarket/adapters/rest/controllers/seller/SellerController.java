@@ -25,7 +25,6 @@ import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.in.seller.SellerUseCasePort;
-import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
 import com.nexusmarket.infrastructure.security.UserDetailsAdapter;
 
 import jakarta.validation.Valid;
@@ -42,7 +41,6 @@ import lombok.RequiredArgsConstructor;
 public class SellerController {
 
     private final SellerUseCasePort sellerUseCasePort;
-    private final SellerRepositoryPort sellerRepositoryPort;
     private final UserUseCasePort userUseCasePort;
 
     @PostMapping
@@ -132,7 +130,7 @@ public class SellerController {
 
     private Seller currentSeller(UserDetailsAdapter principal) {
         Long userId = authenticatedUserId(principal);
-        return sellerRepositoryPort.findByUserId(userId)
+        return sellerUseCasePort.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", userId));
     }
 

@@ -1,0 +1,31 @@
+# Build and VCS metadata
+.git
+.gitignore
+target
+target_test-classes
+*.log
+
+# Local IDE settings
+.idea
+.vscode
+.settings
+.project
+.classpath
+
+# Secrets and local profiles must never enter the build context
+.env
+.env.*
+!.env.example
+config/
+application-local.properties
+application-local.yml
+application-dev.properties
+application-dev.yml
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+src/main/resources/application-dev.properties
+src/main/resources/application-dev.yml
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -97,11 +97,55 @@ class ReturnServiceTest {
     }
 
     @Test
+    void findAllByBuyerId_aggregatesReturnsAcrossBuyerOrders() {
+        Order secondOrder = new Order();
+        secondOrder.setId(2L);
+
+        Return firstReturn = Return.builder().id(10L).orderId(1L).build();
+        Return secondReturn = Return.builder().id(11L).orderId(2L).build();
+
+        when(orderRepositoryPort.findByBuyerId(20L)).thenReturn(List.of(order, secondOrder));
+        when(returnRepositoryPort.findByOrderId(1L)).thenReturn(List.of(firstReturn));
+        when(returnRepositoryPort.findByOrderId(2L)).thenReturn(List.of(secondReturn));
+
+        List<Return> result = returnUseCase.findAllByBuyerId(20L);
+
+        assertEquals(List.of(firstReturn, secondReturn), result);
+    }
+
+    @Test
     void completeReturn_ThrowsReturnNotAllowedException_WhenNotApproved() {
         Return ret = Return.builder().id(5L).status(ReturnStatus.REQUESTED).build();
         when(returnRepositoryPort.findById(5L)).thenReturn(Optional.of(ret));
 
         assertThrows(ReturnNotAllowedException.class, () -> returnUseCase.completeReturn(5L));
+    }
+
+    @Test
+    void approveReturn_ThrowsReturnAlreadyProcessedException_WhenAlreadyRejected() {
+        Return ret = Return.builder().id(6L).status(ReturnStatus.REJECTED).build();
+        when(returnRepositoryPort.findById(6L)).thenReturn(Optional.of(ret));
+
+        assertThrows(ReturnAlreadyProcessedException.class, () -> returnUseCase.approveReturn(6L));
+        verify(returnRepositoryPort, never()).save(any(Return.class));
+    }
+
+    @Test
+    void rejectReturn_ThrowsReturnAlreadyProcessedException_WhenAlreadyApproved() {
+        Return ret = Return.builder().id(7L).status(ReturnStatus.APPROVED).build();
+        when(returnRepositoryPort.findById(7L)).thenReturn(Optional.of(ret));
+
+        assertThrows(ReturnAlreadyProcessedException.class, () -> returnUseCase.rejectReturn(7L));
+        verify(returnRepositoryPort, never()).save(any(Return.class));
+    }
+
+    @Test
+    void completeReturn_ThrowsReturnAlreadyProcessedException_WhenRejected() {
+        Return ret = Return.builder().id(8L).status(ReturnStatus.REJECTED).build();
+        when(returnRepositoryPort.findById(8L)).thenReturn(Optional.of(ret));
+
+        assertThrows(ReturnAlreadyProcessedException.class, () -> returnUseCase.completeReturn(8L));
+        verify(returnRepositoryPort, never()).save(any(Return.class));
     }
 }
 
