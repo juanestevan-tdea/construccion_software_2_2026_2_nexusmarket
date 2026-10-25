@@ -9,6 +9,7 @@ import com.nexusmarket.domain.services.UserStatusService;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +18,8 @@ import java.util.Optional;
  * Adaptador de entrada para la administración de usuarios.
  *
  * <p>No accede a repositorios ni implementa reglas: delega cada operación en el
- * servicio de dominio especializado.</p>
+ * servicio de dominio especializado. Aquí, en la frontera del caso de uso, sí
+ * se declaran las transacciones (P2-03).</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class UserUseCaseImpl implements UserUseCasePort {
     private final SessionInvalidationService sessionInvalidationService;
 
     @Override
+    @Transactional
     public User createUser(String email, String fullName, String password, UserRole role) {
         return userCreationService.createUser(email, fullName, password, role);
     }

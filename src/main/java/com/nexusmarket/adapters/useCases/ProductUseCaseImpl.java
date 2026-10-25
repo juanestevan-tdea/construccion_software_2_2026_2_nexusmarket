@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Product;
@@ -22,6 +23,7 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     private final ProductRepositoryPort productRepositoryPort;
 
     @Override
+    @Transactional
     public Product createProduct(String sku, String name, String description, BigDecimal price,
             ProductType type, Long sellerId, Long categoryId) {
         return productDomainService.createProduct(sku, name, description, price, type, sellerId, categoryId);
@@ -54,12 +56,14 @@ public class ProductUseCaseImpl implements ProductUseCasePort {
     }
 
     @Override
+    @Transactional
     public Product updateProduct(Long id, String name, String description, BigDecimal price,
             ProductType type, Long categoryId) {
         return productDomainService.updateProduct(id, name, description, price, type, categoryId);
     }
 
     @Override
+    @Transactional
     public Product deactivateProduct(Long id) {
         return productDomainService.deactivateProduct(id);
     }

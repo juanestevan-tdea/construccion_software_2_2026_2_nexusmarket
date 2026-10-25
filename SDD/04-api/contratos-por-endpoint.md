@@ -312,5 +312,7 @@ inválido o factura inactiva/impaga (`RefundAmountExceededException`,
 
 `SDD/04-api/openapi.yaml` documenta los flujos principales (autenticación,
 catálogo, órdenes, productos, devoluciones y salud). La referencia completa de
-los 96 endpoints es este documento; la generación automática requeriría añadir
-`springdoc-openapi`, que no está incluido.
+los 96 endpoints es este documento. Además, `springdoc-openapi` (3.0.1) genera
+el contrato en runtime desde los controladores y lo publica sin autenticación
+en `/v3/api-docs` (JSON) y `/v3/api-docs.yaml`, con Swagger UI en
+`/swagger-ui.html`.

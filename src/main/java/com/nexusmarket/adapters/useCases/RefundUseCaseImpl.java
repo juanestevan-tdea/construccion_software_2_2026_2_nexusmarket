@@ -9,6 +9,7 @@ import com.nexusmarket.domain.services.RefundApproveService;
 import com.nexusmarket.domain.services.RefundProcessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,6 +24,7 @@ public class RefundUseCaseImpl implements RefundUseCasePort {
     private final InvoiceRepositoryPort invoiceRepositoryPort;
 
     @Override
+    @Transactional
     public Refund createRefund(Long invoiceId, Long returnRequestId, BigDecimal amount) {
         return refundProcessService.createRefund(invoiceId, returnRequestId, amount);
     }
@@ -47,11 +49,13 @@ public class RefundUseCaseImpl implements RefundUseCasePort {
     }
 
     @Override
+    @Transactional
     public Refund approveRefund(Long id) {
         return refundApproveService.approveRefund(id);
     }
 
     @Override
+    @Transactional
     public Refund rejectRefund(Long id) {
         return refundApproveService.rejectRefund(id);
     }

@@ -29,7 +29,7 @@ construido con **arquitectura hexagonal (Ports & Adapters)** sobre
 | 03. Dominio | [03-dominio/matriz-srp.md](03-dominio/matriz-srp.md) | Matriz de hallazgos SRP y cambios aplicados |
 | 03. Dominio | [03-dominio/auditoria-servicios-excepciones.md](03-dominio/auditoria-servicios-excepciones.md) | Auditoría completa de servicios, casos de uso y excepciones |
 | 04. API | [04-api/contratos-por-endpoint.md](04-api/contratos-por-endpoint.md) | Contratos de los 96 endpoints |
-| 04. API | [04-api/openapi.yaml](04-api/openapi.yaml) | Especificación OpenAPI 3.1 mantenida a mano |
+| 04. API | [04-api/openapi.yaml](04-api/openapi.yaml) | Especificación OpenAPI 3.1 (curada a mano; la versión viva la genera springdoc) |
 | 05. Despliegue | [05-despliegue/diagrama-despliegue.md](05-despliegue/diagrama-despliegue.md) | Docker Compose: MySQL + MongoDB + App |
 | 06. Adaptadores | [06-adaptadores/global-exception-handler.md](06-adaptadores/global-exception-handler.md) | Excepciones de dominio y mapeo HTTP |
 | 06. Adaptadores | [06-adaptadores/seguridad-y-autorizacion.md](06-adaptadores/seguridad-y-autorizacion.md) | JWT, roles y propiedad de recursos |
@@ -60,9 +60,11 @@ construido con **arquitectura hexagonal (Ports & Adapters)** sobre
    Se añadió `DomainException` y las 17 excepciones concretas heredan de ella.
    `GlobalExceptionHandler` mapea 404/409/422/400/502 y tiene un fallback 400
    para excepciones de dominio no mapeadas.
-7. **OpenAPI no servido automáticamente (pendiente).**
-   `SecurityConfig` permite `/v3/api-docs/**` y `/swagger-ui/**`, pero no se
-   incluye `springdoc-openapi`. El contrato vive en `04-api/openapi.yaml`.
+7. **OpenAPI servido por springdoc (resuelta).**
+   `springdoc-openapi-starter-webmvc-ui` 3.0.1 genera el contrato en
+   `/v3/api-docs` y publica Swagger UI en `/swagger-ui.html`; `SecurityConfig`
+   deja ambas rutas en `permitAll`. `04-api/openapi.yaml` se mantiene como
+   contrato de referencia curado a mano.
 8. **Notificaciones sin uso (pendiente).**
    `NotificationPort` y `NoOpNotificationAdapter` existen, pero ningún caso de
    uso los invoca.

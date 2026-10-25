@@ -294,6 +294,13 @@ La lista completa (96 endpoints) está en
 [SDD/04-api/contratos-por-endpoint.md](SDD/04-api/contratos-por-endpoint.md) y
 en [SDD/04-api/openapi.yaml](SDD/04-api/openapi.yaml).
 
+Con la aplicación en marcha, la documentación interactiva queda publicada por
+`springdoc-openapi` y es de acceso público (sin JWT):
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html` (también `/swagger-ui/index.html`)
+- Contrato generado en JSON: `http://localhost:8080/v3/api-docs`
+- Contrato generado en YAML: `http://localhost:8080/v3/api-docs.yaml`
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/api/v1/auth/register` | Registro de BUYER o SELLER |
@@ -382,8 +389,9 @@ Cobertura funcional relevante:
 
 ## ⚠️ Limitaciones conocidas
 
-1. **OpenAPI no se sirve automáticamente**: no se incluye `springdoc-openapi`.
-   El contrato se mantiene a mano en `SDD/04-api/openapi.yaml`.
+1. **Swagger UI público en todos los entornos**: `springdoc-openapi` sirve
+   `/swagger-ui.html` y `/v3/api-docs` sin autenticación. Antes de un despliegue
+   real conviene restringir esas rutas por perfil.
 2. **Esquema con `ddl-auto=update`**: existe `db/migration/V1__add_token_version.sql`
    pero Flyway no está habilitado; el script es informativo y no se ejecuta.
 3. **Sin transacciones distribuidas**: MySQL y MongoDB se actualizan por

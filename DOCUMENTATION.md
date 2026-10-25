@@ -264,7 +264,8 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 
 ## 12. Limitaciones conocidas
 
-1. OpenAPI no se sirve automáticamente: no se incluye `springdoc-openapi`.
+1. Swagger UI está expuesto de forma pública en `/swagger-ui.html` y el
+   contrato generado por `springdoc-openapi` en `/v3/api-docs`; no exigen JWT.
 2. Flyway no está habilitado; `ddl-auto=update` controla el esquema.
 3. Sin transacciones distribuidas entre MySQL y MongoDB.
 4. Notificaciones implementadas solo como `NoOpNotificationAdapter`.

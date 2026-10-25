@@ -18,13 +18,10 @@ import com.nexusmarket.domain.valueobjects.InventoryStatus;
 import com.nexusmarket.domain.valueobjects.ProductType;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@Service
 @RequiredArgsConstructor
 public class ProductDomainService {
 
@@ -34,7 +31,6 @@ public class ProductDomainService {
     private final UserRepositoryPort userRepositoryPort;
     private final InventoryRepositoryPort inventoryRepositoryPort;
 
-    @Transactional
     public Product createProduct(String sku, String name, String description, BigDecimal price,
             ProductType type, Long sellerId, Long categoryId) {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
@@ -80,7 +76,6 @@ public class ProductDomainService {
         return productRepositoryPort.save(product);
     }
 
-    @Transactional
     public Product updateProduct(Long id, String name, String description, BigDecimal price,
             ProductType type, Long categoryId) {
         Product product = productRepositoryPort.findById(id)
@@ -111,7 +106,6 @@ public class ProductDomainService {
         return productRepositoryPort.save(product);
     }
 
-    @Transactional
     public Product deactivateProduct(Long id) {
         Product product = productRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", id));

@@ -41,7 +41,7 @@ El `jti` se incluye para auditoría; no se usa como lista de revocación.
 |---|---|
 | `/api/v1/auth/register`, `/api/v1/auth/login` | `permitAll` |
 | `/actuator/health` | `permitAll` |
-| `/v3/api-docs/**`, `/swagger-ui/**` | `permitAll` (sin springdoc instalado) |
+| `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` | `permitAll` (Swagger UI y contrato OpenAPI públicos) |
 | `/api/v1/admin/users/me` | Autenticado |
 | `/api/v1/admin/**` | `ADMIN` |
 | `/api/v1/buyer/**` | `BUYER` |

@@ -3,6 +3,7 @@ package com.nexusmarket.users.service;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
+import com.nexusmarket.domain.ports.out.PasswordHasherPort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.services.PasswordChangeService;
 import com.nexusmarket.domain.valueobjects.UserRole;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -31,13 +31,13 @@ class PasswordChangeServiceTest {
     private UserRepositoryPort userRepositoryPort;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private PasswordHasherPort passwordHasherPort;
 
     private PasswordChangeService service;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        service = new PasswordChangeService(userRepositoryPort, passwordEncoder);
+        service = new PasswordChangeService(userRepositoryPort, passwordHasherPort);
     }
 
     @Test
@@ -45,8 +45,8 @@ class PasswordChangeServiceTest {
     void changePassword_updatesHashAndInvalidatesSessions() {
         User user = user(1L, 3);
         when(userRepositoryPort.findById(1L)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("OldPass123", "old-hash")).thenReturn(true);
-        when(passwordEncoder.encode("NewPass123")).thenReturn("new-hash");
+        when(passwordHasherPort.matches("OldPass123", "old-hash")).thenReturn(true);
+        when(passwordHasherPort.hash("NewPass123")).thenReturn("new-hash");
         when(userRepositoryPort.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         User result = service.changePassword(1L, "OldPass123", "NewPass123");
@@ -63,7 +63,7 @@ class PasswordChangeServiceTest {
     void changePassword_rejectsWrongCurrentPassword() {
         User user = user(1L, 0);
         when(userRepositoryPort.findById(1L)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("WrongPass1", "old-hash")).thenReturn(false);
+        when(passwordHasherPort.matches("WrongPass1", "old-hash")).thenReturn(false);
 
         assertThatThrownBy(() -> service.changePassword(1L, "WrongPass1", "NewPass123"))
                 .isInstanceOf(BusinessRuleException.class)
@@ -77,7 +77,7 @@ class PasswordChangeServiceTest {
     void changePassword_rejectsWeakNewPassword() {
         User user = user(1L, 0);
         when(userRepositoryPort.findById(1L)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("OldPass123", "old-hash")).thenReturn(true);
+        when(passwordHasherPort.matches("OldPass123", "old-hash")).thenReturn(true);
 
         assertThatThrownBy(() -> service.changePassword(1L, "OldPass123", "short"))
                 .isInstanceOf(BusinessRuleException.class)

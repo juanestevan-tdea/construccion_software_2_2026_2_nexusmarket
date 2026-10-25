@@ -8,6 +8,7 @@ import com.nexusmarket.domain.services.WarehouseDomainService;
 import com.nexusmarket.domain.valueobjects.WarehouseType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ public class WarehouseUseCaseImpl implements WarehouseUseCasePort {
     private final WarehouseRepositoryPort warehouseRepositoryPort;
 
     @Override
+    @Transactional
     public Warehouse createWarehouse(String name, String location, WarehouseType type, Integer capacity) {
         return warehouseDomainService.createWarehouse(name, location, type, capacity);
     }
@@ -40,6 +42,7 @@ public class WarehouseUseCaseImpl implements WarehouseUseCasePort {
     }
 
     @Override
+    @Transactional
     public Warehouse updateWarehouse(Long id, String name, String location, WarehouseType type, Integer capacity) {
         return warehouseDomainService.updateWarehouse(id, name, location, type, capacity);
     }

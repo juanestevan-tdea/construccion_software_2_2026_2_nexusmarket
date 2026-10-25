@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -78,6 +79,40 @@ class SrpArchitectureTest {
                         violations.add(service.getSimpleName() + "." + method.getName()
                                 + " : " + parameterType.getName());
                     }
+                }
+            }
+        }
+
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("los servicios migrados en la fase P2-03 no dependen de Spring")
+    void migratedDomainServicesDoNotDependOnSpring() throws Exception {
+        List<Class<?>> migrated = List.of(
+                Class.forName("com.nexusmarket.domain.services.UserCreationService"),
+                Class.forName("com.nexusmarket.domain.services.PasswordChangeService"),
+                Class.forName("com.nexusmarket.domain.services.InvoiceGenerateService"),
+                Class.forName("com.nexusmarket.domain.services.InvoiceVoidService"),
+                Class.forName("com.nexusmarket.domain.services.RefundProcessService"),
+                Class.forName("com.nexusmarket.domain.services.RefundApproveService"),
+                Class.forName("com.nexusmarket.domain.services.ProductDomainService"),
+                Class.forName("com.nexusmarket.domain.services.CategoryDomainService"),
+                Class.forName("com.nexusmarket.domain.services.InventoryManagementService"),
+                Class.forName("com.nexusmarket.domain.services.InventoryConsultService"),
+                Class.forName("com.nexusmarket.domain.services.WarehouseDomainService"));
+
+        List<String> violations = new ArrayList<>();
+        for (Class<?> service : migrated) {
+            for (Annotation annotation : service.getAnnotations()) {
+                if (annotation.annotationType().getName().startsWith("org.springframework")) {
+                    violations.add(service.getSimpleName() + " : @" + annotation.annotationType().getSimpleName());
+                }
+            }
+            for (Field field : service.getDeclaredFields()) {
+                String type = field.getType().getName();
+                if (type.startsWith("org.springframework") || type.startsWith("jakarta.")) {
+                    violations.add(service.getSimpleName() + "." + field.getName() + " : " + type);
                 }
             }
         }

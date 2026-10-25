@@ -2,8 +2,6 @@ package com.nexusmarket.domain.services;
 
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
@@ -12,7 +10,6 @@ import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class InventoryConsultService {
 

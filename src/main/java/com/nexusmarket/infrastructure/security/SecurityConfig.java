@@ -36,11 +36,15 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
         "/api/v1/auth/register",
         "/api/v1/auth/login",
-        "/swagger-ui/**",
-        "/swagger-ui.html",
-        "/v3/api-docs/**",
         "/actuator/health",
         "/actuator/health/**"
+    };
+
+    // Documentación OpenAPI / Swagger UI (siempre pública, sin JWT)
+    private static final String[] SWAGGER_ENDPOINTS = {
+        "/v3/api-docs/**",
+        "/swagger-ui/**",
+        "/swagger-ui.html"
     };
 
     // Endpoints de auth que requieren autenticación (logout, change-password)
@@ -63,6 +67,9 @@ public class SecurityConfig {
                 .sessionManagement(session
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                // Documentación OpenAPI (debe ir antes de cualquier regla de rol)
+                .requestMatchers(SWAGGER_ENDPOINTS).permitAll()
+
                 // Auth endpoints
                 .requestMatchers(AUTHENTICATED_AUTH_ENDPOINTS).authenticated()
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()

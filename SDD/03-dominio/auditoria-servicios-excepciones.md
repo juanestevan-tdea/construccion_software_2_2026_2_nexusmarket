@@ -156,12 +156,12 @@ significados existentes.
 |---|---|---|---|---|---|---|
 | P2-01 | `adapters/useCases/AuthenticationUseCaseImpl.java` | Registro, login, logout y cambio de contraseña | Cuatro operaciones y coordinación de perfiles/JWT/auditoría en una fachada | 7 dependencias inyectadas; métodos públicos de cuatro flujos | Cambios en un flujo pueden afectar a otro; difícil aislar pruebas | **Sin cambio**: se evaluó dividir en servicios por operación, pero se mantiene como fachada cohesiva para no fragmentar el contrato HTTP ni duplicar la transacción de registro. Reevaluar si crece el registro |
 | P2-02 | `domain/services/ProductDomainService.java` | Publicación y ciclo de vida del producto | Cinco puertos de salida y validaciones de vendedor, usuario, categoría e inventario | Constructor con 5 dependencias | La publicación puede acumular más reglas y volverse difícil de probar | **Sin cambio**: las reglas pertenecen al mismo agregado. Si aparecen reglas de publicación independientes, extraer una política de publicación |
-| P2-03 | Servicios de `domain/services` | Lógica de dominio | Usan `@Service`, `@Transactional` y dos servicios usan `PasswordEncoder` de Spring Security | 28 servicios; `UserCreationService`, `PasswordChangeService` | Acoplamiento al contenedor/seguridad; dificulta reutilizar el dominio fuera de Spring | **Sin cambio** por riesgo y alcance: declarar beans en `infrastructure/config` y abstraer el cifrado mediante un puerto. Documentado como deuda |
+| P2-03 | Servicios de `domain/services` | Lógica de dominio | Los 28 servicios usan `@Service`/`@Transactional` y dos usan `PasswordEncoder` de Spring Security | 28 de 28 clases con `import org.springframework`; `UserCreationService`, `PasswordChangeService` | Acoplamiento al contenedor/seguridad; dificulta reutilizar el dominio fuera de Spring | **Plan definido, sin ejecutar:** declarar beans en `infrastructure/config`, retirar `@Service`/`@Transactional` del dominio y sustituir `PasswordEncoder` por un puerto + adaptador. Riesgo alto en una sola pasada (28 clases, ~30 sitios de `new` en pruebas, pérdida de proxy transaccional en servicios invocados desde otros servicios); ver plan por fases en §6 |
 | P2-04 | `domain/services/CategoryDomainService.java` | Integridad de la jerarquía de categorías | Solo impedía que una categoría fuera su propio padre; no detectaba ciclos con descendientes ni validaba categorías hijas al borrar | `updateCategory` comparaba `parentId.equals(id)` y no recorría ancestros; `deleteCategory` solo consultaba productos | Jerarquías cíclicas o borrado de una categoría padre con hijas; posible error de integridad en persistencia | **Corregido:** `updateCategory` recorre ancestros y detecta ciclos; `deleteCategory` consulta `findByParentId` y rechaza hijas (`BusinessRuleException`, 422). Pruebas en `CategoryServiceTest` |
-| P2-05 | `domain/services/OrderCalculationService.java` | Composición de la orden | `addItem` valida cantidad y existencia, pero no que el producto esté activo ni que haya stock disponible | RF-024 solo exige 404 para producto inexistente; el servicio no consulta inventario | Se pueden añadir productos inactivos o sin stock; el fallo se traslada al checkout o a una validación posterior | **Pendiente de decisión funcional**: si la regla es “solo productos activos/disponibles”, añadir la validación y pruebas; no se inventó una regla no documentada |
+| P2-05 | `domain/services/OrderCalculationService.java` | Composición de la orden | `addItem` validaba cantidad y existencia, pero no que el producto estuviera activo ni el stock disponible | `addItem` solo consultaba `productRepositoryPort.findById` | Se podían añadir productos inactivos o sin stock; el fallo se trasladaba al checkout | **Resuelto:** `addItem` rechaza producto inactivo (`BusinessRuleException`, 422) y compara la cantidad con el stock `AVAILABLE` agregado por producto (nuevo `InventoryRepositoryPort` inyectado, helper `availableStock`). 6 pruebas nuevas en `OrderServiceTest`: éxito, producto inexistente (404), inactivo, stock insuficiente, inventario solo `RESERVED`/`DAMAGED` y sin registros |
 | P2-06 | Controladores de comprador/vendedor | Autorización de propiedad | Cada controlador repite comparaciones de `userId`/`buyerId`/`sellerId` | `ProductController`, `OrderController`, `BuyerController`, `SellerController`, `ReturnController` | Duplicación y riesgo de olvidar una comprobación en un endpoint nuevo | **Sin cambio inmediato**: funciona y está cubierto por pruebas; extraer una política de propiedad si se repite en más endpoints |
-| P2-07 | `InvoiceGenerateService` / `InvoiceVoidService` | Generación y anulación de facturas | La generación crea la factura con `paid = true`, pero la anulación exige `paid = false`; no existe endpoint para marcar una factura como impaga | `InvoiceGenerateService` usa `paid(true)`; RF-032 describe anular una factura impaga | El camino exitoso de anulación queda inalcanzable en el flujo normal; solo funciona con datos heredados/importados | **Pendiente de decisión funcional:** definir si la factura nace impaga, si el pago se registra en otro flujo o si la anulación debe admitir otro estado. No se cambió el comportamiento para no inventar un pago de factura |
-| P2-08 | `RefundProcessService` | Integridad factura–devolución | Verifica que la devolución exista, pero no que pertenezca a la misma orden que la factura | `returnRepositoryPort.existsById(returnRequestId)` no compara `orderId` de factura y devolución | Un reembolso podría asociarse a una devolución de otra orden si el cliente envía ids válidos pero no relacionados | **Pendiente de confirmación:** si se exige la relación, usar `findById` y comparar `invoice.orderId` con `return.orderId`; no se aplicó para no ampliar el contrato sin confirmación |
+| P2-07 | `InvoiceGenerateService` / `InvoiceVoidService` | Generación y anulación de facturas | La anulación de una factura pagada se bloquea correctamente, pero la generación crea siempre `paid = true`, así que el camino exitoso de anulación no es alcanzable desde el flujo normal | `InvoiceVoidService` ya lanza `InvoiceNotPayableException` si `paid = true`; `InvoiceGenerateService` usa `paid(true)` | Anular una factura pagada está impedido (correcto), pero RF-032 (anular una factura impaga) solo se puede ejecutar con datos heredados/importados | **Validación resuelta:** la regla “una factura pagada no puede anularse” estaba implementada y probada (`InvoiceServiceTest`: `voidInvoice_ThrowsInvoiceNotPayableException_WhenPaid`). **Sigue abierta la decisión funcional** sobre el `paid=true` de la generación (si la factura debe nacer impaga o si el pago se registra en otro flujo); no se cambió el comportamiento para no inventar un pago |
+| P2-08 | `RefundProcessService` | Integridad factura–devolución | Verificaba que la devolución existiera, pero no que perteneciera a la misma orden que la factura | `returnRepositoryPort.existsById(returnRequestId)` no comparaba `orderId` de factura y devolución | Un reembolso podía asociarse a una devolución de otra orden con ids válidos pero no relacionados | **Resuelto:** se usa `findById` (404 si no existe) y se compara `invoice.orderId` con `return.orderId`, lanzando `RefundNotAllowedException` (422) si difieren o si la factura no tiene orden. El `returnRequestId` sigue siendo opcional. 3 pruebas nuevas en `RefundServiceTest`: otra orden, devolución inexistente y misma orden con éxito |
 
 ### P3 — Mejora menor / consistencia
 
@@ -194,17 +194,106 @@ significados existentes.
 
 ### Deuda o acoplamiento documentado
 
-1. **Anotaciones Spring en dominio:** `@Service` y `@Transactional` en los
-   servicios. Es una decisión pragmática existente; la alternativa es configurar
-   beans en infraestructura y dejar POJOs.
+1. **Anotaciones Spring en dominio (28 de 28 servicios):** `@Service` y
+   `@Transactional` en los servicios. Es una decisión pragmática existente; la
+   alternativa es configurar beans en infraestructura y dejar POJOs. **Plan en
+   §6.1.**
 2. **`PasswordEncoder` en dominio:** `UserCreationService` y
    `PasswordChangeService` dependen de una interfaz de Spring Security. No es una
    implementación concreta, pero sigue siendo un detalle de seguridad externo.
+   **Plan en §6.1.**
 3. **Mappers JPA que lanzan excepciones de dominio:** la dirección es correcta,
    pero el adaptador decide una condición de dominio. No se refactorizó por
    riesgo de cambiar la semántica de carga de relaciones.
 4. **`AuthenticationUseCaseImpl` depende de `JwtService`:** está en
    `adapters/useCases`, no en dominio; se acepta como coordinación de aplicación.
+
+### 6.1 Plan para dejar `domain/services` sin dependencias de Spring (P2-03)
+
+**Inventario actual** (verificado sobre los 28 archivos):
+
+| Acoplamiento | Alcance | Detalle |
+|---|---|---|
+| `@Service` | 28/28 clases | Estereotipo del contenedor |
+| `org.springframework.transaction.annotation.Transactional` | 20 clases | Incluye `InventoryManagementService` (5 métodos), `OrderLifecycleService` (6) y `RefundApproveService` (2) |
+| `PasswordEncoder` | 2 clases | `UserCreationService` (`encode`), `PasswordChangeService` (`matches` + `encode`) |
+| `jakarta.servlet` | 0 clases | Ya cubierto por `SrpArchitectureTest` |
+
+**Estado deseado:**
+
+1. **Nuevo puerto** `domain/ports/out/PasswordHasherPort`:
+
+```java
+public interface PasswordHasherPort {
+    String hash(String rawPassword);
+    boolean matches(String rawPassword, String hashedPassword);
+}
+```
+
+2. **Nuevo adaptador** `infrastructure/security/BCryptPasswordHasherAdapter` que
+   envuelva `PasswordEncoder` (así el dominio ya no ve Spring Security).
+
+3. **Nueva configuración** `infrastructure/config/DomainServiceConfig` con un
+   `@Bean` por servicio, inyectando los puertos. Ejemplo:
+
+```java
+@Configuration
+public class DomainServiceConfig {
+
+    @Bean
+    OrderCalculationService orderCalculationService(OrderRepositoryPort orders,
+            ProductRepositoryPort products, InventoryRepositoryPort inventory) {
+        return new OrderCalculationService(orders, products, inventory);
+    }
+
+    @Bean
+    UserCreationService userCreationService(UserRepositoryPort users,
+            PasswordHasherPort hasher) {
+        return new UserCreationService(users, hasher);
+    }
+}
+```
+
+4. **Transacciones fuera del dominio.** No basta con mover `@Transactional` al
+   `@Bean`: Spring no aplica proxy transaccional a métodos invocados desde dentro
+   del mismo objeto, y hoy hay servicios que llaman a otros servicios
+   (`AuthenticationUseCaseImpl` → `UserCreationService`, `RefundUseCaseImpl` →
+   `RefundProcessService`/`RefundApproveService`). Opciones, en orden de
+   preferencia:
+   - **A (recomendada):** `TransactionTemplate` inyectado en las fachadas de
+     `adapters/useCases` (`OrderUseCaseImpl`, `RefundUseCaseImpl`,
+     `InvoiceUseCaseImpl`, etc.), que ya son la frontera de caso de uso. El
+     dominio queda sin anotaciones y la transacción sigue existiendo.
+   - **B:** mantener `@Transactional` solo en las fachadas de `adapters/useCases`
+     con `@Transactional` a nivel de clase.
+   - **C (no recomendada):** AOP manual o `TransactionInterceptor` programático
+     en cada `@Bean`; más código y más frágil.
+
+5. **Actualizar `SrpArchitectureTest`** para que falle si cualquier clase de
+   `com.nexusmarket.domain.services` importa `org.springframework.*` o
+   `jakarta.servlet.*`. Es el candado que impide la reaparición de la deuda.
+
+**Ejecución por fases (cada una con `mvnw test` verde):**
+
+1. **Fase 0 — Candado:** añadir la prueba de arquitectura de imports Spring en
+   modo `@Disabled` con la lista de excepciones actual (28 clases).
+2. **Fase 1 — Cifrado:** introducir `PasswordHasherPort` + adaptador y migrar
+   `UserCreationService`/`PasswordChangeService` y sus pruebas (cambio local,
+   sin tocar transacciones).
+3. **Fase 2 — Agregados de facturación y reembolsos:** mover `@Service` a
+   `DomainServiceConfig` y la transacción a `InvoiceUseCaseImpl` /
+   `RefundUseCaseImpl`. Actualizar `InvoiceServiceTest` y `RefundServiceTest`.
+4. **Fase 3 — Pedidos, catálogo e inventario:** mismo patrón en
+   `Order*Service`, `ProductDomainService`, `CategoryDomainService`,
+   `Inventory*Service`, `WarehouseDomainService`.
+5. **Fase 4 — Usuarios, compradores, vendedores y logística:** el resto.
+6. **Fase 5 — Cierre:** quitar `@Disabled` del candado y borrar los imports
+   Spring del dominio.
+
+**Riesgos a vigilar:** (a) pérdida silenciosa de transaccionalidad en llamadas
+servicio→servicio; (b) ~30 instanciaciones directas `new XxxService(...)` en
+pruebas que habrá que ajustar por fase; (c) `@Transactional(readOnly=true)` en
+consultas si se añade después.
 
 No se encontraron controladores con lógica de negocio compleja ni acceso directo
 a repositorios. La autorización por rol y propiedad sigue en `SecurityConfig` y
@@ -289,10 +378,12 @@ no un fallo de la suite.
 4. **Cobertura de jerarquía de categorías:** hay pruebas de ciclo directo y de
    borrado con hijas; no hay prueba de una jerarquía preexistente ya corrupta ni
    de concurrencia entre actualizaciones.
-5. **Sin prueba de producto inactivo/sin stock al añadir a la orden** (P2-05).
-6. **Sin prueba de la relación factura–devolución** en reembolsos (P2-08).
-7. **Sin prueba de endurecimiento del fallback** de `DomainException` no mapeada.
-8. **Sin prueba de `PaymentGatewayException`** porque no tiene productor real.
+5. **Pruebas de P2-05 y P2-08 añadidas:** `OrderServiceTest` cubre producto inactivo,
+   stock insuficiente, inventario no vendible y sin registros; `RefundServiceTest`
+   cubre devolución de otra orden e inexistente. Falta una prueba de integración
+   real contra MySQL/MongoDB para ambos flujos.
+6. **Sin prueba de endurecimiento del fallback** de `DomainException` no mapeada.
+7. **Sin prueba de `PaymentGatewayException`** porque no tiene productor real.
 
 ## 10. Componentes revisados que se conservan
 
@@ -319,20 +410,19 @@ no un fallo de la suite.
    cantidades nulas/negativas al crear inventario, con pruebas.
 4. **P2-04 — Hecho.** Detectar ciclos de categoría y bloquear el borrado con
    subcategorías, con pruebas.
-5. **P2-05 — Pendiente de decisión funcional.** Confirmar si añadir un producto a
-   la orden exige producto activo y stock; si se confirma, implementarlo con una
-   excepción existente y pruebas.
-6. **P2-07 — Pendiente de decisión funcional.** Resolver la contradicción
-   `paid=true` en generación vs. anulación de facturas impagas.
-7. **P2-08 — Pendiente de confirmación.** Validar que la devolución pertenece a
-   la misma orden que la factura antes de crear el reembolso.
-8. **P2-03 — Deuda arquitectónica.** Evaluar la extracción de anotaciones Spring
-   y del cifrado a puertos/configuración de infraestructura.
-9. **P2-01/P2-02 — Vigilar.** Reevaluar `AuthenticationUseCaseImpl` y
+5. **P2-05 y P2-08 — Resueltos.** Validación de producto activo/stock disponible
+   en `OrderCalculationService` y validación de pertenencia de la devolución a la
+   orden de la factura en `RefundProcessService`, con pruebas unitarias.
+6. **P2-07 — Validación resuelta; decisión funcional abierta.** La anulación de
+   facturas pagadas está bloqueada y probada. Falta decidir si la generación debe
+   dejar de crear facturas con `paid=true`.
+7. **P2-03 — Plan de pureza del dominio redactado** (beans en infraestructura +
+   puerto de cifrado). Pendiente de ejecución por fases; ver §6.
+8. **P2-01/P2-02 — Vigilar.** Reevaluar `AuthenticationUseCaseImpl` y
    `ProductDomainService` si crecen sus operaciones o dependencias.
-10. **P3-08 — Pruebas.** Añadir pruebas directas de los servicios y casos de uso
-    sin cobertura cuando se modifiquen.
-11. **P0-01 — Bloqueado.** Rotación/revocación de credenciales y saneamiento del
+9. **P3-08 — Pruebas.** Añadir pruebas directas de los servicios y casos de uso
+   sin cobertura cuando se modifiquen.
+10. **P0-01 — Bloqueado.** Rotación/revocación de credenciales y saneamiento del
     historial Git bajo un plan autorizado.
 
 ## 12. Limitaciones de esta auditoría

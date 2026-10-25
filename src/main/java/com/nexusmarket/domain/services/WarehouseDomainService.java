@@ -9,17 +9,13 @@ import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.WarehouseRepositoryPort;
 import com.nexusmarket.domain.valueobjects.WarehouseType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @RequiredArgsConstructor
 public class WarehouseDomainService {
 
     private final WarehouseRepositoryPort warehouseRepositoryPort;
     private final InventoryRepositoryPort inventoryRepositoryPort;
 
-    @Transactional
     public Warehouse createWarehouse(String name, String location, WarehouseType type, Integer capacity) {
         if (warehouseRepositoryPort.existsByName(name)) {
             throw new DuplicateResourceException("Warehouse", "name", name);
@@ -35,7 +31,6 @@ public class WarehouseDomainService {
         return warehouseRepositoryPort.save(warehouse);
     }
 
-    @Transactional
     public Warehouse updateWarehouse(Long id, String name, String location, WarehouseType type, Integer capacity) {
         Warehouse warehouse = warehouseRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse", id));

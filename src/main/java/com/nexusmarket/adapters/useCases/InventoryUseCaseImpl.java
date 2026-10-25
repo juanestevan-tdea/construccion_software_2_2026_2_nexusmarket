@@ -6,6 +6,7 @@ import com.nexusmarket.domain.services.InventoryConsultService;
 import com.nexusmarket.domain.services.InventoryManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class InventoryUseCaseImpl implements InventoryUseCasePort {
     private final InventoryConsultService inventoryConsultService;
 
     @Override
+    @Transactional
     public Inventory createInventory(Long productId, Long warehouseId, Integer quantity) {
         return inventoryManagementService.createInventory(productId, warehouseId, quantity);
     }
@@ -42,21 +44,25 @@ public class InventoryUseCaseImpl implements InventoryUseCasePort {
     }
 
     @Override
+    @Transactional
     public Inventory reserve(Long id, int amount) {
         return inventoryManagementService.reserve(id, amount);
     }
 
     @Override
+    @Transactional
     public Inventory confirmPayment(Long id) {
         return inventoryManagementService.confirmPayment(id);
     }
 
     @Override
+    @Transactional
     public Inventory markAsDamaged(Long id) {
         return inventoryManagementService.markAsDamaged(id);
     }
 
     @Override
+    @Transactional
     public Inventory adjust(Long id, int amount) {
         return inventoryManagementService.adjust(id, amount);
     }

@@ -7,6 +7,7 @@ import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.services.CategoryDomainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class CategoryUseCaseImpl implements CategoryUseCasePort {
     private final CategoryRepositoryPort categoryRepositoryPort;
 
     @Override
+    @Transactional
     public Category createCategory(String name, String description, Long parentId) {
         return categoryDomainService.createCategory(name, description, parentId);
     }
@@ -39,11 +41,13 @@ public class CategoryUseCaseImpl implements CategoryUseCasePort {
     }
 
     @Override
+    @Transactional
     public Category updateCategory(Long id, String name, String description, Long parentId) {
         return categoryDomainService.updateCategory(id, name, description, parentId);
     }
 
     @Override
+    @Transactional
     public void deleteCategory(Long id) {
         categoryDomainService.deleteCategory(id);
     }

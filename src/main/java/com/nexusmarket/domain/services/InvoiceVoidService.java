@@ -5,16 +5,12 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @RequiredArgsConstructor
 public class InvoiceVoidService {
 
     private final InvoiceRepositoryPort invoiceRepositoryPort;
 
-    @Transactional
     public Invoice voidInvoice(Long id) {
         Invoice invoice = invoiceRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice", id));

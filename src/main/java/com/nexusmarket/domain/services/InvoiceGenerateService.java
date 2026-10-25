@@ -3,9 +3,6 @@ package com.nexusmarket.domain.services;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
@@ -17,14 +14,12 @@ import com.nexusmarket.domain.valueobjects.OrderStatus;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class InvoiceGenerateService {
 
     private final InvoiceRepositoryPort invoiceRepositoryPort;
     private final OrderRepositoryPort orderRepositoryPort;
 
-    @Transactional
     public Invoice generateInvoice(Long orderId, String pdfUrl) {
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));

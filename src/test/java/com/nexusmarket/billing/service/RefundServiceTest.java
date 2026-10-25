@@ -6,6 +6,7 @@ import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
 import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Refund;
+import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.in.supervisor.RefundUseCasePort;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
@@ -46,6 +47,7 @@ class RefundServiceTest {
     void setUp() {
         invoice = Invoice.builder()
                 .id(1L)
+                .orderId(100L)
                 .amount(BigDecimal.valueOf(100.00))
                 .paid(true)
                 .active(true)
@@ -120,6 +122,45 @@ class RefundServiceTest {
         assertThrows(RefundNotAllowedException.class,
                 () -> refundUseCase.createRefund(1L, null, BigDecimal.ZERO));
         verify(refundRepositoryPort, never()).save(any(Refund.class));
+    }
+
+    @Test
+    void createRefund_ThrowsException_WhenReturnBelongsToAnotherOrder() {
+        Return otherOrderReturn = Return.builder().id(7L).orderId(999L).build();
+
+        when(invoiceRepositoryPort.findById(1L)).thenReturn(Optional.of(invoice));
+        when(refundRepositoryPort.findByInvoiceId(1L)).thenReturn(Collections.emptyList());
+        when(returnRepositoryPort.findById(7L)).thenReturn(Optional.of(otherOrderReturn));
+
+        assertThrows(RefundNotAllowedException.class,
+                () -> refundUseCase.createRefund(1L, 7L, BigDecimal.valueOf(10.00)));
+        verify(refundRepositoryPort, never()).save(any(Refund.class));
+    }
+
+    @Test
+    void createRefund_ThrowsException_WhenReturnNotFound() {
+        when(invoiceRepositoryPort.findById(1L)).thenReturn(Optional.of(invoice));
+        when(refundRepositoryPort.findByInvoiceId(1L)).thenReturn(Collections.emptyList());
+        when(returnRepositoryPort.findById(7L)).thenReturn(Optional.empty());
+
+        assertThrows(com.nexusmarket.domain.exceptions.ResourceNotFoundException.class,
+                () -> refundUseCase.createRefund(1L, 7L, BigDecimal.valueOf(10.00)));
+        verify(refundRepositoryPort, never()).save(any(Refund.class));
+    }
+
+    @Test
+    void createRefund_Success_WhenReturnBelongsToInvoiceOrder() {
+        Return sameOrderReturn = Return.builder().id(8L).orderId(100L).build();
+
+        when(invoiceRepositoryPort.findById(1L)).thenReturn(Optional.of(invoice));
+        when(refundRepositoryPort.findByInvoiceId(1L)).thenReturn(Collections.emptyList());
+        when(returnRepositoryPort.findById(8L)).thenReturn(Optional.of(sameOrderReturn));
+        when(refundRepositoryPort.save(any(Refund.class))).thenAnswer(i -> i.getArgument(0));
+
+        Refund result = refundUseCase.createRefund(1L, 8L, BigDecimal.valueOf(10.00));
+
+        assertEquals(8L, result.getReturnRequestId());
+        assertEquals(RefundStatus.PENDING, result.getStatus());
     }
 
     @Test

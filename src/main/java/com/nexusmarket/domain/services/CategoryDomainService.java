@@ -8,20 +8,16 @@ import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
 import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Service
 @RequiredArgsConstructor
 public class CategoryDomainService {
 
     private final CategoryRepositoryPort categoryRepositoryPort;
     private final ProductRepositoryPort productRepositoryPort;
 
-    @Transactional
     public Category createCategory(String name, String description, Long parentId) {
         if (categoryRepositoryPort.existsByName(name)) {
             throw new DuplicateResourceException("Category", "name", name);
@@ -43,7 +39,6 @@ public class CategoryDomainService {
         return categoryRepositoryPort.save(category);
     }
 
-    @Transactional
     public Category updateCategory(Long id, String name, String description, Long parentId) {
         Category category = categoryRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
@@ -75,7 +70,6 @@ public class CategoryDomainService {
         return categoryRepositoryPort.save(category);
     }
 
-    @Transactional
     public void deleteCategory(Long id) {
         Category category = categoryRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));

@@ -3,14 +3,12 @@ package com.nexusmarket.domain.services;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
 import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
 import com.nexusmarket.domain.models.Refund;
+import com.nexusmarket.domain.models.Return;
 import com.nexusmarket.domain.ports.out.InvoiceRepositoryPort;
 import com.nexusmarket.domain.ports.out.RefundRepositoryPort;
 import com.nexusmarket.domain.ports.out.ReturnRepositoryPort;
@@ -18,7 +16,6 @@ import com.nexusmarket.domain.valueobjects.RefundStatus;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class RefundProcessService {
 
@@ -26,7 +23,6 @@ public class RefundProcessService {
     private final InvoiceRepositoryPort invoiceRepositoryPort;
     private final ReturnRepositoryPort returnRepositoryPort;
 
-    @Transactional
     public Refund createRefund(Long invoiceId, Long returnRequestId, BigDecimal amount) {
         if (amount == null || amount.signum() <= 0) {
             throw new RefundNotAllowedException("Refund", "amount", amount);
@@ -61,8 +57,14 @@ public class RefundProcessService {
                             currentRefunded, amount, invoice.getAmount()));
         }
 
-        if (returnRequestId != null && !returnRepositoryPort.existsById(returnRequestId)) {
-            throw new ResourceNotFoundException("Return", returnRequestId);
+        if (returnRequestId != null) {
+            Return request = returnRepositoryPort.findById(returnRequestId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Return", returnRequestId));
+
+            // P2-08: la devolución debe pertenecer a la misma orden que la factura.
+            if (invoice.getOrderId() == null || !invoice.getOrderId().equals(request.getOrderId())) {
+                throw new RefundNotAllowedException("Return", "orderId", request.getOrderId());
+            }
         }
 
         Refund refund = Refund.builder()

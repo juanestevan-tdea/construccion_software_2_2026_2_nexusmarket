@@ -14,7 +14,10 @@ info:
     se obtiene del token; los cuerpos no aceptan identificadores de usuario.
     La autorización combina reglas de ruta y `@PreAuthorize`.
 
-    **No se sirve automáticamente:** el proyecto no incluye `springdoc-openapi`.
+    **Servido automáticamente:** `springdoc-openapi` publica la especificación
+    generada en runtime en `/v3/api-docs` (JSON) y `/v3/api-docs.yaml`, con
+    Swagger UI en `/swagger-ui.html`. Son rutas públicas (`permitAll`). Este
+    archivo se conserva como contrato de referencia curado.
 servers:
   - url: http://localhost:8080
     description: Desarrollo local

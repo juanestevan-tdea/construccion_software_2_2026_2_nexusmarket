@@ -1,8 +1,5 @@
 package com.nexusmarket.domain.services;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
@@ -16,7 +13,6 @@ import com.nexusmarket.domain.valueobjects.InventoryStatus;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class InventoryManagementService {
 
@@ -24,7 +20,6 @@ public class InventoryManagementService {
     private final ProductRepositoryPort productRepositoryPort;
     private final WarehouseRepositoryPort warehouseRepositoryPort;
 
-    @Transactional
     public Inventory createInventory(Long productId, Long warehouseId, Integer quantity) {
         if (quantity == null || quantity < 0) {
             throw new BusinessRuleException("Initial inventory quantity cannot be null or negative");
@@ -58,28 +53,24 @@ public class InventoryManagementService {
         return inventoryRepositoryPort.save(inventory);
     }
 
-    @Transactional
     public Inventory reserve(Long id, int amount) {
         Inventory inventory = getByIdOrThrow(id);
         inventory.reserve(amount);
         return inventoryRepositoryPort.save(inventory);
     }
 
-    @Transactional
     public Inventory confirmPayment(Long id) {
         Inventory inventory = getByIdOrThrow(id);
         inventory.confirmPayment();
         return inventoryRepositoryPort.save(inventory);
     }
 
-    @Transactional
     public Inventory markAsDamaged(Long id) {
         Inventory inventory = getByIdOrThrow(id);
         inventory.markAsDamaged();
         return inventoryRepositoryPort.save(inventory);
     }
 
-    @Transactional
     public Inventory adjust(Long id, int amount) {
         Inventory inventory = getByIdOrThrow(id);
         inventory.adjust(amount);

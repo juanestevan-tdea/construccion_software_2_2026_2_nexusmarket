@@ -73,4 +73,4 @@ docker-compose ps
 docker-compose logs -f app
 ```
 
-La aplicación queda disponible en `http://localhost:8080`. El contrato OpenAPI se mantiene en `SDD/04-api/openapi.yaml`; **no** se sirve en `/v3/api-docs` porque `springdoc-openapi` no está incluido.
+La aplicación queda disponible en `http://localhost:8080`. La documentación interactiva está expuesta de forma pública por `springdoc-openapi`: Swagger UI en `http://localhost:8080/swagger-ui.html` y el contrato generado en `http://localhost:8080/v3/api-docs` (JSON) o `/v3/api-docs.yaml`. `SDD/04-api/openapi.yaml` se conserva como contrato de referencia curado a mano.

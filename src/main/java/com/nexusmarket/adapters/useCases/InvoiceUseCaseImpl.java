@@ -3,6 +3,7 @@ package com.nexusmarket.adapters.useCases;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Invoice;
@@ -24,6 +25,7 @@ public class InvoiceUseCaseImpl implements InvoiceUseCasePort {
     private final OrderRepositoryPort orderRepositoryPort;
 
     @Override
+    @Transactional
     public Invoice generateInvoice(Long orderId, String pdfUrl) {
         return invoiceGenerateService.generateInvoice(orderId, pdfUrl);
     }
@@ -49,6 +51,7 @@ public class InvoiceUseCaseImpl implements InvoiceUseCasePort {
     }
 
     @Override
+    @Transactional
     public Invoice voidInvoice(Long id) {
         return invoiceVoidService.voidInvoice(id);
     }

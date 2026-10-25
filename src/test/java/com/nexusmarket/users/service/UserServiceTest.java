@@ -6,6 +6,7 @@ import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
+import com.nexusmarket.domain.ports.out.PasswordHasherPort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.services.SessionInvalidationService;
 import com.nexusmarket.domain.services.UserCreationService;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -45,13 +45,13 @@ class UserServiceTest {
     private UserRepositoryPort userRepositoryPort;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private PasswordHasherPort passwordHasherPort;
 
     private UserUseCasePort userUseCase;
 
     @BeforeEach
     void setUp() {
-        UserCreationService creationService = new UserCreationService(userRepositoryPort, passwordEncoder);
+        UserCreationService creationService = new UserCreationService(userRepositoryPort, passwordHasherPort);
         UserQueryService queryService = new UserQueryService(userRepositoryPort);
         UserStatusService statusService = new UserStatusService(userRepositoryPort);
         SessionInvalidationService invalidationService = new SessionInvalidationService(userRepositoryPort);
@@ -63,7 +63,7 @@ class UserServiceTest {
     @DisplayName("createUser_Buyer_Success_EncodesPasswordWithBCrypt")
     void createUser_buyer_success_encodesPasswordWithBCrypt() {
         when(userRepositoryPort.existsByEmail("buyer1@test.com")).thenReturn(false);
-        when(passwordEncoder.encode(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
+        when(passwordHasherPort.hash(RAW_PASSWORD)).thenReturn(HASHED_PASSWORD);
         when(userRepositoryPort.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         userUseCase.createUser("buyer1@test.com", "Juan Perez", RAW_PASSWORD, UserRole.BUYER);
@@ -78,7 +78,7 @@ class UserServiceTest {
         assertThat(persisted.getPassword()).isEqualTo(HASHED_PASSWORD);
         assertThat(persisted.getPassword()).startsWith("$2a$");
 
-        verify(passwordEncoder).encode(RAW_PASSWORD);
+        verify(passwordHasherPort).hash(RAW_PASSWORD);
     }
 
     // ---------- createUser: duplicate email ----------
@@ -92,7 +92,7 @@ class UserServiceTest {
                 .isInstanceOf(DuplicateResourceException.class);
 
         verify(userRepositoryPort, never()).save(any(User.class));
-        verify(passwordEncoder, never()).encode(anyString());
+        verify(passwordHasherPort, never()).hash(anyString());
     }
 
     @Test
@@ -106,7 +106,7 @@ class UserServiceTest {
                 .hasMessageContaining("letra y un número");
 
         verify(userRepositoryPort, never()).save(any(User.class));
-        verify(passwordEncoder, never()).encode(anyString());
+        verify(passwordHasherPort, never()).hash(anyString());
     }
 
     // ---------- createUser: default status and role ----------
@@ -114,7 +114,7 @@ class UserServiceTest {
     @DisplayName("createUser_SetsStatusActive_ByDefault")
     void createUser_setsStatusActive_byDefault() {
         when(userRepositoryPort.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn(HASHED_PASSWORD);
+        when(passwordHasherPort.hash(anyString())).thenReturn(HASHED_PASSWORD);
         when(userRepositoryPort.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         userUseCase.createUser("buyer1@test.com", "Juan Perez", RAW_PASSWORD, UserRole.BUYER);
@@ -129,7 +129,7 @@ class UserServiceTest {
     @DisplayName("createUser_SetsCorrectRole_ForBuyer")
     void createUser_setsCorrectRole_forBuyer() {
         when(userRepositoryPort.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn(HASHED_PASSWORD);
+        when(passwordHasherPort.hash(anyString())).thenReturn(HASHED_PASSWORD);
         when(userRepositoryPort.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         userUseCase.createUser("buyer1@test.com", "Juan Perez", RAW_PASSWORD, UserRole.BUYER);
@@ -147,7 +147,7 @@ class UserServiceTest {
     @DisplayName("createUser_SetsCorrectRole_ForSeller")
     void createUser_setsCorrectRole_forSeller() {
         when(userRepositoryPort.existsByEmail(anyString())).thenReturn(false);
-        when(passwordEncoder.encode(anyString())).thenReturn(HASHED_PASSWORD);
+        when(passwordHasherPort.hash(anyString())).thenReturn(HASHED_PASSWORD);
         when(userRepositoryPort.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         userUseCase.createUser("seller1@test.com", "Tienda SA", RAW_PASSWORD, UserRole.SELLER);
