@@ -6,6 +6,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -87,36 +88,77 @@ class SrpArchitectureTest {
     }
 
     @Test
-    @DisplayName("los servicios migrados en la fase P2-03 no dependen de Spring")
+    @DisplayName("los 28 servicios de dominio son POJO puros sin dependencias de Spring")
     void migratedDomainServicesDoNotDependOnSpring() throws Exception {
-        List<Class<?>> migrated = List.of(
-                Class.forName("com.nexusmarket.domain.services.UserCreationService"),
-                Class.forName("com.nexusmarket.domain.services.PasswordChangeService"),
-                Class.forName("com.nexusmarket.domain.services.InvoiceGenerateService"),
-                Class.forName("com.nexusmarket.domain.services.InvoiceVoidService"),
-                Class.forName("com.nexusmarket.domain.services.RefundProcessService"),
-                Class.forName("com.nexusmarket.domain.services.RefundApproveService"),
-                Class.forName("com.nexusmarket.domain.services.ProductDomainService"),
-                Class.forName("com.nexusmarket.domain.services.CategoryDomainService"),
-                Class.forName("com.nexusmarket.domain.services.InventoryManagementService"),
-                Class.forName("com.nexusmarket.domain.services.InventoryConsultService"),
-                Class.forName("com.nexusmarket.domain.services.WarehouseDomainService"));
+        // Se escanea el paquete completo en lugar de mantener una lista manual:
+        // cualquier servicio nuevo queda cubierto automáticamente por el candado.
+        ClassPathScanningCandidateComponentProvider scanner =
+                new ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter((metadataReader, metadataReaderFactory) -> true);
 
-        List<String> violations = new ArrayList<>();
-        for (Class<?> service : migrated) {
-            for (Annotation annotation : service.getAnnotations()) {
-                if (annotation.annotationType().getName().startsWith("org.springframework")) {
-                    violations.add(service.getSimpleName() + " : @" + annotation.annotationType().getSimpleName());
-                }
-            }
-            for (Field field : service.getDeclaredFields()) {
-                String type = field.getType().getName();
-                if (type.startsWith("org.springframework") || type.startsWith("jakarta.")) {
-                    violations.add(service.getSimpleName() + "." + field.getName() + " : " + type);
-                }
+        Set<BeanDefinition> candidates =
+                scanner.findCandidateComponents("com.nexusmarket.domain.services");
+
+        List<Class<?>> services = new ArrayList<>();
+        for (BeanDefinition definition : candidates) {
+            Class<?> service = Class.forName(definition.getBeanClassName());
+            if (service.getName().startsWith("com.nexusmarket.domain.services")) {
+                services.add(service);
             }
         }
 
-        assertThat(violations).isEmpty();
+        // Guarda contra un escaneo vacío o incompleto: deben estar los 28 servicios.
+        assertThat(services)
+                .as("servicios de dominio escaneados en domain/services")
+                .hasSize(28);
+
+        List<String> violations = new ArrayList<>();
+        for (Class<?> service : services) {
+            collectSpringAnnotations(service.getAnnotations(), service.getSimpleName(), violations);
+
+            for (Field field : service.getDeclaredFields()) {
+                collectSpringType(field.getType(), service.getSimpleName() + "." + field.getName(), violations);
+                collectSpringAnnotations(field.getAnnotations(),
+                        service.getSimpleName() + "." + field.getName(), violations);
+            }
+
+            for (Method method : service.getDeclaredMethods()) {
+                String location = service.getSimpleName() + "." + method.getName();
+                collectSpringType(method.getReturnType(), location + " (retorno)", violations);
+                for (Class<?> parameterType : method.getParameterTypes()) {
+                    collectSpringType(parameterType, location + " (parámetro)", violations);
+                }
+                collectSpringAnnotations(method.getAnnotations(), location, violations);
+            }
+
+            for (Constructor<?> constructor : service.getDeclaredConstructors()) {
+                String location = service.getSimpleName() + " (constructor)";
+                for (Class<?> parameterType : constructor.getParameterTypes()) {
+                    collectSpringType(parameterType, location + " (parámetro)", violations);
+                }
+                collectSpringAnnotations(constructor.getAnnotations(), location, violations);
+            }
+        }
+
+        assertThat(violations)
+                .as("el dominio no debe depender de Spring ni de jakarta.*")
+                .isEmpty();
+    }
+
+    private static void collectSpringType(Class<?> type, String location, List<String> violations) {
+        String typeName = type.getName();
+        if (typeName.startsWith("org.springframework") || typeName.startsWith("jakarta.")) {
+            violations.add(location + " : " + typeName);
+        }
+    }
+
+    private static void collectSpringAnnotations(Annotation[] annotations, String location,
+            List<String> violations) {
+        for (Annotation annotation : annotations) {
+            String annotationName = annotation.annotationType().getName();
+            if (annotationName.startsWith("org.springframework")) {
+                violations.add(location + " : @" + annotation.annotationType().getSimpleName());
+            }
+        }
     }
 }

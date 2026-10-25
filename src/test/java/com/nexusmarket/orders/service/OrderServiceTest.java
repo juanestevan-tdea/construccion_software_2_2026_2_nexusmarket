@@ -2,6 +2,7 @@ package com.nexusmarket.orders.service;
 
 import com.nexusmarket.adapters.useCases.OrderUseCaseImpl;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Inventory;
@@ -180,7 +181,7 @@ class OrderServiceTest {
         when(inventoryRepositoryPort.findByProductId(5L))
                 .thenReturn(List.of(inventory(1, InventoryStatus.AVAILABLE)));
 
-        BusinessRuleException exception = assertThrows(BusinessRuleException.class,
+        InsufficientStockException exception = assertThrows(InsufficientStockException.class,
                 () -> orderUseCase.addItem(10L, 5L, 5));
 
         assertTrue(exception.getMessage().contains("Insufficient stock"));
@@ -195,7 +196,7 @@ class OrderServiceTest {
                 inventory(10, InventoryStatus.RESERVED),
                 inventory(10, InventoryStatus.DAMAGED)));
 
-        assertThrows(BusinessRuleException.class, () -> orderUseCase.addItem(10L, 5L, 1));
+        assertThrows(InsufficientStockException.class, () -> orderUseCase.addItem(10L, 5L, 1));
     }
 
     @Test
@@ -204,7 +205,7 @@ class OrderServiceTest {
         when(productRepositoryPort.findById(5L)).thenReturn(Optional.of(product(true)));
         when(inventoryRepositoryPort.findByProductId(5L)).thenReturn(List.of());
 
-        assertThrows(BusinessRuleException.class, () -> orderUseCase.addItem(10L, 5L, 1));
+        assertThrows(InsufficientStockException.class, () -> orderUseCase.addItem(10L, 5L, 1));
     }
 }
 

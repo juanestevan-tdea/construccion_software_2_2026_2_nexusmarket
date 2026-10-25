@@ -23,6 +23,7 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserUseCaseImpl implements UserUseCasePort {
 
     private final UserCreationService userCreationService;
@@ -31,7 +32,6 @@ public class UserUseCaseImpl implements UserUseCasePort {
     private final SessionInvalidationService sessionInvalidationService;
 
     @Override
-    @Transactional
     public User createUser(String email, String fullName, String password, UserRole role) {
         return userCreationService.createUser(email, fullName, password, role);
     }

@@ -24,7 +24,7 @@ controladores, adaptadores y excepciones. Clasificación:
 | `InvoiceVoidService` | Anulación de facturas; dependía de `RefundRepositoryPort` para decidir si una factura pagada podía anularse | Mezclaba la regla de anulación con el estado de reembolsos y contradecía RN-010/RF-032 | Se retiró la dependencia de reembolsos: solo se anula una factura activa e impaga; se reutiliza `InvoiceNotPayableException` | Servicio de anulación cohesionado | `InvoiceServiceTest` |
 | `RefundApproveService` | Aprobar o rechazar reembolsos | Usaba `RefundNotAllowedException` (422) para estados ya procesados, contradiciendo RF-035 | Los estados distintos de `PENDING` lanzan `InvalidStatusTransitionException` (409), con estado actual y destino | Servicio de decisión de reembolso alineado con el contrato | `RefundServiceTest` |
 | `ReturnProcessService` | Aprobar, rechazar y completar devoluciones | Aprobaciones/rechazos sobre estados ya procesados devolvían 422 en lugar del 409 de RF-041 | Toda operación sobre una devolución no `REQUESTED` (salvo completar una `APPROVED`) lanza `ReturnAlreadyProcessedException` (409); completar una `REQUESTED` conserva 422 | Servicio de ciclo de vida de devolución alineado con RF-041 | `ReturnServiceTest` |
-| `Inventory` / `InventoryManagementService` | Reserva y ajuste de stock | `reserve` aceptaba cantidades no positivas; un `amount` negativo incrementaba el stock y lo marcaba `RESERVED` | Se exige `amount > 0` en el modelo; también se rechazan cantidades nulas al crear inventario | Invariante de reserva cohesionada en el agregado | `InventoryServiceTest` |
+| `Inventory` / `InventoryManagementService` | Reserva y ajuste de stock | `reserve` aceptaba cantidades no positivas; un `amount` negativo incrementaba el stock y lo marcaba `RESERVED` | Se exige `amount > 0` (`InvalidQuantityException`), stock suficiente (`InsufficientStockException`), se rechaza inventario dañado (`DamagedInventoryException`) y se rechazan cantidades nulas al crear inventario | Invariante de reserva cohesionada en el agregado | `InventoryServiceTest` |
 | `CategoryDomainService` | Alta, actualización y borrado de categorías | No detectaba ciclos con descendientes ni bloqueaba el borrado de una categoría con hijas | Se recorre la cadena de ancestros y se valida `findByParentId` antes de eliminar | Integridad de jerarquía dentro del servicio de categorías | `CategoryServiceTest` |
 
 ## Hallazgos potenciales
@@ -46,16 +46,22 @@ condición distinta y se traduce en `GlobalExceptionHandler`.
 |---|---|---|---|
 | `ResourceNotFoundException` | Recurso inexistente | 404 | Confirmada, sin cambio |
 | `TrackingNotFoundException` | Código de seguimiento inexistente | 404 | Confirmada, sin cambio |
-| `BusinessRuleException` | Regla de negocio genérica | 422 | Confirmada, sin cambio |
-| `DuplicateResourceException` | Duplicado de recurso | 409 | Confirmada, sin cambio |
+| `BusinessRuleException` | Regla de negocio genérica: estado, política de contraseñas, producto inactivo o auditoría | 422 | Confirmada; ya no cubre cantidades, stock, inventario dañado, duplicado de usuario ni elegibilidad de factura |
+| `InvalidQuantityException` | Cantidad nula, cero o negativa en inventario o pedido | 422 | Nueva; reemplaza usos genéricos en `Inventory` y `OrderCalculationService` |
+| `InsufficientStockException` | Stock disponible menor que la cantidad solicitada | 422 | Nueva; reemplaza el uso genérico en `Inventory.reserve` y `OrderCalculationService` |
+| `DamagedInventoryException` | Operación sobre inventario en estado `DAMAGED` | 422 | Nueva; reemplaza el uso genérico en `Inventory.reserve` y `confirmPayment` |
+| `DuplicateResourceException` | Duplicado de producto, categoría, vendedor o bodega | 409 | Confirmada; el alta de usuario ya no la usa |
+| `UserAlreadyExistsException` | Email de usuario ya registrado | 409 | Nueva; específica de `UserCreationService` |
 | `InvalidStatusTransitionException` | Transición de estado inválida; también reembolso ya procesado | 409 | Confirmada; se amplió su uso a `RefundApproveService` conforme a RF-035 |
 | `ProductNotAvailableException` | Producto no disponible | 409 | Confirmada, sin cambio |
 | `CategoryHasProductsException` | Categoría con productos | 409 | Confirmada, sin cambio |
 | `WarehouseCapacityExceededException` | Capacidad excedida | 422 | Confirmada, sin cambio |
 | `InvoiceAlreadyExistsException` | Factura duplicada | 409 | Confirmada, sin cambio |
-| `InvoiceNotPayableException` | Orden no pagable | 422 | Confirmada, sin cambio |
+| `InvoiceNotPayableException` | Orden no facturable o factura no anulable | 422 | Confirmada, sin cambio |
+| `InvoiceNotRefundableException` | Factura inactiva o impaga para reembolso | 422 | Nueva; separa la elegibilidad de la factura del resto de reglas de reembolso |
+| `InvalidRefundAmountException` | Monto de reembolso nulo o no positivo | 422 | Nueva; reemplaza el uso genérico de `RefundNotAllowedException` |
 | `RefundAmountExceededException` | Reembolso excede el monto | 422 | Confirmada, sin cambio |
-| `RefundNotAllowedException` | Reembolso no permitido: monto inválido o factura inactiva/impaga | 422 | Confirmada; ya no se usa para estados ya procesados |
+| `RefundNotAllowedException` | Devolución asociada a otra orden | 422 | Confirmada; limitada a la integridad factura–devolución |
 | `PaymentGatewayException` | Fallo del gateway | 502 | Confirmada, sin cambio |
 | `ShipmentAlreadyExistsException` | Envío duplicado | 409 | Confirmada, sin cambio |
 | `ReturnWindowExpiredException` | Plazo de devolución vencido | 422 | Confirmada, sin cambio |
@@ -67,15 +73,20 @@ condición distinta y se traduce en `GlobalExceptionHandler`.
 anulación de facturas. Su constructor de mensaje permite describir cada
 condición sin crear una excepción nueva.
 
+Con las seis excepciones granulares añadidas, `domain/exceptions` contiene
+**24 clases**: `DomainException` (abstracta) y **23 excepciones concretas**.
+`DomainExceptionContractTest` verifica por reflexión que todas heredan de la
+base, no extienden `ResponseStatusException` y no usan anotaciones de Spring.
+
 ## Mejoras recomendadas
 
 | Clase / aspecto | Responsabilidad actual | Problema de cohesión | Cambio recomendado | Responsabilidad final | Pruebas |
 |---|---|---|---|---|---|
-| Servicios de `domain/services` | Usan `@Service` y `@Transactional` de Spring | Acoplamiento del dominio al contenedor | Declarar beans en `infrastructure/config` y dejar servicios como POJOs | Dominio puro | Pendiente de prueba de integración |
+| Servicios de `domain/services` | POJO puros sin `@Service` ni `@Transactional` | Resuelto: el acoplamiento al contenedor se eliminó | Beans en `UserServiceConfig`, `CommerceServiceConfig`, `BillingServiceConfig` y `AuditServiceConfig`; transacciones en las fachadas de `adapters/useCases` | Dominio puro | `SrpArchitectureTest` (28 servicios) |
 | Controladores con reglas de propiedad | Comparan `userId`/`sellerId`/`buyerId` | La autorización de recurso vive en el adaptador | Extraer un `ResourceOwnershipPolicy` si se repite en más controladores | Adaptador HTTP delgado | `SrpArchitectureTest` |
 | `UserCreationService` | Alta de usuario y aplicación de la política de contraseña | La política solo se aplicaba al cambiar contraseña | Se creó `PasswordPolicy` y se reutiliza en alta, alta administrativa y cambio | Alta de usuario coherente | `UserServiceTest`, `PasswordChangeServiceTest` |
 | `InvoiceGenerateService` / `InvoiceVoidService` | Generación y anulación de facturas | La generación marca `paid = true`, pero la anulación exige `paid = false`; no existe endpoint para marcar impaga | **Pendiente de decisión funcional:** definir si la factura nace impaga, si el pago se registra aparte o si la anulación debe admitir otro estado | Flujo de facturación coherente | `InvoiceServiceTest` (solo cubre datos con `paid=false`) |
-| `OrderCalculationService` | Composición de la orden | No valida producto activo ni stock al añadir ítems | **Pendiente de decisión funcional:** RF-024 solo exige 404 por producto inexistente; no se inventó una regla | Composición de orden | `OrderServiceTest` |
+| `OrderCalculationService` | Composición de la orden | Valida producto activo, cantidad positiva (`InvalidQuantityException`) y stock disponible (`InsufficientStockException`) | **Resuelto:** el servicio usa stock `AVAILABLE` agregado y rechaza productos inactivos con `BusinessRuleException` | Composición de orden | `OrderServiceTest` |
 
 ## Contratos arquitectónicos agregados
 

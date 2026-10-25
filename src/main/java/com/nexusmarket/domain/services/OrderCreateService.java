@@ -3,8 +3,6 @@ package com.nexusmarket.domain.services;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
@@ -19,7 +17,6 @@ import com.nexusmarket.domain.valueobjects.OrderStatus;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class OrderCreateService {
 
@@ -27,7 +24,6 @@ public class OrderCreateService {
     private final BuyerRepositoryPort buyerRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
 
-    @Transactional
     public Order createOrder(Long buyerId) {
         Buyer buyer = buyerRepositoryPort.findById(buyerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Buyer", buyerId));

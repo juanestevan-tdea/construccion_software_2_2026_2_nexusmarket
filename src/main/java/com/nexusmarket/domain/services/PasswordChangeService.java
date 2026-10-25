@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
  *
  * <p>Responsabilidad única: verificar la contraseña actual, aplicar la política,
  * almacenar el nuevo hash e invalidar las sesiones activas. Sin dependencias de
- * Spring: el bean se registra en {@code infrastructure/config/DomainServiceConfig}.</p>
+ * Spring: el bean se registra en {@code infrastructure/config/UserServiceConfig}.</p>
  */
 @RequiredArgsConstructor
 public class PasswordChangeService {

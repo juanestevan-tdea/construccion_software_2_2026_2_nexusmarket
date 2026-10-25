@@ -1,7 +1,9 @@
 package com.nexusmarket.inventory.service;
 
 import com.nexusmarket.adapters.useCases.InventoryUseCaseImpl;
-import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.DamagedInventoryException;
+import com.nexusmarket.domain.exceptions.InsufficientStockException;
+import com.nexusmarket.domain.exceptions.InvalidQuantityException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
@@ -76,14 +78,14 @@ class InventoryServiceTest {
     }
 
     @Test
-    void createInventory_ThrowsBusinessRuleException_WhenQuantityNegative() {
-        assertThrows(BusinessRuleException.class, ()
+    void createInventory_ThrowsInvalidQuantityException_WhenQuantityNegative() {
+        assertThrows(InvalidQuantityException.class, ()
                 -> inventoryUseCase.createInventory(1L, 1L, -5));
     }
 
     @Test
-    void createInventory_ThrowsBusinessRuleException_WhenQuantityIsNull() {
-        assertThrows(BusinessRuleException.class, ()
+    void createInventory_ThrowsInvalidQuantityException_WhenQuantityIsNull() {
+        assertThrows(InvalidQuantityException.class, ()
                 -> inventoryUseCase.createInventory(1L, 1L, null));
     }
 
@@ -98,7 +100,7 @@ class InventoryServiceTest {
     }
 
     @Test
-    void reserve_ThrowsBusinessRuleException_WhenDamaged() {
+    void reserve_ThrowsDamagedInventoryException_WhenDamaged() {
         Inventory inv = new Inventory();
         inv.setId(1L);
         inv.setStatus(InventoryStatus.DAMAGED);
@@ -106,11 +108,23 @@ class InventoryServiceTest {
 
         when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
 
-        assertThrows(BusinessRuleException.class, () -> inventoryUseCase.reserve(1L, 5));
+        assertThrows(DamagedInventoryException.class, () -> inventoryUseCase.reserve(1L, 5));
     }
 
     @Test
-    void reserve_ThrowsBusinessRuleException_WhenInsufficientQuantity() {
+    void confirmPayment_ThrowsDamagedInventoryException_WhenDamaged() {
+        Inventory inv = new Inventory();
+        inv.setId(1L);
+        inv.setStatus(InventoryStatus.DAMAGED);
+        inv.setQuantity(20);
+
+        when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
+
+        assertThrows(DamagedInventoryException.class, () -> inventoryUseCase.confirmPayment(1L));
+    }
+
+    @Test
+    void reserve_ThrowsInsufficientStockException_WhenInsufficientQuantity() {
         Inventory inv = new Inventory();
         inv.setId(1L);
         inv.setStatus(InventoryStatus.AVAILABLE);
@@ -118,11 +132,11 @@ class InventoryServiceTest {
 
         when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
 
-        assertThrows(BusinessRuleException.class, () -> inventoryUseCase.reserve(1L, 10));
+        assertThrows(InsufficientStockException.class, () -> inventoryUseCase.reserve(1L, 10));
     }
 
     @Test
-    void reserve_ThrowsBusinessRuleException_WhenAmountIsZero() {
+    void reserve_ThrowsInvalidQuantityException_WhenAmountIsZero() {
         Inventory inv = new Inventory();
         inv.setId(1L);
         inv.setStatus(InventoryStatus.AVAILABLE);
@@ -130,11 +144,11 @@ class InventoryServiceTest {
 
         when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
 
-        assertThrows(BusinessRuleException.class, () -> inventoryUseCase.reserve(1L, 0));
+        assertThrows(InvalidQuantityException.class, () -> inventoryUseCase.reserve(1L, 0));
     }
 
     @Test
-    void reserve_ThrowsBusinessRuleException_WhenAmountIsNegative() {
+    void reserve_ThrowsInvalidQuantityException_WhenAmountIsNegative() {
         Inventory inv = new Inventory();
         inv.setId(1L);
         inv.setStatus(InventoryStatus.AVAILABLE);
@@ -142,7 +156,7 @@ class InventoryServiceTest {
 
         when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
 
-        BusinessRuleException exception = assertThrows(BusinessRuleException.class,
+        InvalidQuantityException exception = assertThrows(InvalidQuantityException.class,
                 () -> inventoryUseCase.reserve(1L, -3));
         assertEquals("Reservation amount must be greater than zero", exception.getMessage());
         assertEquals(4, inv.getQuantity());

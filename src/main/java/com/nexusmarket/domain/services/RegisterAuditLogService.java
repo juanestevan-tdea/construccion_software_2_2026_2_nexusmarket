@@ -4,9 +4,7 @@ import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.models.AuditLog;
 import com.nexusmarket.domain.ports.out.AuditLogRepositoryPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-@Service
 @RequiredArgsConstructor
 public class RegisterAuditLogService {
 

@@ -3,8 +3,6 @@ package com.nexusmarket.domain.services;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
@@ -20,7 +18,6 @@ import com.nexusmarket.domain.valueobjects.ShipmentStatus;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class ShipmentCreateService {
 
@@ -28,7 +25,6 @@ public class ShipmentCreateService {
     private final OrderRepositoryPort orderRepositoryPort;
     private final WarehouseRepositoryPort warehouseRepositoryPort;
 
-    @Transactional
     public Shipment createShipment(Long orderId, Long warehouseId, String trackingNumber) {
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));

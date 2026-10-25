@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.policies.PasswordPolicy;
 import com.nexusmarket.domain.ports.out.PasswordHasherPort;
@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
  *
  * <p>Responsabilidad única: validar el email y persistir un usuario nuevo con
  * la contraseña cifrada y el estado inicial. Sin dependencias de Spring: el
- * bean se registra en {@code infrastructure/config/DomainServiceConfig} y que la
+ * bean se registra en {@code infrastructure/config/UserServiceConfig} y que la
  * operación sea transaccional es decisión de la capa de aplicación.</p>
  */
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class UserCreationService {
 
     public User createUser(String email, String fullName, String password, UserRole role) {
         if (userRepositoryPort.existsByEmail(email)) {
-            throw new DuplicateResourceException("User", "email", email);
+            throw new UserAlreadyExistsException(email);
         }
         PasswordPolicy.validate(password);
 

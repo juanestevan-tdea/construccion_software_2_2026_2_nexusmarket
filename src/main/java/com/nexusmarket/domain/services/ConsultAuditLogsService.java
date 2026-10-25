@@ -4,12 +4,10 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.AuditLog;
 import com.nexusmarket.domain.ports.out.AuditLogRepositoryPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Service
 @RequiredArgsConstructor
 public class ConsultAuditLogsService {
 

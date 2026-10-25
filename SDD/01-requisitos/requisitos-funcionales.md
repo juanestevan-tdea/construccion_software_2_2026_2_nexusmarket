@@ -245,10 +245,10 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Caso de uso:** `InventoryUseCasePort.reserve`, `confirmPayment`, `markAsDamaged`, `adjust`.
 - **Criterios de aceptación:**
   1. Cada operación devuelve `200 OK` con `InventoryResponseDTO` actualizado.
-  2. Reserva con cantidad `<= 0` → `422 Unprocessable Entity` (`BusinessRuleException` "Reservation amount must be greater than zero").
-  3. Reserva con cantidad > disponible → `422 Unprocessable Entity` (`BusinessRuleException` "Insufficient quantity").
-  4. Operar inventario `DAMAGED` → `422 Unprocessable Entity`.
-  5. Ajuste que deja cantidad negativa → `422 Unprocessable Entity` ("Quantity cannot be negative").
+  2. Reserva con cantidad `<= 0` → `422 Unprocessable Entity` (`InvalidQuantityException`).
+  3. Reserva con cantidad > disponible → `422 Unprocessable Entity` (`InsufficientStockException`).
+  4. Operar inventario `DAMAGED` → `422 Unprocessable Entity` (`DamagedInventoryException`).
+  5. Ajuste que deja cantidad negativa → `422 Unprocessable Entity` (`InvalidQuantityException` "Quantity cannot be negative").
   6. Inventario inexistente → `404 Not Found`.
 
 ---
@@ -355,10 +355,10 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Caso de uso:** `RefundUseCasePort.createRefund(invoiceId, returnRequestId, amount)` → `Refund` (estado `PENDING`).
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `RefundResponseDTO`.
-  2. Monto `<= 0` → `422 Unprocessable Entity` (`RefundNotAllowedException`).
+  2. Monto `<= 0` → `422 Unprocessable Entity` (`InvalidRefundAmountException`).
   3. Monto individual o acumulado (`PENDING`/`APPROVED`/`COMPLETED`) mayor al total facturado → `422 Unprocessable Entity` (`RefundAmountExceededException`).
-  4. Factura inactiva o impaga → `422 Unprocessable Entity` (`RefundNotAllowedException`).
-  5. Factura o devolución inexistente → `404 Not Found`.
+  4. Factura inactiva o impaga → `422 Unprocessable Entity` (`InvoiceNotRefundableException`).
+  5. Factura o devolución inexistente → `404 Not Found`; devolución de otra orden → `422 Unprocessable Entity` (`RefundNotAllowedException`).
 
 ### RF-034 — Consultar reembolsos
 - **Actor:** `SUPERVISOR`.

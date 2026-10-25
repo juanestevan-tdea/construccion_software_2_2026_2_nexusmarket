@@ -5,7 +5,6 @@ import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +16,6 @@ import java.util.Optional;
  * traducir la ausencia a {@link ResourceNotFoundException} cuando el contrato lo
  * exige. No modifica estado.</p>
  */
-@Service
 @RequiredArgsConstructor
 public class UserQueryService {
 

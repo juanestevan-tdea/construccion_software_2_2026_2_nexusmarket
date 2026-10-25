@@ -3,6 +3,8 @@ package com.nexusmarket.domain.services;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.nexusmarket.domain.exceptions.InvalidRefundAmountException;
+import com.nexusmarket.domain.exceptions.InvoiceNotRefundableException;
 import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
 import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
@@ -25,18 +27,18 @@ public class RefundProcessService {
 
     public Refund createRefund(Long invoiceId, Long returnRequestId, BigDecimal amount) {
         if (amount == null || amount.signum() <= 0) {
-            throw new RefundNotAllowedException("Refund", "amount", amount);
+            throw new InvalidRefundAmountException(amount);
         }
 
         Invoice invoice = invoiceRepositoryPort.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice", invoiceId));
 
         if (!Boolean.TRUE.equals(invoice.getActive())) {
-            throw new RefundNotAllowedException("Invoice", "active", "false");
+            throw new InvoiceNotRefundableException(invoice.getId(), "invoice is inactive");
         }
 
         if (!Boolean.TRUE.equals(invoice.getPaid())) {
-            throw new RefundNotAllowedException("Invoice", "paid", "false");
+            throw new InvoiceNotRefundableException(invoice.getId(), "invoice has not been paid");
         }
 
         if (amount.compareTo(invoice.getAmount()) > 0) {

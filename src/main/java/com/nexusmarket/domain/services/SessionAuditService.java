@@ -6,23 +6,21 @@ import com.nexusmarket.domain.valueobjects.SessionEventType;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
 /**
  * Servicio de aplicación para registrar eventos de sesión de seguridad.
  *
- * <p>El registro opera de forma asíncrona ({@code @Async}) para no bloquear el
- * flujo de autenticación. Toda la persistencia se delega al puerto
- * {@link SessionAuditPort}; si el registro falla, se loguea ERROR y el flujo
- * continúa.</p>
+ * <p>Este servicio es un POJO puro y no conoce Spring. El carácter asíncrono lo
+ * aporta el decorador {@code AsyncSessionAuditService} en infraestructura, para
+ * no bloquear el flujo de autenticación. Toda la persistencia se delega al
+ * puerto {@link SessionAuditPort}; si el registro falla, se loguea ERROR y el
+ * flujo continúa.</p>
  *
  * <p>Este servicio no conoce {@code HttpServletRequest}: la extracción de IP y
  * User-Agent corresponde al adaptador web.</p>
  */
-@Service
 @RequiredArgsConstructor
 public class SessionAuditService {
 
@@ -34,7 +32,6 @@ public class SessionAuditService {
     /**
      * Registra un login exitoso.
      */
-    @Async
     public void recordLogin(String userEmail, String jti, String ipAddress, String userAgent) {
         record(userEmail, SessionEventType.LOGIN, jti, null, ipAddress, userAgent, null);
     }
@@ -42,7 +39,6 @@ public class SessionAuditService {
     /**
      * Registra un logout.
      */
-    @Async
     public void recordLogout(String userEmail, String jti, String ipAddress, String userAgent) {
         record(userEmail, SessionEventType.LOGOUT, jti, null, ipAddress, userAgent, null);
     }
@@ -50,7 +46,6 @@ public class SessionAuditService {
     /**
      * Registra un cambio de contraseña.
      */
-    @Async
     public void recordPasswordChange(String userEmail, String jti, String ipAddress, String userAgent) {
         record(userEmail, SessionEventType.PASSWORD_CHANGED, jti, null, ipAddress, userAgent, null);
     }
@@ -58,7 +53,6 @@ public class SessionAuditService {
     /**
      * Registra un token rechazado por versión (ver) desactualizada.
      */
-    @Async
     public void recordTokenRejected(String userEmail, String jti, String reason,
             String ipAddress, String userAgent, Integer tokenVersion) {
         record(userEmail, SessionEventType.TOKEN_REJECTED, jti, reason,
@@ -68,7 +62,6 @@ public class SessionAuditService {
     /**
      * Registra un token inválido (firma o expiración).
      */
-    @Async
     public void recordTokenInvalid(String jti, String reason, String ipAddress,
             String userAgent, Integer tokenVersion) {
         record(null, SessionEventType.TOKEN_INVALID, jti, reason,
@@ -78,7 +71,6 @@ public class SessionAuditService {
     /**
      * Registra un fallo de login (credenciales inválidas).
      */
-    @Async
     public void recordLoginFailed(String userEmail, String reason, String ipAddress, String userAgent) {
         record(userEmail, SessionEventType.LOGIN_FAILED, null, reason,
                 ipAddress, userAgent, null);

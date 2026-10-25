@@ -76,7 +76,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `amount > 0 && inventory.status != InventoryStatus.DAMAGED && inventory.quantity >= amount`
 
-**Origen:** `Inventory.reserve(int)` lanza `BusinessRuleException("Reservation amount must be greater than zero")`, `BusinessRuleException("Cannot reserve damaged inventory")` o `BusinessRuleException("Insufficient quantity")` → `422 Unprocessable Entity`.
+**Origen:** `Inventory.reserve(int)` lanza `InvalidQuantityException` si `amount <= 0`, `DamagedInventoryException` si el inventario está `DAMAGED` e `InsufficientStockException` si no hay stock suficiente → `422 Unprocessable Entity`.
 
 ---
 
@@ -86,7 +86,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `inventory.quantity + amount >= 0`
 
-**Origen:** `Inventory.adjust(int)` lanza `BusinessRuleException("Quantity cannot be negative")` → `422 Unprocessable Entity`.
+**Origen:** `Inventory.adjust(int)` lanza `InvalidQuantityException("Quantity cannot be negative")` → `422 Unprocessable Entity`.
 
 ---
 
@@ -118,7 +118,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `amount > 0 && amount <= invoice.amount && sum(refunds PENDING/APPROVED/COMPLETED) + amount <= invoice.amount && invoice.active == true && invoice.paid == true`
 
-**Origen:** `RefundUseCaseImpl.createRefund` / `RefundProcessService` lanza `RefundAmountExceededException` → `422 Unprocessable Entity` si el monto individual o acumulado excede, o `RefundNotAllowedException` → `422 Unprocessable Entity` si el monto no es positivo o la factura está inactiva/impaga.
+**Origen:** `RefundUseCaseImpl.createRefund` / `RefundProcessService` lanza `RefundAmountExceededException` → `422` si el monto individual o acumulado excede, `InvalidRefundAmountException` → `422` si el monto no es positivo e `InvoiceNotRefundableException` → `422` si la factura está inactiva o impaga.
 
 ---
 
@@ -128,7 +128,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `refund.status == RefundStatus.PENDING` (precondición de `approveRefund` / `rejectRefund`).
 
-**Origen:** `RefundApproveService`; si el estado no es `PENDING` lanza `InvalidStatusTransitionException(current, target)` → `409 Conflict`, conforme a RF-035. `RefundProcessService` usa `RefundNotAllowedException` para montos inválidos o facturas inactivas/impagas.
+**Origen:** `RefundApproveService`; si el estado no es `PENDING` lanza `InvalidStatusTransitionException(current, target)` → `409 Conflict`, conforme a RF-035. En la creación, `RefundProcessService` usa `InvalidRefundAmountException`, `InvoiceNotRefundableException` y `RefundAmountExceededException`; `RefundNotAllowedException` queda para una devolución de otra orden.
 
 ---
 
@@ -158,7 +158,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `inventory.status != InventoryStatus.DAMAGED` (precondición de `reserve` y `confirmPayment`).
 
-**Origen:** `Inventory.reserve(int)` y `Inventory.confirmPayment()` lanzan `BusinessRuleException` → `422 Unprocessable Entity`.
+**Origen:** `Inventory.reserve(int)` y `Inventory.confirmPayment()` lanzan `DamagedInventoryException` si el inventario está `DAMAGED` → `422 Unprocessable Entity`; la reserva además valida cantidad (`InvalidQuantityException`) y stock (`InsufficientStockException`).
 
 ---
 

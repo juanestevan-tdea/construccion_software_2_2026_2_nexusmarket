@@ -10,6 +10,29 @@
 > Las correcciones de esta misión se aplicaron después del inventario y se
 > verificaron con pruebas.
 
+## Actualización — cierre de la Fase 3 (2026-10-24)
+
+> **Estado final verificado:** la Fase 3 se completó con éxito. Los **28
+> servicios** de `domain/services` son ahora **clases POJO puras**, sin
+> `@Service`, `@Transactional`, `@Async` ni ningún otro import de
+> `org.springframework.*`. Las transacciones se trasladaron a las fachadas de
+> `adapters/useCases` y el registro asíncrono de sesiones se conserva mediante el
+> decorador de infraestructura `AsyncSessionAuditService`.
+>
+> `SrpArchitectureTest.migratedDomainServicesDoNotDependOnSpring()` escanea el
+> paquete completo `com.nexusmarket.domain.services` (28 clases) y falla si
+> reaparece una anotación o un tipo de campo, parámetro o retorno de Spring o de
+> `jakarta.*`. El candado arquitectónico protege a la **totalidad** de la capa de
+> dominio.
+>
+> El registro monolítico `DomainServiceConfig` se dividió en cuatro
+> configuraciones cohesionadas: `UserServiceConfig`, `CommerceServiceConfig`,
+> `BillingServiceConfig` y `AuditServiceConfig`. La suite completa levanta el
+> contexto de Spring y valida la inyección de los 28 beans.
+>
+> Suite final: **224 pruebas, 0 fallos, 0 errores, 0 omitidas**
+> (`mvn clean test`).
+
 ## 1. Resumen del estado actual
 
 Se inspeccionaron:
@@ -18,12 +41,12 @@ Se inspeccionaron:
 - **16 implementaciones de casos de uso** en `adapters/useCases`.
 - **19 controladores REST** en `adapters/rest/controllers`.
 - **16 puertos de entrada** y **14 puertos de salida**.
-- **18 clases de excepción** en `domain/exceptions`: `DomainException` (abstracta)
-  y 17 excepciones concretas.
-- **37 clases de prueba** y la suite completa de **211 pruebas**.
+- **24 clases de excepción** en `domain/exceptions`: `DomainException` (abstracta)
+  y 23 excepciones concretas.
+- **37 clases de prueba** y la suite completa de **224 pruebas**.
 
-El dominio no importa `jakarta.servlet`, Spring MVC, DTO REST ni repositorios
-Mongo/JPA. Los controladores no inyectan puertos de salida. La separación de
+El dominio no importa Spring (ni `jakarta.servlet`, ni Spring MVC, ni DTO REST)
+ni repositorios Mongo/JPA. Los controladores no inyectan puertos de salida. La separación de
 responsabilidades ya aplicada en misiones anteriores se conserva:
 
 - `UserManagementService` está dividido en cinco servicios especializados.
@@ -56,16 +79,16 @@ existir cobertura indirecta a través de controladores o flujos de registro.
 | `ConsultSessionEventsService` | Consultar eventos de sesión con filtros y paginación | `SessionAuditPort` | — | `ConsultSessionEventsServiceTest`, `SessionEventQueryUseCaseImplTest` | Fachada de lectura delgada pero justificada: aísla el puerto de auditoría de escritura |
 | `CreateBuyerService` | Validar usuario/rol/duplicado y crear comprador | `BuyerRepositoryPort`, `UserRepositoryPort` | `BusinessRuleException`, `ResourceNotFoundException` | — | Cohesivo; creación de comprador |
 | `InventoryConsultService` | Consultar inventario por id, producto o bodega | `InventoryRepositoryPort`, `ProductRepositoryPort`, `WarehouseRepositoryPort` | `ResourceNotFoundException` | `InventoryServiceTest` | Cohesivo; solo lectura |
-| `InventoryManagementService` | Crear inventario, reservar (solo cantidades positivas), confirmar pago, marcar dañado y ajustar | `InventoryRepositoryPort`, `ProductRepositoryPort`, `WarehouseRepositoryPort` | `BusinessRuleException`, `WarehouseCapacityExceededException`, `ResourceNotFoundException` | `InventoryServiceTest` | Cohesivo para el ciclo de vida del inventario; invariante `amount > 0` en el modelo |
+| `InventoryManagementService` | Crear inventario, reservar (solo cantidades positivas), confirmar pago, marcar dañado y ajustar | `InventoryRepositoryPort`, `ProductRepositoryPort`, `WarehouseRepositoryPort` | `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `BusinessRuleException`, `WarehouseCapacityExceededException`, `ResourceNotFoundException` | `InventoryServiceTest` | Cohesivo para el ciclo de vida del inventario; cantidad, stock y estado dañado tienen excepciones específicas |
 | `InvoiceGenerateService` | Validar orden facturable y duplicado; generar factura | `InvoiceRepositoryPort`, `OrderRepositoryPort` | `InvoiceNotPayableException`, `InvoiceAlreadyExistsException`, `ResourceNotFoundException` | `InvoiceServiceTest` | Cohesivo; emisión de factura. **P2-07 pendiente:** genera `paid=true`, lo que deja inalcanzable el camino exitoso de anulación |
 | `InvoiceVoidService` | Anular una factura activa e impaga | `InvoiceRepositoryPort` | `InvoiceNotPayableException`, `ResourceNotFoundException` | `InvoiceServiceTest` | Cohesivo; se retiró la dependencia de reembolsos y se corrigió RN-010 |
-| `OrderCalculationService` | Añadir/quitar ítems y recalcular el total | `OrderRepositoryPort`, `ProductRepositoryPort` | `BusinessRuleException`, `ResourceNotFoundException` | `OrderServiceTest` | Cohesivo para composición de la orden; validación de disponibilidad queda P2 |
+| `OrderCalculationService` | Añadir/quitar ítems y recalcular el total | `OrderRepositoryPort`, `ProductRepositoryPort`, `InventoryRepositoryPort` | `InvalidQuantityException`, `InsufficientStockException`, `BusinessRuleException`, `ResourceNotFoundException` | `OrderServiceTest` | Cohesivo para composición de la orden; valida producto activo, cantidad y stock disponible |
 | `OrderCreateService` | Crear orden en `CART` validando comprador y usuario activo | `OrderRepositoryPort`, `BuyerRepositoryPort`, `UserRepositoryPort` | `BusinessRuleException`, `ResourceNotFoundException` | `OrderServiceTest` | Cohesivo; creación de orden |
 | `OrderLifecycleService` | Aplicar transiciones de estado de la orden | `OrderRepositoryPort` | `ResourceNotFoundException`; `InvalidStatusTransitionException` desde el modelo | `OrderServiceTest` | Cohesivo; delegación de transiciones |
-| `PasswordChangeService` | Verificar contraseña actual, aplicar política, cifrar y revocar sesiones | `UserRepositoryPort`, `PasswordEncoder` | `BusinessRuleException`, `ResourceNotFoundException` | `PasswordChangeServiceTest`, `AuthServiceTest`, `TokenInvalidationServiceTest` | Cohesivo; cambio de contraseña |
+| `PasswordChangeService` | Verificar contraseña actual, aplicar política, cifrar y revocar sesiones | `UserRepositoryPort`, `PasswordHasherPort` | `BusinessRuleException`, `ResourceNotFoundException` | `PasswordChangeServiceTest`, `AuthServiceTest`, `TokenInvalidationServiceTest` | Cohesivo; cambio de contraseña |
 | `ProductDomainService` | Crear, actualizar y desactivar productos; validar vendedor, categoría e inventario | `ProductRepositoryPort`, `CategoryRepositoryPort`, `SellerRepositoryPort`, `UserRepositoryPort`, `InventoryRepositoryPort` | `BusinessRuleException`, `DuplicateResourceException`, `ProductNotAvailableException`, `ResourceNotFoundException` | `ProductServiceTest` | Cohesivo para publicación de productos; cinco puertos son un punto P2 a vigilar |
 | `RefundApproveService` | Aprobar o rechazar un reembolso `PENDING` | `RefundRepositoryPort` | `InvalidStatusTransitionException`, `ResourceNotFoundException` | `RefundServiceTest` | Cohesivo; estados ya procesados → 409 (RF-035) |
-| `RefundProcessService` | Crear reembolso validando factura activa/pagada, monto acumulado y devolución | `RefundRepositoryPort`, `InvoiceRepositoryPort`, `ReturnRepositoryPort` | `RefundAmountExceededException`, `RefundNotAllowedException`, `ResourceNotFoundException` | `RefundServiceTest` | Cohesivo; creación de reembolso; rechaza facturas inactivas o impagas |
+| `RefundProcessService` | Crear reembolso validando factura activa/pagada, monto acumulado y devolución | `RefundRepositoryPort`, `InvoiceRepositoryPort`, `ReturnRepositoryPort` | `InvalidRefundAmountException`, `InvoiceNotRefundableException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ResourceNotFoundException` | `RefundServiceTest` | Cohesivo; cada condición de rechazo tiene una excepción semántica |
 | `RegisterAuditLogService` | Validar y persistir un registro de auditoría | `AuditLogRepositoryPort` | `BusinessRuleException` | `AuditServiceTest` | Cohesivo; escritura de auditoría |
 | `ReturnProcessService` | Crear, aprobar, rechazar y completar devoluciones | `ReturnRepositoryPort`, `OrderRepositoryPort` | `ReturnAlreadyProcessedException`, `ReturnNotAllowedException`, `ReturnWindowExpiredException`, `ResourceNotFoundException` | `ReturnServiceTest` | Cohesivo para el ciclo de vida; aprobar/rechazar fuera de `REQUESTED` → 409 (RF-041) |
 | `SellerDomainService` | Crear, activar, desactivar y actualizar vendedores | `SellerRepositoryPort`, `UserRepositoryPort` | `BusinessRuleException`, `DuplicateResourceException`, `ResourceNotFoundException` | — | Cohesivo; ciclo de vida del vendedor |
@@ -73,7 +96,7 @@ existir cobertura indirecta a través de controladores o flujos de registro.
 | `SessionInvalidationService` | Incrementar `tokenVersion` para revocar JWT | `UserRepositoryPort` | `ResourceNotFoundException` | `UserServiceTest` | Cohesivo; invalidación explícita |
 | `ShipmentCreateService` | Crear envío para una orden `DISPATCHED` | `ShipmentRepositoryPort`, `OrderRepositoryPort`, `WarehouseRepositoryPort` | `BusinessRuleException`, `ShipmentAlreadyExistsException`, `ResourceNotFoundException` | `ShipmentServiceTest` | Cohesivo; creación de envío |
 | `ShipmentStatusService` | Actualizar estado respetando estados terminales | `ShipmentRepositoryPort` | `InvalidStatusTransitionException`, `ResourceNotFoundException` | `ShipmentServiceTest` | Cohesivo; transición de envío |
-| `UserCreationService` | Validar duplicado, aplicar `PasswordPolicy`, cifrar y crear usuario | `UserRepositoryPort`, `PasswordEncoder` | `DuplicateResourceException`; `BusinessRuleException` desde la política | `UserServiceTest` | Cohesivo; alta de usuario |
+| `UserCreationService` | Validar duplicado, aplicar `PasswordPolicy`, cifrar y crear usuario | `UserRepositoryPort`, `PasswordHasherPort` | `UserAlreadyExistsException`; `BusinessRuleException` desde la política | `UserServiceTest` | Cohesivo; alta de usuario con duplicado específico |
 | `UserQueryService` | Consultar usuarios por id, email, rol y listados | `UserRepositoryPort` | `ResourceNotFoundException` | `UserServiceTest` | Cohesivo; solo lectura |
 | `UserStatusService` | Bloquear, activar y cambiar rol | `UserRepositoryPort` | `ResourceNotFoundException` | `UserServiceTest` | Cohesivo; estado administrativo |
 | `WarehouseDomainService` | Crear y actualizar bodegas; validar capacidad | `WarehouseRepositoryPort`, `InventoryRepositoryPort` | `DuplicateResourceException`, `ResourceNotFoundException`, `WarehouseCapacityExceededException` | `WarehouseServiceTest` | Cohesivo; ciclo de vida de bodega |
@@ -112,16 +135,22 @@ ni Spring. `GlobalExceptionHandler` decide el código HTTP.
 |---|---|---|---|---|
 | `ResourceNotFoundException` | Recurso inexistente | Casos de uso, servicios y mappers JPA | 404 | Correcta; mensaje con recurso e id |
 | `TrackingNotFoundException` | Código de seguimiento inexistente | `ShipmentUseCaseImpl.findByTracking` | 404 | Correcta; específica del caso de tracking |
-| `BusinessRuleException` | Regla de negocio genérica | `PasswordPolicy`, `Inventory`, servicios de usuario/compra/producto/categoría/orden/auditoría | 422 | Correcta como regla general; no oculta condiciones que requieran otro código HTTP |
-| `DuplicateResourceException` | Recurso duplicado | Usuarios, productos, categorías, vendedores, bodegas | 409 | Correcta |
+| `BusinessRuleException` | Regla de negocio genérica: estado, política, producto inactivo o auditoría | `PasswordPolicy`, servicios de usuario/compra/producto/categoría/orden/auditoría | 422 | Correcta como regla general; ya no cubre cantidades, stock, inventario dañado, duplicado de usuario ni elegibilidad de factura |
+| `InvalidQuantityException` | Cantidad nula, cero o negativa | `Inventory.reserve`/`release`/`adjust`, `InventoryManagementService.createInventory`, `OrderCalculationService.addItem` | 422 | Nueva; evita reutilizar `BusinessRuleException` para una condición con semántica propia |
+| `InsufficientStockException` | Stock disponible insuficiente | `Inventory.reserve`, `OrderCalculationService.addItem` | 422 | Nueva; distingue falta de stock de una cantidad mal formada |
+| `DamagedInventoryException` | Operación sobre inventario `DAMAGED` | `Inventory.reserve`, `Inventory.confirmPayment` | 422 | Nueva; separa el estado del inventario de las reglas genéricas |
+| `DuplicateResourceException` | Recurso duplicado | Productos, categorías, vendedores, bodegas | 409 | Correcta; el alta de usuario ya no la usa |
+| `UserAlreadyExistsException` | Email de usuario ya registrado | `UserCreationService` | 409 | Nueva; específica del agregado Usuario |
 | `InvalidStatusTransitionException` | Transición de estado inválida | Modelos `Order`/`Shipment`, `ShipmentStatusService`, `RefundApproveService` | 409 | Correcta; expone estado actual y destino como detalles seguros. Se amplió a reembolsos ya procesados (RF-035) |
 | `ProductNotAvailableException` | Producto con stock reservado no desactivable | `ProductDomainService.deactivateProduct` | 409 | Correcta |
 | `CategoryHasProductsException` | Categoría con productos | `CategoryDomainService.deleteCategory` | 409 | Correcta |
 | `WarehouseCapacityExceededException` | Capacidad de bodega excedida | `InventoryManagementService`, `WarehouseDomainService` | 422 | Correcta |
 | `InvoiceAlreadyExistsException` | Factura activa duplicada | `InvoiceGenerateService` | 409 | Correcta; semánticamente más específica que `DuplicateResourceException` |
 | `InvoiceNotPayableException` | Factura/orden no facturable o anulable | `InvoiceGenerateService`, `InvoiceVoidService` | 422 | Corregida: mensaje y uso para anulación |
+| `InvoiceNotRefundableException` | Factura inactiva o impaga para reembolso | `RefundProcessService` | 422 | Nueva; separa la elegibilidad de la factura del monto o de la devolución |
+| `InvalidRefundAmountException` | Monto de reembolso nulo o no positivo | `RefundProcessService` | 422 | Nueva; reemplaza el uso genérico de `RefundNotAllowedException` |
 | `RefundAmountExceededException` | Reembolso excede el total | `RefundProcessService` | 422 | Correcta |
-| `RefundNotAllowedException` | Reembolso no permitido: monto inválido o factura inactiva/impaga | `RefundProcessService` | 422 | Correcta; ya no se usa para estados ya procesados ni para anular facturas |
+| `RefundNotAllowedException` | Devolución asociada a otra orden | `RefundProcessService` | 422 | Correcta; limitada a la integridad factura–devolución |
 | `PaymentGatewayException` | Fallo de pasarela de pago | Ningún productor actual | 502 | Sin uso; se conserva por contrato/handler, pendiente de integración real |
 | `ShipmentAlreadyExistsException` | Envío duplicado por orden o tracking | `ShipmentCreateService` | 409 | Correcta; específica frente a `DuplicateResourceException` |
 | `ReturnWindowExpiredException` | Plazo de devolución vencido | `ReturnProcessService` | 422 | Correcta |
@@ -129,10 +158,14 @@ ni Spring. `GlobalExceptionHandler` decide el código HTTP.
 | `ReturnAlreadyProcessedException` | Devolución ya procesada; aprobar/rechazar fuera de `REQUESTED` o completar un estado final | `ReturnProcessService` | 409 | Mensaje corregido y uso ampliado conforme a RF-041 |
 | `DomainException` (abstracta) | Base común | — | 400 si no tiene handler específico | Red de seguridad; todos los tipos concretos actuales tienen mapeo |
 
-No se añadieron excepciones nuevas. Se reutilizaron `InvoiceNotPayableException`
-para la anulación e `InvalidStatusTransitionException` para reembolsos ya
-procesados; se corrigieron mensajes y no se crearon clases para duplicar
-significados existentes.
+La división de excepciones se completó en la fase de cierre. Se añadieron seis
+tipos granulares —`InsufficientStockException`, `InvalidQuantityException`,
+`UserAlreadyExistsException`, `InvalidRefundAmountException`,
+`InvoiceNotRefundableException` y `DamagedInventoryException`— y se actualizaron
+los servicios, el `GlobalExceptionHandler`, `DomainExceptionContractTest` y las
+pruebas de orden, inventario, usuario y reembolsos. `RefundNotAllowedException`
+queda limitada a la devolución que no pertenece a la orden de la factura; ya no
+representa montos inválidos ni facturas inactivas/impagas.
 
 ## 5. Hallazgos y priorización
 
@@ -148,7 +181,7 @@ significados existentes.
 |---|---|---|---|---|---|---|
 | P1-01 | `domain/services/InvoiceVoidService.java` | Anular factura | Permitía anular una factura pagada si existía un reembolso aprobado, y no rechazaba una factura ya inactiva. Contradecía RN-010 y RF-032, que exigen factura activa e impaga | Código anterior consultaba `RefundRepositoryPort`; la prueba solo cubría el caso pagado sin reembolso | Se podía anular una factura pagada por una vía no prevista y devolver una operación ya realizada con 200 | **Corregido:** solo `active == true && paid == false`; se lanza `InvoiceNotPayableException`; pruebas de éxito, pagada e inactiva. Ver `InvoiceServiceTest` |
 | P1-02 | `RefundApproveService`, `ReturnProcessService` | Decisiones sobre reembolsos/devoluciones | Aprobar o rechazar un reembolso ya procesado devolvía 422 (`RefundNotAllowedException`) y una devolución ya procesada también devolvía 422 (`ReturnNotAllowedException`), pese a que RF-035/RF-041 exigen 409 | Pruebas antiguas esperaban las excepciones de 422; el contrato HTTP documentado no coincidía con el requisito | Clientes y pruebas contractuales recibían un código distinto para el mismo estado ya procesado | **Corregido:** reembolsos no `PENDING` → `InvalidStatusTransitionException` (409); devoluciones no `REQUESTED` al aprobar/rechazar → `ReturnAlreadyProcessedException` (409). Completar una `REQUESTED` sigue siendo 422. Ver `RefundServiceTest`, `ReturnServiceTest` |
-| P1-03 | `domain/models/Inventory.java`, `InventoryManagementService` | Reserva de stock | `reserve` restaba `amount` sin exigir `amount > 0`; un valor negativo incrementaba la cantidad y marcaba el inventario como `RESERVED`. El controlador no validaba el parámetro | `Inventory.reserve` solo comprobaba `DAMAGED` y `quantity < amount`; `@RequestParam int amount` no tenía `@Positive` | Un operador podía inflar el stock con una reserva negativa, afectando disponibilidad y pedidos | **Corregido:** el modelo exige `amount > 0`; `createInventory` rechaza cantidad nula o negativa; pruebas de cero, negativo y nulo. La reserva inválida devuelve 422 (`BusinessRuleException`) |
+| P1-03 | `domain/models/Inventory.java`, `InventoryManagementService` | Reserva de stock | `reserve` restaba `amount` sin exigir `amount > 0`; un valor negativo incrementaba la cantidad y marcaba el inventario como `RESERVED`. El controlador no validaba el parámetro | `Inventory.reserve` solo comprobaba `DAMAGED` y `quantity < amount`; `@RequestParam int amount` no tenía `@Positive` | Un operador podía inflar el stock con una reserva negativa, afectando disponibilidad y pedidos | **Corregido:** el modelo exige `amount > 0`; `createInventory` rechaza cantidad nula o negativa; pruebas de cero, negativo y nulo. La reserva inválida devuelve 422 (`InvalidQuantityException`) |
 
 ### P2 — SRP, duplicación o deuda significativa
 
@@ -156,7 +189,7 @@ significados existentes.
 |---|---|---|---|---|---|---|
 | P2-01 | `adapters/useCases/AuthenticationUseCaseImpl.java` | Registro, login, logout y cambio de contraseña | Cuatro operaciones y coordinación de perfiles/JWT/auditoría en una fachada | 7 dependencias inyectadas; métodos públicos de cuatro flujos | Cambios en un flujo pueden afectar a otro; difícil aislar pruebas | **Sin cambio**: se evaluó dividir en servicios por operación, pero se mantiene como fachada cohesiva para no fragmentar el contrato HTTP ni duplicar la transacción de registro. Reevaluar si crece el registro |
 | P2-02 | `domain/services/ProductDomainService.java` | Publicación y ciclo de vida del producto | Cinco puertos de salida y validaciones de vendedor, usuario, categoría e inventario | Constructor con 5 dependencias | La publicación puede acumular más reglas y volverse difícil de probar | **Sin cambio**: las reglas pertenecen al mismo agregado. Si aparecen reglas de publicación independientes, extraer una política de publicación |
-| P2-03 | Servicios de `domain/services` | Lógica de dominio | Los 28 servicios usan `@Service`/`@Transactional` y dos usan `PasswordEncoder` de Spring Security | 28 de 28 clases con `import org.springframework`; `UserCreationService`, `PasswordChangeService` | Acoplamiento al contenedor/seguridad; dificulta reutilizar el dominio fuera de Spring | **Plan definido, sin ejecutar:** declarar beans en `infrastructure/config`, retirar `@Service`/`@Transactional` del dominio y sustituir `PasswordEncoder` por un puerto + adaptador. Riesgo alto en una sola pasada (28 clases, ~30 sitios de `new` en pruebas, pérdida de proxy transaccional en servicios invocados desde otros servicios); ver plan por fases en §6 |
+| P2-03 | Servicios de `domain/services` | Lógica de dominio | Los 28 servicios usan `@Service`/`@Transactional` y dos usan `PasswordEncoder` de Spring Security | 28 de 28 clases con `import org.springframework`; `UserCreationService`, `PasswordChangeService` | Acoplamiento al contenedor/seguridad; dificulta reutilizar el dominio fuera de Spring | **Completado:** los 28 servicios son POJO puros. `@Service`/`@Transactional` se retiraron del dominio, los beans se declaran en `UserServiceConfig`, `CommerceServiceConfig`, `BillingServiceConfig` y `AuditServiceConfig`, las transacciones viven en `adapters/useCases` y `PasswordEncoder` se sustituyó por `PasswordHasherPort`. El candado `SrpArchitectureTest` cubre todo el paquete. Ver §6.1 |
 | P2-04 | `domain/services/CategoryDomainService.java` | Integridad de la jerarquía de categorías | Solo impedía que una categoría fuera su propio padre; no detectaba ciclos con descendientes ni validaba categorías hijas al borrar | `updateCategory` comparaba `parentId.equals(id)` y no recorría ancestros; `deleteCategory` solo consultaba productos | Jerarquías cíclicas o borrado de una categoría padre con hijas; posible error de integridad en persistencia | **Corregido:** `updateCategory` recorre ancestros y detecta ciclos; `deleteCategory` consulta `findByParentId` y rechaza hijas (`BusinessRuleException`, 422). Pruebas en `CategoryServiceTest` |
 | P2-05 | `domain/services/OrderCalculationService.java` | Composición de la orden | `addItem` validaba cantidad y existencia, pero no que el producto estuviera activo ni el stock disponible | `addItem` solo consultaba `productRepositoryPort.findById` | Se podían añadir productos inactivos o sin stock; el fallo se trasladaba al checkout | **Resuelto:** `addItem` rechaza producto inactivo (`BusinessRuleException`, 422) y compara la cantidad con el stock `AVAILABLE` agregado por producto (nuevo `InventoryRepositoryPort` inyectado, helper `availableStock`). 6 pruebas nuevas en `OrderServiceTest`: éxito, producto inexistente (404), inactivo, stock insuficiente, inventario solo `RESERVED`/`DAMAGED` y sin registros |
 | P2-06 | Controladores de comprador/vendedor | Autorización de propiedad | Cada controlador repite comparaciones de `userId`/`buyerId`/`sellerId` | `ProductController`, `OrderController`, `BuyerController`, `SellerController`, `ReturnController` | Duplicación y riesgo de olvidar una comprobación en un endpoint nuevo | **Sin cambio inmediato**: funciona y está cubierto por pruebas; extraer una política de propiedad si se repite en más endpoints |
@@ -169,9 +202,9 @@ significados existentes.
 |---|---|---|---|---|
 | P3-01 | `InvoiceNotPayableException` | El mensaje anterior decía “Order must be PAID” aunque la generación también admite `DISPATCHED`, `DELIVERED` y `FINISHED` | `InvoiceGenerateService` valida cuatro estados | **Corregido:** mensaje neutral de estado facturable/anulable; los servicios lanzan mensajes específicos |
 | P3-02 | `ReturnAlreadyProcessedException` | El mensaje decía “processed or is pending” incluso al aprobar/rechazar/completar una devolución ya procesada | Uso en `ReturnProcessService` para estados no válidos | **Corregido:** mensaje que indica que el estado no permite la operación |
-| P3-03 | `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `DuplicateResourceException` | Semántica de duplicado con tres tipos y el mismo HTTP 409 | Handlers separados en `GlobalExceptionHandler` | Se conservan: aportan contexto de recurso y permiten un tratamiento futuro distinto. No se creó una abstracción adicional |
+| P3-03 | `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `DuplicateResourceException`, `UserAlreadyExistsException` | Semántica de duplicado con cuatro tipos y el mismo HTTP 409 | Handlers separados en `GlobalExceptionHandler` | Se conservan: aportan contexto de recurso y permiten un tratamiento futuro distinto. No se creó una abstracción adicional |
 | P3-04 | `PaymentGatewayException` | No tiene productor en el código actual | Solo aparece en el handler y en `DomainExceptionContractTest` | Se conserva documentada; eliminar solo si se confirma que no se integrará una pasarela |
-| P3-05 | `GlobalExceptionHandler.handleUnmappedDomainException` | Devuelve `ex.getMessage()` para una excepción de dominio nueva | Handler de respaldo 400 | Los 17 tipos actuales tienen handler específico; para tipos futuros, considerar mensaje genérico y log interno para no filtrar detalles |
+| P3-05 | `GlobalExceptionHandler.handleUnmappedDomainException` | Devuelve `ex.getMessage()` para una excepción de dominio nueva | Handler de respaldo 400 | Los 23 tipos actuales tienen handler específico; para tipos futuros, considerar mensaje genérico y log interno para no filtrar detalles |
 | P3-06 | `SessionAuditService`, `JwtAuthenticationFilter`, `JwtService` | Capturas genéricas de `Exception` | Auditoría de sesión y validación JWT | **Justificadas**: el registro de auditoría es best-effort y el filtro debe fallar cerrado sin autenticar. No se cambió |
 | P3-07 | Mappers JPA | Lanzan `ResourceNotFoundException` de dominio desde el adaptador | Varios `*JpaMapper` | Dirección de dependencia correcta (adaptador → dominio), pero mezcla detalle de persistencia con excepción de dominio; revisar si se crea un puerto de carga de relaciones |
 | P3-08 | Pruebas | Cuatro servicios y dos casos de uso no tienen prueba unitaria directa | `AddBuyerAddressService`, `ChangeBuyerCommercialStatusService`, `CreateBuyerService`, `SellerDomainService`, `BuyerUseCaseImpl`, `SellerUseCaseImpl` | Añadir pruebas directas cuando se toquen esos flujos; hoy hay cobertura indirecta parcial de controladores/registro |
@@ -192,34 +225,34 @@ significados existentes.
 - `SessionAuditService` no conoce HTTP; la extracción de metadatos vive en
   `HttpRequestMetadataExtractor`.
 
-### Deuda o acoplamiento documentado
+### Deuda resuelta y acoplamiento documentado
 
-1. **Anotaciones Spring en dominio (28 de 28 servicios):** `@Service` y
-   `@Transactional` en los servicios. Es una decisión pragmática existente; la
-   alternativa es configurar beans en infraestructura y dejar POJOs. **Plan en
-   §6.1.**
-2. **`PasswordEncoder` en dominio:** `UserCreationService` y
-   `PasswordChangeService` dependen de una interfaz de Spring Security. No es una
-   implementación concreta, pero sigue siendo un detalle de seguridad externo.
-   **Plan en §6.1.**
+1. **Anotaciones Spring en dominio — resuelto (P2-03):** 0 de 28 servicios usan
+   `@Service`, `@Transactional` o `@Async`. Los beans se declaran en las cuatro
+   configuraciones de `infrastructure/config` y las transacciones viven en las
+   fachadas de `adapters/useCases`. Ver §6.1.
+2. **`PasswordEncoder` en dominio — resuelto:** `UserCreationService` y
+   `PasswordChangeService` dependen de `PasswordHasherPort`; el adaptador BCrypt
+   vive en infraestructura. Ver §6.1.
 3. **Mappers JPA que lanzan excepciones de dominio:** la dirección es correcta,
    pero el adaptador decide una condición de dominio. No se refactorizó por
    riesgo de cambiar la semántica de carga de relaciones.
 4. **`AuthenticationUseCaseImpl` depende de `JwtService`:** está en
    `adapters/useCases`, no en dominio; se acepta como coordinación de aplicación.
 
-### 6.1 Plan para dejar `domain/services` sin dependencias de Spring (P2-03)
+### 6.1 Plan ejecutado para dejar `domain/services` sin dependencias de Spring (P2-03)
 
-**Inventario actual** (verificado sobre los 28 archivos):
+**Estado final** (verificado sobre los 28 archivos):
 
 | Acoplamiento | Alcance | Detalle |
 |---|---|---|
-| `@Service` | 28/28 clases | Estereotipo del contenedor |
-| `org.springframework.transaction.annotation.Transactional` | 20 clases | Incluye `InventoryManagementService` (5 métodos), `OrderLifecycleService` (6) y `RefundApproveService` (2) |
-| `PasswordEncoder` | 2 clases | `UserCreationService` (`encode`), `PasswordChangeService` (`matches` + `encode`) |
-| `jakarta.servlet` | 0 clases | Ya cubierto por `SrpArchitectureTest` |
+| `@Service` | 0/28 clases | Retirado; beans en `UserServiceConfig`, `CommerceServiceConfig`, `BillingServiceConfig` y `AuditServiceConfig` |
+| `org.springframework.transaction.annotation.Transactional` | 0/28 clases | Movido a las fachadas de `adapters/useCases` |
+| `PasswordEncoder` | 0/28 clases | Sustituido por `PasswordHasherPort` + adaptador BCrypt |
+| `jakarta.servlet` | 0/28 clases | Cubierto por `SrpArchitectureTest` |
+| `@Async` | 0/28 clases | Decorador `AsyncSessionAuditService` en infraestructura |
 
-**Estado deseado:**
+**Estado alcanzado:**
 
 1. **Nuevo puerto** `domain/ports/out/PasswordHasherPort`:
 
@@ -233,23 +266,26 @@ public interface PasswordHasherPort {
 2. **Nuevo adaptador** `infrastructure/security/BCryptPasswordHasherAdapter` que
    envuelva `PasswordEncoder` (así el dominio ya no ve Spring Security).
 
-3. **Nueva configuración** `infrastructure/config/DomainServiceConfig` con un
-   `@Bean` por servicio, inyectando los puertos. Ejemplo:
+3. **Cuatro configuraciones especializadas** en `infrastructure/config`, con un
+   `@Bean` por servicio e inyección de puertos:
+
+   | Configuración | Servicios registrados |
+   |---|---|
+   | `UserServiceConfig` | Usuarios, autenticación, compradores y sesiones (8 beans) |
+   | `CommerceServiceConfig` | Catálogo, inventario, almacenes, vendedores y pedidos (9 beans) |
+   | `BillingServiceConfig` | Facturación, reembolsos, devoluciones y envíos (7 beans) |
+   | `AuditServiceConfig` | Auditoría y `AsyncSessionAuditService` (4 beans) |
+
+   Ejemplo:
 
 ```java
 @Configuration
-public class DomainServiceConfig {
+public class CommerceServiceConfig {
 
     @Bean
     OrderCalculationService orderCalculationService(OrderRepositoryPort orders,
             ProductRepositoryPort products, InventoryRepositoryPort inventory) {
         return new OrderCalculationService(orders, products, inventory);
-    }
-
-    @Bean
-    UserCreationService userCreationService(UserRepositoryPort users,
-            PasswordHasherPort hasher) {
-        return new UserCreationService(users, hasher);
     }
 }
 ```
@@ -272,28 +308,33 @@ public class DomainServiceConfig {
 5. **Actualizar `SrpArchitectureTest`** para que falle si cualquier clase de
    `com.nexusmarket.domain.services` importa `org.springframework.*` o
    `jakarta.servlet.*`. Es el candado que impide la reaparición de la deuda.
+   **Hecho:** el test escanea los 28 servicios del paquete y valida anotaciones
+   y tipos de campos, parámetros, retornos y constructores.
 
-**Ejecución por fases (cada una con `mvnw test` verde):**
+**Ejecución completada por fases (cada una con `mvnw test` verde):**
 
-1. **Fase 0 — Candado:** añadir la prueba de arquitectura de imports Spring en
-   modo `@Disabled` con la lista de excepciones actual (28 clases).
-2. **Fase 1 — Cifrado:** introducir `PasswordHasherPort` + adaptador y migrar
-   `UserCreationService`/`PasswordChangeService` y sus pruebas (cambio local,
-   sin tocar transacciones).
-3. **Fase 2 — Agregados de facturación y reembolsos:** mover `@Service` a
-   `DomainServiceConfig` y la transacción a `InvoiceUseCaseImpl` /
-   `RefundUseCaseImpl`. Actualizar `InvoiceServiceTest` y `RefundServiceTest`.
-4. **Fase 3 — Pedidos, catálogo e inventario:** mismo patrón en
-   `Order*Service`, `ProductDomainService`, `CategoryDomainService`,
-   `Inventory*Service`, `WarehouseDomainService`.
-5. **Fase 4 — Usuarios, compradores, vendedores y logística:** el resto.
-6. **Fase 5 — Cierre:** quitar `@Disabled` del candado y borrar los imports
-   Spring del dominio.
+1. **Fase 0 — Candado — Hecho:** prueba de arquitectura preparada para cubrir
+   todo el paquete.
+2. **Fase 1 — Cifrado — Hecho:** `PasswordHasherPort` + adaptador BCrypt;
+   `UserCreationService`/`PasswordChangeService` migrados.
+3. **Fase 2 — Facturación y reembolsos — Hecho:** beans en
+   `BillingServiceConfig` y transacciones en `InvoiceUseCaseImpl` /
+   `RefundUseCaseImpl`.
+4. **Fase 3 — Pedidos, catálogo, inventario y almacenes — Hecho:** `Order*Service`,
+   `ProductDomainService`, `CategoryDomainService`, `Inventory*Service` y
+   `WarehouseDomainService` sin Spring. Las transacciones de pedidos viven en
+   `OrderUseCaseImpl`, incluidos los seis métodos de `OrderLifecycleService`.
+5. **Fase 4 — Usuarios, compradores, vendedores y logística — Hecho:** el resto
+   de servicios, con transacciones en las fachadas correspondientes.
+6. **Fase 5 — Cierre — Hecho:** candado activo sobre los 28 servicios y cero
+   imports de Spring en el dominio.
 
-**Riesgos a vigilar:** (a) pérdida silenciosa de transaccionalidad en llamadas
-servicio→servicio; (b) ~30 instanciaciones directas `new XxxService(...)` en
-pruebas que habrá que ajustar por fase; (c) `@Transactional(readOnly=true)` en
-consultas si se añade después.
+**Riesgos verificados:** (a) la transaccionalidad se conserva porque las
+fachadas de `adapters/useCases` son la frontera y las llamadas servicio→servicio
+se ejecutan dentro de esa transacción; (b) las pruebas usan mocks, no
+instanciaciones directas masivas, por lo que no hubo que reescribirlas; (c) el
+registro asíncrono se preservó con `AsyncSessionAuditService`; la suite completa
+quedó en 224 pruebas verdes.
 
 No se encontraron controladores con lógica de negocio compleja ni acceso directo
 a repositorios. La autorización por rol y propiedad sigue en `SecurityConfig` y
@@ -343,13 +384,13 @@ en comprobaciones de propiedad de los controladores.
 ### Suite ejecutada
 
 - **Comando:** `.\mvnw.cmd -B clean package`
-- **Resultado real:** **211 pruebas, 0 fallos, 0 errores, 0 omitidas**.
+- **Resultado real:** **224 pruebas, 0 fallos, 0 errores, 0 omitidas**.
 - **Clases de prueba:** 37.
 - **Pruebas específicas de las correcciones:**
   - `InvoiceServiceTest` (6): generación exitosa, orden no facturable, factura duplicada, anulación exitosa de factura activa e impaga, rechazo de factura pagada y rechazo de factura ya inactiva.
-  - `RefundServiceTest` (9): creación, factura impaga, factura inactiva, monto excedido, monto no positivo, monto acumulado excedido, aprobación de `PENDING`, aprobar un reembolso rechazado (409) y rechazar uno aprobado (409).
+  - `RefundServiceTest` (12): creación exitosa, factura impaga, factura inactiva, monto excedido, monto acumulado excedido, monto no positivo, devolución de otra orden, devolución inexistente, creación con devolución de la misma orden, aprobación de `PENDING`, aprobar un reembolso rechazado (409) y rechazar uno aprobado (409).
   - `ReturnServiceTest` (9): creación, orden no entregada, ventana expirada, duplicado activo, agregación por comprador, completar sin aprobar, aprobar un rechazado (409), rechazar un aprobado (409) y completar un rechazado (409).
-  - `InventoryServiceTest` (9): creación, cantidad negativa, cantidad nula, capacidad excedida, reserva dañada, cantidad insuficiente, reserva cero, reserva negativa y marcado como dañado.
+  - `InventoryServiceTest` (10): creación, cantidad negativa, cantidad nula, capacidad excedida, reserva dañada, confirmación de pago dañada, cantidad insuficiente, reserva cero, reserva negativa y marcado como dañado.
   - `CategoryServiceTest` (7): creación, duplicado, borrado con productos, borrado con subcategorías, borrado exitoso, ciclo de jerarquía y categoría inexistente.
 
 La salida de `SessionAuditServiceTest` incluye un stack trace de un fallo
@@ -416,8 +457,9 @@ no un fallo de la suite.
 6. **P2-07 — Validación resuelta; decisión funcional abierta.** La anulación de
    facturas pagadas está bloqueada y probada. Falta decidir si la generación debe
    dejar de crear facturas con `paid=true`.
-7. **P2-03 — Plan de pureza del dominio redactado** (beans en infraestructura +
-   puerto de cifrado). Pendiente de ejecución por fases; ver §6.
+7. **P2-03 — Completado.** Los 28 servicios de dominio son POJO puros; beans en
+   infraestructura, transacciones en las fachadas, cifrado por puerto y candado
+   arquitectónico sobre todo el paquete. Ver §6.1.
 8. **P2-01/P2-02 — Vigilar.** Reevaluar `AuthenticationUseCaseImpl` y
    `ProductDomainService` si crecen sus operaciones o dependencias.
 9. **P3-08 — Pruebas.** Añadir pruebas directas de los servicios y casos de uso

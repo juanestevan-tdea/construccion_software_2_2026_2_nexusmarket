@@ -2,6 +2,7 @@ package com.nexusmarket.domain.exceptions;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -21,10 +22,15 @@ class DomainExceptionContractTest {
     private static final List<Class<? extends DomainException>> EXCEPTIONS = List.of(
             BusinessRuleException.class,
             CategoryHasProductsException.class,
+            DamagedInventoryException.class,
             DuplicateResourceException.class,
+            InsufficientStockException.class,
+            InvalidQuantityException.class,
+            InvalidRefundAmountException.class,
             InvalidStatusTransitionException.class,
             InvoiceAlreadyExistsException.class,
             InvoiceNotPayableException.class,
+            InvoiceNotRefundableException.class,
             PaymentGatewayException.class,
             ProductNotAvailableException.class,
             RefundAmountExceededException.class,
@@ -35,13 +41,16 @@ class DomainExceptionContractTest {
             ReturnWindowExpiredException.class,
             ShipmentAlreadyExistsException.class,
             TrackingNotFoundException.class,
+            UserAlreadyExistsException.class,
             WarehouseCapacityExceededException.class);
 
     @Test
-    @DisplayName("Todas las excepciones de dominio heredan de DomainException")
+    @DisplayName("Todas las excepciones heredan de DomainException y no de ResponseStatusException")
     void allDomainExceptionsExtendBase() {
-        assertThat(EXCEPTIONS).allSatisfy(type ->
-                assertThat(DomainException.class).isAssignableFrom(type));
+        assertThat(EXCEPTIONS).allSatisfy(type -> {
+            assertThat(DomainException.class).isAssignableFrom(type);
+            assertThat(ResponseStatusException.class.isAssignableFrom(type)).isFalse();
+        });
     }
 
     @Test

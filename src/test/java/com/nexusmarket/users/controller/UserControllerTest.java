@@ -4,6 +4,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.nexusmarket.adapters.rest.controllers.admin.UserController;
 import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
 import com.nexusmarket.infrastructure.security.CustomUserDetailsService;
 import com.nexusmarket.infrastructure.security.JwtAuthenticationFilter;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -271,6 +272,34 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.status").value(400));
 
         verify(userUseCasePort, never()).createUser(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("createUser_Returns409WithErrorResponse_WhenEmailAlreadyExists")
+    void createUser_returns409_whenEmailAlreadyExists() throws Exception {
+        UserCreateRequestDTO request = UserCreateRequestDTO.builder()
+                .email("newuser@test.com")
+                .fullName("New User")
+                .password("secret123")
+                .role(UserRole.SELLER)
+                .build();
+
+        when(userUseCasePort.createUser("newuser@test.com", "New User", "secret123", UserRole.SELLER))
+                .thenThrow(new UserAlreadyExistsException("newuser@test.com"));
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message")
+                        .value("User with email 'newuser@test.com' already exists"))
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/users"));
+
+        verify(userUseCasePort).createUser(
+                "newuser@test.com", "New User", "secret123", UserRole.SELLER);
     }
 
     @Test

@@ -31,9 +31,9 @@ application-local*.yml
 application-dev.properties
 application-dev.yml
 
-# Local configuration and key material
-config/
-secrets/
+# Local configuration and key material (root only; do not ignore source packages)
+/config/
+/secrets/
 *.pem
 *.p12
 *.jks

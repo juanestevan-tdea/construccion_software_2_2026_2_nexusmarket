@@ -55,25 +55,30 @@ Reglas respetadas:
   Spring, JPA, MongoDB ni HTTP.
 - `domain/ports/in` tampoco importa DTOs REST: usa `RegisterCommand`,
   `LoginCommand` y `AuthenticationResult`.
-- `domain/services` usa `@Service` y `@Transactional` para inyección y
-  transacciones; la lógica de negocio no depende de controladores ni
+- `domain/services` son POJO puros: no usan `@Service`, `@Transactional` ni
+  `@Async`. Los beans se registran en las configuraciones especializadas
+  `UserServiceConfig`, `CommerceServiceConfig`, `BillingServiceConfig` y
+  `AuditServiceConfig`; las transacciones viven en las fachadas de
+  `adapters/useCases`. La lógica de negocio no depende de controladores ni
   repositorios concretos.
 - Los controladores delegan en puertos de entrada y traducen con mappers.
 - Los adaptadores de persistencia implementan los puertos de salida.
 
 ### 3.1 Excepciones
 
-`DomainException` es la raíz abstracta. Las 17 excepciones concretas
+`DomainException` es la raíz abstracta. Las 23 excepciones concretas
 (`ResourceNotFoundException`, `BusinessRuleException`, `DuplicateResourceException`,
-`InvalidStatusTransitionException`, etc.) heredan de ella y no llevan
-anotaciones de Spring. `GlobalExceptionHandler` es el único punto que traduce a
-HTTP:
+`InvalidStatusTransitionException`, `InsufficientStockException`,
+`InvalidQuantityException`, `DamagedInventoryException`, `UserAlreadyExistsException`,
+etc.) heredan de ella
+y no llevan anotaciones de Spring. `GlobalExceptionHandler` es el único punto que
+traduce a HTTP:
 
 | Excepción | HTTP |
 |---|---|
 | `ResourceNotFoundException`, `TrackingNotFoundException` | 404 |
-| `DuplicateResourceException`, `InvalidStatusTransitionException`, `CategoryHasProductsException`, `ProductNotAvailableException`, `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `ReturnAlreadyProcessedException` | 409 |
-| `BusinessRuleException`, `InvoiceNotPayableException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ReturnWindowExpiredException`, `ReturnNotAllowedException`, `WarehouseCapacityExceededException` | 422 |
+| `DuplicateResourceException`, `UserAlreadyExistsException`, `InvalidStatusTransitionException`, `CategoryHasProductsException`, `ProductNotAvailableException`, `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `ReturnAlreadyProcessedException` | 409 |
+| `BusinessRuleException`, `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `InvoiceNotPayableException`, `InvoiceNotRefundableException`, `InvalidRefundAmountException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ReturnWindowExpiredException`, `ReturnNotAllowedException`, `WarehouseCapacityExceededException` | 422 |
 | `PaymentGatewayException` | 502 |
 | `DomainException` no mapeada | 400 |
 | Cualquier otra excepción | 500 con mensaje genérico |
@@ -88,7 +93,7 @@ com.nexusmarket/
 ├── domain/
 │   ├── models/          # 15 modelos (incluye SessionEvent)
 │   ├── valueobjects/    # 11 enums (UserRole, OrderStatus, RefundStatus...)
-│   ├── exceptions/      # DomainException + 17 subtipos
+│   ├── exceptions/      # DomainException + 23 subtipos
 │   ├── ports/in/        # 16 puertos de entrada + modelos de comando
 │   ├── ports/out/       # 14 puertos de persistencia
 │   └── services/        # 28 servicios con responsabilidad única
@@ -241,7 +246,7 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 .\mvnw.cmd clean test
 ```
 
-- **211 pruebas**, 0 fallos, 0 errores, 0 omitidas.
+- **224 pruebas**, 0 fallos, 0 errores, 0 omitidas.
 - Unitarias con Mockito para servicios y casos de uso.
 - `@WebMvcTest` para controladores, seguridad, roles y propiedad de recursos.
 - Transiciones inválidas de devolución, reembolso y envío (estados terminales).
@@ -279,6 +284,6 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 
 - Rama principal: `main`.
 - Compilación: `BUILD SUCCESS` con `release 17`; la suite local se ejecutó con JDK 21 (Temurin). El CI declara JDK 17.
-- Pruebas: 211 en verde.
+- Pruebas: 224 en verde.
 - Docker Compose: configuración validada con `docker compose config`.
 - No se ha validado un despliegue productivo.

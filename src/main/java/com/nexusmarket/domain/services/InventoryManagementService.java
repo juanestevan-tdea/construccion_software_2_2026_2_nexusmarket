@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.InvalidQuantityException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
@@ -22,7 +22,7 @@ public class InventoryManagementService {
 
     public Inventory createInventory(Long productId, Long warehouseId, Integer quantity) {
         if (quantity == null || quantity < 0) {
-            throw new BusinessRuleException("Initial inventory quantity cannot be null or negative");
+            throw new InvalidQuantityException("Initial inventory quantity cannot be null or negative");
         }
 
         Product product = productRepositoryPort.findById(productId)

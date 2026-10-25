@@ -3,6 +3,7 @@ package com.nexusmarket.adapters.useCases;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ShipmentUseCaseImpl implements ShipmentUseCasePort {
 
     private final ShipmentCreateService shipmentCreateService;

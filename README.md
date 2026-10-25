@@ -3,7 +3,7 @@
 [![Java 17](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![Tests](https://img.shields.io/badge/Tests-211%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/Tests-224%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 Backend de un marketplace multiproveedor construido con **arquitectura hexagonal
@@ -80,7 +80,7 @@ Decisiones de diseño relevantes:
 | Persistencia relacional | MySQL 8 + Spring Data JPA / Hibernate | Transacciones ACID |
 | Persistencia documental | MongoDB 7 + Spring Data Mongo | Auditoría y eventos de sesión |
 | Build | Maven 3.9+ (wrapper incluido) | `mvnw` / `mvnw.cmd` |
-| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **211 pruebas** |
+| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **224 pruebas** |
 | Contenedores | Dockerfile multi-stage + Docker Compose | MySQL + MongoDB + App |
 | CI | GitHub Actions | `./mvnw -B clean test` |
 
@@ -113,7 +113,7 @@ construccion_software_2_2026_2_nexusmarket/
 │   ├── domain/
 │   │   ├── models/            # 15 modelos (incluye SessionEvent)
 │   │   ├── valueobjects/      # 11 enums de dominio
-│   │   ├── exceptions/        # DomainException + 17 excepciones concretas
+│   │   ├── exceptions/        # DomainException + 23 excepciones concretas
 │   │   ├── ports/in/          # 16 puertos de entrada (+ modelos de comando)
 │   │   ├── ports/out/         # 14 puertos de salida
 │   │   └── services/          # 28 servicios de dominio con SRP
@@ -127,7 +127,7 @@ construccion_software_2_2026_2_nexusmarket/
 │       ├── config/            # CORS, Jackson, async
 │       ├── notification/      # puerto y adaptador NoOp
 │       └── security/          # JWT, filtros, SecurityConfig, handlers 401/403
-├── src/test/java/             # 211 pruebas unitarias y de controlador
+├── src/test/java/             # 224 pruebas unitarias y de controlador
 ├── SDD/                       # Software Design Document
 ├── .github/workflows/ci.yml   # CI de compilación y pruebas
 ├── Dockerfile
@@ -348,7 +348,7 @@ administrativa y en el cambio de contraseña; no depende solo del controlador.
 Resultado esperado:
 
 ```
-Tests run: 211, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 224, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -389,20 +389,31 @@ Cobertura funcional relevante:
 
 ## ⚠️ Limitaciones conocidas
 
-1. **Swagger UI público en todos los entornos**: `springdoc-openapi` sirve
-   `/swagger-ui.html` y `/v3/api-docs` sin autenticación. Antes de un despliegue
-   real conviene restringir esas rutas por perfil.
-2. **Esquema con `ddl-auto=update`**: existe `db/migration/V1__add_token_version.sql`
+**Estado de la arquitectura (verificado por la suite):**
+
+- **Swagger/OpenAPI implementado y público**: `springdoc-openapi` sirve
+  `/swagger-ui.html` y `/v3/api-docs` sin JWT. Es el comportamiento intencional
+  para la entrega; antes de un despliegue real conviene restringir esas rutas
+  por perfil.
+- **Dominio sin dependencias de Spring**: los **28 servicios** de
+  `domain/services` son clases POJO puras. Las transacciones viven en las
+  fachadas de `adapters/useCases` y el registro asíncrono de auditoría se aplica
+  desde un decorador de infraestructura. `SrpArchitectureTest` falla si algún
+  servicio vuelve a importar `org.springframework.*` o `jakarta.*`.
+
+Limitaciones funcionales y operativas pendientes:
+
+1. **Esquema con `ddl-auto=update`**: existe `db/migration/V1__add_token_version.sql`
    pero Flyway no está habilitado; el script es informativo y no se ejecuta.
-3. **Sin transacciones distribuidas**: MySQL y MongoDB se actualizan por
+2. **Sin transacciones distribuidas**: MySQL y MongoDB se actualizan por
    separado. Un fallo entre ambos puede dejar la auditoría incompleta; no hay
    patrón outbox implementado.
-4. **Notificaciones no conectadas**: el adaptador es un NoOp.
-5. **Sin pruebas de integración reales** contra MySQL/MongoDB ni pruebas E2E.
-6. **Listados autoservicio**: `GET /api/v1/buyer/buyers` y
+3. **Notificaciones no conectadas**: el adaptador es un NoOp.
+4. **Sin pruebas de integración reales** contra MySQL/MongoDB ni pruebas E2E.
+5. **Listados autoservicio**: `GET /api/v1/buyer/buyers` y
    `GET /api/v1/seller/sellers` devuelven solo el perfil propio. Los listados
    globales deberían exponerse en rutas administrativas.
-7. **Listado global de productos en ruta de vendedor**:
+6. **Listado global de productos en ruta de vendedor**:
    `GET /api/v1/seller/products` sigue devolviendo productos de todos los
    vendedores; se recomienda moverlo al catálogo o a una ruta administrativa.
 

@@ -5,7 +5,6 @@ import com.nexusmarket.domain.ports.in.model.PageResult;
 import com.nexusmarket.domain.ports.in.model.SessionEventQuery;
 import com.nexusmarket.domain.ports.out.SessionAuditPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 /**
  * Consulta de eventos de sesión.
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
  * <p>Responsabilidad única: leer la auditoría de sesiones a través de
  * {@link SessionAuditPort}. No registra eventos ni conoce HTTP/MongoDB.</p>
  */
-@Service
 @RequiredArgsConstructor
 public class ConsultSessionEventsService {
 

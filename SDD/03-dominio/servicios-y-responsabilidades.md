@@ -134,10 +134,12 @@ Ambos flujos están cubiertos por `RefundServiceTest` y `ReturnServiceTest`.
 
 ## `Inventory.reserve`
 
-La reserva exige `amount > 0`. Sin esta validación, un `amount` negativo
-aumentaba la cantidad y marcaba el inventario como `RESERVED`, corrompiendo el
-stock. La regla vive en el modelo `Inventory` para que se aplique también a
-invocaciones directas del servicio, no solo al controlador. Está cubierta por
+La reserva exige `amount > 0`, stock suficiente y un inventario que no esté
+`DAMAGED`. Sin la validación de cantidad, un `amount` negativo aumentaba la
+cantidad y marcaba el inventario como `RESERVED`, corrompiendo el stock. Las
+reglas viven en el modelo `Inventory` para que se apliquen también a invocaciones
+directas del servicio, no solo al controlador: `InvalidQuantityException`,
+`InsufficientStockException` y `DamagedInventoryException`. Están cubiertas por
 `InventoryServiceTest`.
 
 ## `AuthenticationUseCaseImpl`
@@ -150,11 +152,18 @@ reduciría el acoplamiento con JWT, auditoría y perfiles, pero no se aplicó pa
 no fragmentar el contrato HTTP ni duplicar la coordinación de perfiles. Queda
 como mejora recomendada, no como violación confirmada.
 
-## Servicios con `@Service` y `@Transactional`
+## Servicios sin dependencias de Spring
 
-Los servicios usan anotaciones de Spring (`@Service`, `@Transactional`). Esto
-facilita la inyección y las transacciones, pero acopla `domain/services` al
-contenedor. La alternativa sería declarar los beans en
-`infrastructure/config` y dejar los servicios como POJOs. Es una mejora
-arquitectónica pendiente; no se aplicó para no reescribir la configuración de
-todos los módulos.
+Los **28 servicios** de `domain/services` son POJO puros: no usan `@Service`,
+`@Transactional` ni `@Async`. Los beans se registran en cuatro configuraciones
+especializadas de `infrastructure/config`:
+
+- `UserServiceConfig`: usuarios, autenticación, compradores y sesiones.
+- `CommerceServiceConfig`: catálogo, inventario, almacenes, vendedores y pedidos.
+- `BillingServiceConfig`: facturación, reembolsos, devoluciones y envíos.
+- `AuditServiceConfig`: auditoría y el decorador `AsyncSessionAuditService`.
+
+Las transacciones viven en las fachadas de `adapters/useCases` y el registro
+asíncrono de sesiones se aplica desde el decorador de infraestructura
+`AsyncSessionAuditService`. El candado `SrpArchitectureTest` verifica que ningún
+servicio vuelva a importar Spring ni `jakarta.*`.

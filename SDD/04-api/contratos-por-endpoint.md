@@ -221,9 +221,10 @@ aún no está aprobada (`ReturnNotAllowedException`).
 | PATCH | `/{id}/mark-damaged` | WAREHOUSE_OPERATOR | — | `200` |
 | PATCH | `/{id}/adjust?amount=` | WAREHOUSE_OPERATOR | query `amount` (delta) | `200` |
 
-Errores: `422` capacidad excedida (`WarehouseCapacityExceededException`) o
-regla de inventario (`BusinessRuleException`), incluida una reserva con
-`amount <= 0`.
+Errores: `422` capacidad excedida (`WarehouseCapacityExceededException`),
+cantidad inválida (`InvalidQuantityException`, incluida una reserva con
+`amount <= 0`), stock insuficiente (`InsufficientStockException`) o inventario
+dañado (`DamagedInventoryException`).
 
 ## 13. Envíos — `/api/v1/warehouse/shipments`
 
@@ -270,10 +271,11 @@ Errores: `409` factura ya existe, `422` factura no pagable o no anulable.
 | PATCH | `/{id}/approve` | SUPERVISOR | — | `200` |
 | PATCH | `/{id}/reject` | SUPERVISOR | — | `200` |
 
-Errores: `404` factura o devolución inexistente; `422` monto excedido, monto
-inválido o factura inactiva/impaga (`RefundAmountExceededException`,
-`RefundNotAllowedException`); `409` reembolso ya procesado en aprobar/rechazar
-(`InvalidStatusTransitionException`, RF-035).
+Errores: `404` factura o devolución inexistente; `422` monto excedido
+(`RefundAmountExceededException`), monto inválido (`InvalidRefundAmountException`),
+factura inactiva/impaga (`InvoiceNotRefundableException`) o devolución de otra
+orden (`RefundNotAllowedException`); `409` reembolso ya procesado en
+aprobar/rechazar (`InvalidStatusTransitionException`, RF-035).
 
 ## 16. Auditoría (admin) — `/api/v1/admin`
 

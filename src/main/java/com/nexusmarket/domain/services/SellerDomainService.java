@@ -9,17 +9,13 @@ import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @RequiredArgsConstructor
 public class SellerDomainService {
 
     private final SellerRepositoryPort sellerRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
 
-    @Transactional
     public Seller createSeller(Long userId, String taxId, String companyName) {
         User user = userRepositoryPort.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
@@ -46,7 +42,6 @@ public class SellerDomainService {
         return sellerRepositoryPort.save(seller);
     }
 
-    @Transactional
     public Seller activateSeller(Long id) {
         Seller seller = sellerRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
@@ -54,7 +49,6 @@ public class SellerDomainService {
         return sellerRepositoryPort.save(seller);
     }
 
-    @Transactional
     public Seller deactivateSeller(Long id) {
         Seller seller = sellerRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", id));
@@ -62,7 +56,6 @@ public class SellerDomainService {
         return sellerRepositoryPort.save(seller);
     }
 
-    @Transactional
     public Seller updateSeller(Long id, String companyName, String taxId) {
         Seller seller = sellerRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller", id));

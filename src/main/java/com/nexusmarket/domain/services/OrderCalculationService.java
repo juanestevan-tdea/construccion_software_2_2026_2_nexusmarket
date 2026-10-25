@@ -1,9 +1,9 @@
 package com.nexusmarket.domain.services;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
+import com.nexusmarket.domain.exceptions.InsufficientStockException;
+import com.nexusmarket.domain.exceptions.InvalidQuantityException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Order;
@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
-@Service
 @RequiredArgsConstructor
 public class OrderCalculationService {
 
@@ -26,10 +25,9 @@ public class OrderCalculationService {
     private final ProductRepositoryPort productRepositoryPort;
     private final InventoryRepositoryPort inventoryRepositoryPort;
 
-    @Transactional
     public Order addItem(Long orderId, Long productId, Integer quantity) {
         if (quantity == null || quantity <= 0) {
-            throw new BusinessRuleException("Item quantity must be greater than zero");
+            throw new InvalidQuantityException("Item quantity must be greater than zero");
         }
 
         Order order = orderRepositoryPort.findById(orderId)
@@ -46,9 +44,7 @@ public class OrderCalculationService {
 
         int available = availableStock(productId);
         if (available < quantity) {
-            throw new BusinessRuleException(
-                    String.format("Insufficient stock for product '%s': requested %d, available %d",
-                            productId, quantity, available));
+            throw new InsufficientStockException(productId, quantity, available);
         }
 
         OrderItem item = OrderItem.builder()
@@ -63,7 +59,6 @@ public class OrderCalculationService {
         return orderRepositoryPort.save(order);
     }
 
-    @Transactional
     public Order removeItem(Long orderId, Long itemId) {
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));

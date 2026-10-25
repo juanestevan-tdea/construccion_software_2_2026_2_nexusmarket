@@ -3,8 +3,6 @@ package com.nexusmarket.domain.services;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.ReturnAlreadyProcessedException;
@@ -19,14 +17,12 @@ import com.nexusmarket.domain.valueobjects.ReturnStatus;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
 @RequiredArgsConstructor
 public class ReturnProcessService {
 
     private final ReturnRepositoryPort returnRepositoryPort;
     private final OrderRepositoryPort orderRepositoryPort;
 
-    @Transactional
     public Return createReturn(Long orderId, String reason) {
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
@@ -57,7 +53,6 @@ public class ReturnProcessService {
         return returnRepositoryPort.save(returnEntity);
     }
 
-    @Transactional
     public Return approveReturn(Long id) {
         Return returnEntity = getPendingReturn(id);
         returnEntity.setStatus(ReturnStatus.APPROVED);
@@ -65,7 +60,6 @@ public class ReturnProcessService {
         return returnRepositoryPort.save(returnEntity);
     }
 
-    @Transactional
     public Return rejectReturn(Long id) {
         Return returnEntity = getPendingReturn(id);
         returnEntity.setStatus(ReturnStatus.REJECTED);
@@ -73,7 +67,6 @@ public class ReturnProcessService {
         return returnRepositoryPort.save(returnEntity);
     }
 
-    @Transactional
     public Return completeReturn(Long id) {
         Return returnEntity = getByIdOrThrow(id);
         if (returnEntity.getStatus() == ReturnStatus.REQUESTED) {

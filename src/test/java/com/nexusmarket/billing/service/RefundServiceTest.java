@@ -1,7 +1,9 @@
 package com.nexusmarket.billing.service;
 
 import com.nexusmarket.adapters.useCases.RefundUseCaseImpl;
+import com.nexusmarket.domain.exceptions.InvalidRefundAmountException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.InvoiceNotRefundableException;
 import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
 import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.models.Invoice;
@@ -81,7 +83,7 @@ class RefundServiceTest {
 
         when(invoiceRepositoryPort.findById(1L)).thenReturn(Optional.of(invoice));
 
-        assertThrows(RefundNotAllowedException.class, () -> refundUseCase.createRefund(1L, null, BigDecimal.valueOf(50.00)));
+        assertThrows(InvoiceNotRefundableException.class, () -> refundUseCase.createRefund(1L, null, BigDecimal.valueOf(50.00)));
     }
 
     @Test
@@ -90,7 +92,7 @@ class RefundServiceTest {
 
         when(invoiceRepositoryPort.findById(1L)).thenReturn(Optional.of(invoice));
 
-        assertThrows(RefundNotAllowedException.class, () -> refundUseCase.createRefund(1L, null, BigDecimal.valueOf(50.00)));
+        assertThrows(InvoiceNotRefundableException.class, () -> refundUseCase.createRefund(1L, null, BigDecimal.valueOf(50.00)));
         verify(refundRepositoryPort, never()).save(any(Refund.class));
     }
 
@@ -119,7 +121,7 @@ class RefundServiceTest {
 
     @Test
     void createRefund_ThrowsException_WhenAmountIsNotPositive() {
-        assertThrows(RefundNotAllowedException.class,
+        assertThrows(InvalidRefundAmountException.class,
                 () -> refundUseCase.createRefund(1L, null, BigDecimal.ZERO));
         verify(refundRepositoryPort, never()).save(any(Refund.class));
     }

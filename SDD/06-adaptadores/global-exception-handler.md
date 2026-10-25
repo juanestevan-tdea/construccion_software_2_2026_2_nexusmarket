@@ -13,10 +13,15 @@ RuntimeException
 └── DomainException (abstracta)
     ├── BusinessRuleException
     ├── CategoryHasProductsException
+    ├── DamagedInventoryException
     ├── DuplicateResourceException
+    ├── InsufficientStockException
+    ├── InvalidQuantityException
+    ├── InvalidRefundAmountException
     ├── InvalidStatusTransitionException
     ├── InvoiceAlreadyExistsException
     ├── InvoiceNotPayableException
+    ├── InvoiceNotRefundableException
     ├── PaymentGatewayException
     ├── ProductNotAvailableException
     ├── RefundAmountExceededException
@@ -27,13 +32,14 @@ RuntimeException
     ├── ReturnWindowExpiredException
     ├── ShipmentAlreadyExistsException
     ├── TrackingNotFoundException
+    ├── UserAlreadyExistsException
     └── WarehouseCapacityExceededException
 ```
 
 `DomainException` no declara campos ni métodos con anotaciones de Spring. La
-prueba `DomainExceptionContractTest` verifica por reflexión que las 17
-excepciones concretas heredan de la base y no llevan anotaciones
-`org.springframework.*`.
+prueba `DomainExceptionContractTest` verifica por reflexión que las 23
+excepciones concretas heredan de la base, no extienden `ResponseStatusException`
+y no llevan anotaciones `org.springframework.*`.
 
 ## Mapeo HTTP
 
@@ -42,6 +48,7 @@ excepciones concretas heredan de la base y no llevan anotaciones
 | `ResourceNotFoundException` | 404 | `ErrorResponse` |
 | `TrackingNotFoundException` | 404 | `ErrorResponse` |
 | `DuplicateResourceException` | 409 | `ErrorResponse` |
+| `UserAlreadyExistsException` | 409 | `ErrorResponse` |
 | `InvalidStatusTransitionException` | 409 | `ErrorResponse` + `details` (`Current status`, `Target status`) |
 | `CategoryHasProductsException` | 409 | `ErrorResponse` |
 | `ProductNotAvailableException` | 409 | `ErrorResponse` |
@@ -49,7 +56,12 @@ excepciones concretas heredan de la base y no llevan anotaciones
 | `ShipmentAlreadyExistsException` | 409 | `ErrorResponse` |
 | `ReturnAlreadyProcessedException` | 409 | `ErrorResponse` |
 | `BusinessRuleException` | 422 | `ErrorResponse` |
+| `InvalidQuantityException` | 422 | `ErrorResponse` |
+| `InsufficientStockException` | 422 | `ErrorResponse` |
+| `DamagedInventoryException` | 422 | `ErrorResponse` |
 | `InvoiceNotPayableException` | 422 | `ErrorResponse` |
+| `InvoiceNotRefundableException` | 422 | `ErrorResponse` |
+| `InvalidRefundAmountException` | 422 | `ErrorResponse` |
 | `RefundAmountExceededException` | 422 | `ErrorResponse` |
 | `RefundNotAllowedException` | 422 | `ErrorResponse` |
 | `ReturnWindowExpiredException` | 422 | `ErrorResponse` |
@@ -65,6 +77,19 @@ devuelven 422; el mensaje lo construye el servicio y no expone detalles internos
 (409, RF-035) y `ReturnAlreadyProcessedException` una devolución ya procesada
 (409, RF-041); ambos mensajes describen el estado actual sin filtrar datos
 internos.
+
+Las seis excepciones granulares añadidas mantienen el mismo contrato:
+`InvalidQuantityException` e `InsufficientStockException` distinguen cantidad
+inválida de falta de stock; `DamagedInventoryException` bloquea operaciones sobre
+inventario dañado; `UserAlreadyExistsException` representa el duplicado de email;
+`InvalidRefundAmountException` el monto no positivo; e
+`InvoiceNotRefundableException` una factura inactiva o impaga. Salvo
+`UserAlreadyExistsException`, que mapea a 409, las demás mapean a 422.
+
+Las pruebas `OrderControllerTest` y `UserControllerTest` verifican el contrato
+HTTP real de `InsufficientStockException` (422) y `UserAlreadyExistsException`
+(409) mediante `@WebMvcTest` y `MockMvc`, además de las pruebas unitarias del
+handler.
 
 ### Excepciones de framework y seguridad
 

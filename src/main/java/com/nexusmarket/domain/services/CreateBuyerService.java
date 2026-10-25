@@ -9,17 +9,13 @@ import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.valueobjects.BuyerCommercialStatus;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @RequiredArgsConstructor
 public class CreateBuyerService {
 
     private final BuyerRepositoryPort buyerRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
 
-    @Transactional
     public Buyer createBuyer(Long userId, String primaryAddress) {
         User user = userRepositoryPort.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));

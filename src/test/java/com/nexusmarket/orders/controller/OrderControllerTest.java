@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.nexusmarket.adapters.rest.controllers.buyer.OrderController;
+import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Order;
 import com.nexusmarket.domain.models.User;
@@ -187,5 +188,26 @@ class OrderControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(orderUseCasePort, never()).addItem(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("addItem devuelve 422 con ErrorResponse cuando no hay stock")
+    void addItemReturns422WhenStockIsInsufficient() throws Exception {
+        when(buyerUseCasePort.findByUserId(1L)).thenReturn(Optional.of(buyer(20L)));
+        when(orderUseCasePort.getByIdOrThrow(100L)).thenReturn(order(100L, 20L));
+        when(orderUseCasePort.addItem(100L, 5L, 2))
+                .thenThrow(new InsufficientStockException(5L, 2, 0));
+
+        mockMvc.perform(post("/api/v1/buyer/orders/100/items")
+                        .with(authenticatedAs(buyerUser()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":5,\"quantity\":2}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message")
+                        .value("Insufficient stock for product '5': requested 2, available 0"))
+                .andExpect(jsonPath("$.path").value("/api/v1/buyer/orders/100/items"));
+
+        verify(orderUseCasePort).addItem(100L, 5L, 2);
     }
 }

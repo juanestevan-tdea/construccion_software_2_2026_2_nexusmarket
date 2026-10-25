@@ -5,8 +5,6 @@ import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import com.nexusmarket.domain.valueobjects.UserRole;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Cambios de estado y rol de usuarios.
@@ -15,13 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
  * usuario. El bloqueo revoca las sesiones activas mediante el propio modelo de
  * dominio.</p>
  */
-@Service
 @RequiredArgsConstructor
 public class UserStatusService {
 
     private final UserRepositoryPort userRepositoryPort;
 
-    @Transactional
     public User blockUser(Long id) {
         User user = getByIdOrThrow(id);
         user.block();
@@ -30,14 +26,12 @@ public class UserStatusService {
         return userRepositoryPort.save(user);
     }
 
-    @Transactional
     public User activateUser(Long id) {
         User user = getByIdOrThrow(id);
         user.activate();
         return userRepositoryPort.save(user);
     }
 
-    @Transactional
     public User changeRole(Long id, UserRole newRole) {
         User user = getByIdOrThrow(id);
         user.setRole(newRole);

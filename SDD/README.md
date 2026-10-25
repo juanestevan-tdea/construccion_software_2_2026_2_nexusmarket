@@ -57,7 +57,7 @@ construido con **arquitectura hexagonal (Ports & Adapters)** sobre
    Los endpoints de aprobación, rechazo y finalización se movieron a
    `/api/v1/supervisor/returns/**`.
 6. **Excepciones acopladas a Spring (corregida).**
-   Se añadió `DomainException` y las 17 excepciones concretas heredan de ella.
+   Se añadió `DomainException` y las 23 excepciones concretas heredan de ella.
    `GlobalExceptionHandler` mapea 404/409/422/400/502 y tiene un fallback 400
    para excepciones de dominio no mapeadas.
 7. **OpenAPI servido por springdoc (resuelta).**
@@ -104,7 +104,7 @@ com.nexusmarket/
 ├── domain/
 │   ├── models/          # 15 modelos (incluye SessionEvent)
 │   ├── valueobjects/    # 11 enums
-│   ├── exceptions/      # DomainException + 17 subtipos
+│   ├── exceptions/      # DomainException + 23 subtipos
 │   ├── ports/in/        # 16 puertos + modelos de comando/resultado
 │   ├── ports/out/       # 14 puertos de persistencia
 │   └── services/        # 28 servicios de dominio (SRP)

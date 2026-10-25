@@ -3,6 +3,7 @@ package com.nexusmarket.adapters.useCases;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Return;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ReturnUseCaseImpl implements ReturnUseCasePort {
 
     private final ReturnProcessService returnProcessService;

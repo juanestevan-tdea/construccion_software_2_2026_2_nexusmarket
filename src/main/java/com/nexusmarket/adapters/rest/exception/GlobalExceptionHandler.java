@@ -29,11 +29,16 @@ import org.slf4j.LoggerFactory;
 import com.nexusmarket.adapters.rest.dtos.responses.ErrorResponse;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
+import com.nexusmarket.domain.exceptions.DamagedInventoryException;
 import com.nexusmarket.domain.exceptions.DomainException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.InsufficientStockException;
+import com.nexusmarket.domain.exceptions.InvalidQuantityException;
+import com.nexusmarket.domain.exceptions.InvalidRefundAmountException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
 import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
+import com.nexusmarket.domain.exceptions.InvoiceNotRefundableException;
 import com.nexusmarket.domain.exceptions.PaymentGatewayException;
 import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
 import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
@@ -44,6 +49,7 @@ import com.nexusmarket.domain.exceptions.ReturnNotAllowedException;
 import com.nexusmarket.domain.exceptions.ReturnWindowExpiredException;
 import com.nexusmarket.domain.exceptions.ShipmentAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
+import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 
 @RestControllerAdvice
@@ -64,6 +70,18 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(InvalidQuantityException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidQuantity(
+            InvalidQuantityException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientStock(
+            InsufficientStockException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(InvalidStatusTransitionException.class)
     public ResponseEntity<ErrorResponse> handleInvalidStatusTransition(
             InvalidStatusTransitionException ex, HttpServletRequest request) {
@@ -75,6 +93,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateResource(
             DuplicateResourceException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExists(
+            UserAlreadyExistsException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
@@ -106,6 +130,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(DamagedInventoryException.class)
+    public ResponseEntity<ErrorResponse> handleDamagedInventory(
+            DamagedInventoryException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(WarehouseCapacityExceededException.class)
     public ResponseEntity<ErrorResponse> handleWarehouseCapacityExceeded(
             WarehouseCapacityExceededException ex, HttpServletRequest request) {
@@ -121,6 +151,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvoiceNotPayableException.class)
     public ResponseEntity<ErrorResponse> handleInvoiceNotPayable(
             InvoiceNotPayableException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InvoiceNotRefundableException.class)
+    public ResponseEntity<ErrorResponse> handleInvoiceNotRefundable(
+            InvoiceNotRefundableException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InvalidRefundAmountException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefundAmount(
+            InvalidRefundAmountException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 

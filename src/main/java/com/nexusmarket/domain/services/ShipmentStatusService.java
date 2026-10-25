@@ -6,18 +6,14 @@ import com.nexusmarket.domain.models.Shipment;
 import com.nexusmarket.domain.ports.out.ShipmentRepositoryPort;
 import com.nexusmarket.domain.valueobjects.ShipmentStatus;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-@Service
 @RequiredArgsConstructor
 public class ShipmentStatusService {
 
     private final ShipmentRepositoryPort shipmentRepositoryPort;
 
-    @Transactional
     public Shipment updateStatus(Long id, ShipmentStatus newStatus) {
         Shipment shipment = shipmentRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment", id));

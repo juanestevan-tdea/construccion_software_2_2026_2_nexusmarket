@@ -4,8 +4,6 @@ import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.out.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Invalidación explícita de sesiones de un usuario.
@@ -13,13 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Responsabilidad única: incrementar {@code tokenVersion} para que los JWT
  * emitidos con la versión anterior dejen de ser aceptados.</p>
  */
-@Service
 @RequiredArgsConstructor
 public class SessionInvalidationService {
 
     private final UserRepositoryPort userRepositoryPort;
 
-    @Transactional
     public User invalidateSessions(Long userId) {
         User user = userRepositoryPort.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
