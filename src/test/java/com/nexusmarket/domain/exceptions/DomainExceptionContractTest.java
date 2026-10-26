@@ -22,6 +22,7 @@ class DomainExceptionContractTest {
     private static final List<Class<? extends DomainException>> EXCEPTIONS = List.of(
             BusinessRuleException.class,
             CategoryHasProductsException.class,
+            CategoryNameAlreadyExistsException.class,
             DamagedInventoryException.class,
             DuplicateResourceException.class,
             InsufficientStockException.class,
@@ -33,17 +34,22 @@ class DomainExceptionContractTest {
             InvoiceNotPayableException.class,
             InvoiceNotRefundableException.class,
             PaymentGatewayException.class,
+            ProductNotActiveException.class,
             ProductNotAvailableException.class,
+            ProductSkuAlreadyExistsException.class,
             RefundAmountExceededException.class,
             RefundNotAllowedException.class,
             ResourceNotFoundException.class,
             ReturnAlreadyProcessedException.class,
             ReturnNotAllowedException.class,
             ReturnWindowExpiredException.class,
+            SellerTaxIdAlreadyExistsException.class,
             ShipmentAlreadyExistsException.class,
             TrackingNotFoundException.class,
             UserAlreadyExistsException.class,
-            WarehouseCapacityExceededException.class);
+            UserEmailAlreadyExistsException.class,
+            WarehouseCapacityExceededException.class,
+            WarehouseNameAlreadyExistsException.class);
 
     @Test
     @DisplayName("Todas las excepciones heredan de DomainException y no de ResponseStatusException")

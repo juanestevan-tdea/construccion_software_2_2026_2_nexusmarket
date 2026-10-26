@@ -22,7 +22,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Caso de uso:** `AuthenticationUseCasePort.register(RegisterCommand)` → `AuthResponseDTO`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `AuthResponseDTO` (token `Bearer`, `expiresIn = 86400000` ms / 24 h, rol `BUYER` o `SELLER`).
-  2. Email duplicado → `409 Conflict` (`DuplicateResourceException`).
+  2. Email duplicado → `409 Conflict` (`UserEmailAlreadyExistsException`).
   3. Datos inválidos (email mal formado, contraseña < 8 caracteres, rol nulo) → `400 Bad Request` (`MethodArgumentNotValidException`).
   4. Endpoint público, sin token requerido.
 
@@ -46,7 +46,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `UserResponseDTO`.
   2. Rol obligatorio y dentro de `UserRole` → si no, `400 Bad Request`.
-  3. Email duplicado → `409 Conflict`.
+  3. Email duplicado → `409 Conflict` (`UserEmailAlreadyExistsException`).
 
 ### RF-004 — Consultar perfil propio
 - **Actor:** cualquier usuario autenticado.
@@ -108,7 +108,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Caso de uso:** `SellerUseCasePort.getSellerByIdOrThrow`, `getSellerByTaxIdOrThrow`, `findAll`, `activateSeller`, `deactivateSeller`, `updateSeller`.
 - **Criterios de aceptación:**
   1. Lecturas devuelven `200 OK` con `SellerResponseDTO` (o lista).
-  2. `taxId` duplicado → `409 Conflict` (`DuplicateResourceException`).
+  2. `taxId` duplicado → `409 Conflict` (`SellerTaxIdAlreadyExistsException`).
   3. Vendedor inexistente → `404 Not Found`.
 
 ---
@@ -121,7 +121,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Caso de uso:** `ProductUseCasePort.createProduct(sku, name, description, price, type, sellerIdDelToken, categoryId)` → `Product`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `ProductResponseDTO`.
-  2. SKU duplicado → `409 Conflict` (`DuplicateResourceException`).
+  2. SKU duplicado → `409 Conflict` (`ProductSkuAlreadyExistsException`).
   3. Precio ≤ 0 → `400 Bad Request` (`@DecimalMin("0.01")`).
   4. Categoría o vendedor inexistentes → `404 Not Found`.
 
@@ -168,7 +168,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
 - **Caso de uso:** `CategoryUseCasePort.createCategory(name, description, parentId)` → `Category`.
 - **Criterios de aceptación:**
   1. Devuelve `201 Created` con `CategoryResponseDTO`.
-  2. Nombre duplicado → `409 Conflict`.
+  2. Nombre duplicado → `409 Conflict` (`CategoryNameAlreadyExistsException`).
   3. Nombre obligatorio → `400 Bad Request`.
 
 ### RF-016 — Consultar categorías
@@ -205,6 +205,7 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. `PATCH` → `200 OK` con bodega actualizada.
   4. Capacidad < 1 → `400 Bad Request` (`@Min(1)`).
   5. Bodega inexistente → `404 Not Found`.
+  6. Nombre duplicado → `409 Conflict` (`WarehouseNameAlreadyExistsException`).
 
 ---
 
@@ -273,6 +274,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   2. Solo permitido si la orden está en `CART` o `PENDING_PAYMENT` → `409 Conflict` (`InvalidStatusTransitionException`) en otro estado.
   3. Producto inexistente → `404 Not Found`.
   4. Ítem inexistente → `404 Not Found`.
+  5. Producto inactivo → `422 Unprocessable Entity` (`ProductNotActiveException`).
+  6. Cantidad no disponible → `422 Unprocessable Entity` (`InsufficientStockException`).
 
 ### RF-025 — Checkout de orden
 - **Actor:** `BUYER`.

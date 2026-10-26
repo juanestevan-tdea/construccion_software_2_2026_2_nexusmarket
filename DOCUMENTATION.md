@@ -66,19 +66,22 @@ Reglas respetadas:
 
 ### 3.1 Excepciones
 
-`DomainException` es la raíz abstracta. Las 24 excepciones concretas
+`DomainException` es la raíz abstracta. Las 30 excepciones concretas
 (`ResourceNotFoundException`, `BusinessRuleException`, `DuplicateResourceException`,
 `InvalidStatusTransitionException`, `InsufficientStockException`,
 `InvalidQuantityException`, `DamagedInventoryException`,
-`InventoryNotInitializedException`, `UserAlreadyExistsException`, etc.) heredan de ella
-y no llevan anotaciones de Spring. `GlobalExceptionHandler` es el único punto que
-traduce a HTTP:
+`InventoryNotInitializedException`, `ProductNotActiveException`,
+`UserEmailAlreadyExistsException`, `ProductSkuAlreadyExistsException`,
+`CategoryNameAlreadyExistsException`, `SellerTaxIdAlreadyExistsException`,
+`WarehouseNameAlreadyExistsException`, etc.) heredan de ella y no llevan
+anotaciones de Spring. `GlobalExceptionHandler` es el único punto que traduce a
+HTTP:
 
 | Excepción | HTTP |
 |---|---|
 | `ResourceNotFoundException`, `TrackingNotFoundException` | 404 |
-| `DuplicateResourceException`, `UserAlreadyExistsException`, `InvalidStatusTransitionException`, `CategoryHasProductsException`, `ProductNotAvailableException`, `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `ReturnAlreadyProcessedException` | 409 |
-| `BusinessRuleException`, `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `InventoryNotInitializedException`, `InvoiceNotPayableException`, `InvoiceNotRefundableException`, `InvalidRefundAmountException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ReturnWindowExpiredException`, `ReturnNotAllowedException`, `WarehouseCapacityExceededException` | 422 |
+| `DuplicateResourceException`, `UserAlreadyExistsException`, `UserEmailAlreadyExistsException`, `ProductSkuAlreadyExistsException`, `CategoryNameAlreadyExistsException`, `SellerTaxIdAlreadyExistsException`, `WarehouseNameAlreadyExistsException`, `InvalidStatusTransitionException`, `CategoryHasProductsException`, `ProductNotAvailableException`, `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `ReturnAlreadyProcessedException` | 409 |
+| `BusinessRuleException`, `ProductNotActiveException`, `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `InventoryNotInitializedException`, `InvoiceNotPayableException`, `InvoiceNotRefundableException`, `InvalidRefundAmountException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ReturnWindowExpiredException`, `ReturnNotAllowedException`, `WarehouseCapacityExceededException` | 422 |
 | `PaymentGatewayException` | 502 |
 | `DomainException` no mapeada | 400 |
 | Cualquier otra excepción | 500 con mensaje genérico |
@@ -207,6 +210,8 @@ Resumen por prefijo:
 - Handlers REST para 401 (`RestAuthenticationEntryPoint`) y 403
   (`RestAccessDeniedHandler`) con el mismo formato `ErrorResponse`.
 - Auditoría de login, logout, login fallido y cambio de contraseña en MongoDB.
+- El perfil `prod` exige secretos por entorno, mantiene `show-sql=false` y
+  desactiva Swagger/OpenAPI.
 
 Riesgos y pendientes:
 
@@ -246,7 +251,7 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 .\mvnw.cmd clean test
 ```
 
-- **228 pruebas**, 0 fallos, 0 errores, 0 omitidas.
+- **233 pruebas**, 0 fallos, 0 errores, 0 omitidas.
 - Unitarias con Mockito para servicios y casos de uso.
 - `@WebMvcTest` para controladores, seguridad, roles y propiedad de recursos.
 - Transiciones inválidas de devolución, reembolso y envío (estados terminales).
@@ -269,8 +274,9 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 
 ## 12. Limitaciones conocidas
 
-1. Swagger UI está expuesto de forma pública en `/swagger-ui.html` y el
-   contrato generado por `springdoc-openapi` en `/v3/api-docs`; no exigen JWT.
+1. En desarrollo, Swagger UI está expuesto de forma pública en `/swagger-ui.html`
+   y el contrato generado por `springdoc-openapi` en `/v3/api-docs`; no exigen
+   JWT. El perfil `prod` desactiva ambos endpoints.
 2. Flyway no está habilitado; `ddl-auto=update` controla el esquema.
 3. Sin transacciones distribuidas entre MySQL y MongoDB.
 4. Notificaciones implementadas solo como `NoOpNotificationAdapter`.
@@ -284,6 +290,6 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 
 - Rama principal: `main`.
 - Compilación: `BUILD SUCCESS` con `release 17`; la suite local se ejecutó con JDK 21 (Temurin). El CI declara JDK 17.
-- Pruebas: 228 en verde.
+- Pruebas: 233 en verde.
 - Docker Compose: configuración validada con `docker compose config`.
 - No se ha validado un despliegue productivo.

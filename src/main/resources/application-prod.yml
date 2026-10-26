@@ -1,0 +1,38 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # Producción no lleva credenciales ni URLs por defecto: deben venir del entorno.
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+  jpa:
+    show-sql: false
+
+jwt:
+  # Sin valor por defecto: el arranque falla si JWT_SECRET no está definido.
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Swagger queda deshabilitado en producción.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

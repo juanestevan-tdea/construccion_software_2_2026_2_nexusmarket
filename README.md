@@ -3,7 +3,7 @@
 [![Java 17](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
-[![Tests](https://img.shields.io/badge/Tests-228%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/Tests-233%20passed-brightgreen?style=for-the-badge&logo=junit5&logoColor=white)](https://junit.org/junit5/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 Backend de un marketplace multiproveedor construido con **arquitectura hexagonal
@@ -80,7 +80,7 @@ Decisiones de diseño relevantes:
 | Persistencia relacional | MySQL 8 + Spring Data JPA / Hibernate | Transacciones ACID |
 | Persistencia documental | MongoDB 7 + Spring Data Mongo | Auditoría y eventos de sesión |
 | Build | Maven 3.9+ (wrapper incluido) | `mvnw` / `mvnw.cmd` |
-| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **228 pruebas** |
+| Pruebas | JUnit 5, Mockito, AssertJ, Spring Test | **233 pruebas** |
 | Contenedores | Dockerfile multi-stage + Docker Compose | MySQL + MongoDB + App |
 | CI | GitHub Actions | `./mvnw -B clean test` |
 
@@ -113,7 +113,7 @@ construccion_software_2_2026_2_nexusmarket/
 │   ├── domain/
 │   │   ├── models/            # 15 modelos (incluye SessionEvent)
 │   │   ├── valueobjects/      # 11 enums de dominio
-│   │   ├── exceptions/        # DomainException + 24 excepciones concretas
+│   │   ├── exceptions/        # DomainException + 30 excepciones concretas
 │   │   ├── ports/in/          # 16 puertos de entrada (+ modelos de comando)
 │   │   ├── ports/out/         # 14 puertos de salida
 │   │   └── services/          # 28 servicios de dominio con SRP
@@ -127,7 +127,7 @@ construccion_software_2_2026_2_nexusmarket/
 │       ├── config/            # CORS, Jackson, async
 │       ├── notification/      # puerto y adaptador NoOp
 │       └── security/          # JWT, filtros, SecurityConfig, handlers 401/403
-├── src/test/java/             # 228 pruebas unitarias y de controlador
+├── src/test/java/             # 233 pruebas unitarias y de controlador
 ├── SDD/                       # Software Design Document
 ├── .github/workflows/ci.yml   # CI de compilación y pruebas
 ├── Dockerfile
@@ -226,6 +226,7 @@ La guía detallada, incluida una prueba de humo con PowerShell, está en
 | `DB_PASSWORD` | Sí | Contraseña de MySQL. **Sin fallback** en la configuración versionada. |
 | `MONGODB_URI` | Producción | URI de MongoDB; por defecto apunta a MongoDB local. |
 | `SERVER_PORT` | No | Puerto HTTP (por defecto `8080`). |
+| `SPRING_PROFILES_ACTIVE` | No | `prod` activa `application-prod.yml` (secretos obligatorios y Swagger deshabilitado). Compose ya lo define. |
 | `JPA_SHOW_SQL` | No | `false` por defecto; activar solo en depuración local. |
 | `LOG_LEVEL`, `SQL_LOG_LEVEL`, `MONGODB_LOG_LEVEL` | No | Niveles SLF4J; `INFO` por defecto para no filtrar consultas/datos. |
 | `MYSQL_ROOT_PASSWORD` | Solo Docker | Contraseña root del contenedor MySQL; Compose la exige. |
@@ -237,6 +238,13 @@ locales (`application-local*.properties`) están ignorados y excluidos tanto de
 Maven como de Docker; no deben contener credenciales compartidas ni publicarse.
 Si una credencial estuvo expuesta, debe rotarse en el proveedor y revisarse el
 plan de saneamiento de [SECURITY.md](SECURITY.md).
+
+El perfil `prod` (`application-prod.yml`) exige `DB_URL`, `DB_USERNAME`,
+`DB_PASSWORD`, `MONGODB_URI` y `JWT_SECRET` desde el entorno, mantiene
+`show-sql=false` y desactiva Swagger/OpenAPI. `docker compose` arranca la app con
+`SPRING_PROFILES_ACTIVE=prod`; para ejecución local sin ese perfil se mantienen
+los valores por defecto de desarrollo. El esquema sigue gestionado por Hibernate
+hasta que se incorpore Flyway.
 
 ---
 
@@ -348,7 +356,7 @@ administrativa y en el cambio de contraseña; no depende solo del controlador.
 Resultado esperado:
 
 ```
-Tests run: 228, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 233, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

@@ -12,9 +12,14 @@ Jakarta Servlet.
 RuntimeException
 └── DomainException (abstracta)
     ├── BusinessRuleException
+    │   └── ProductNotActiveException
     ├── CategoryHasProductsException
     ├── DamagedInventoryException
     ├── DuplicateResourceException
+    │   ├── CategoryNameAlreadyExistsException
+    │   ├── ProductSkuAlreadyExistsException
+    │   ├── SellerTaxIdAlreadyExistsException
+    │   └── WarehouseNameAlreadyExistsException
     ├── InsufficientStockException
     ├── InvalidQuantityException
     ├── InvalidRefundAmountException
@@ -34,11 +39,12 @@ RuntimeException
     ├── ShipmentAlreadyExistsException
     ├── TrackingNotFoundException
     ├── UserAlreadyExistsException
+    │   └── UserEmailAlreadyExistsException
     └── WarehouseCapacityExceededException
 ```
 
 `DomainException` no declara campos ni métodos con anotaciones de Spring. La
-prueba `DomainExceptionContractTest` verifica por reflexión que las 24
+prueba `DomainExceptionContractTest` verifica por reflexión que las 30
 excepciones concretas heredan de la base, no extienden `ResponseStatusException`
 y no llevan anotaciones `org.springframework.*`.
 
@@ -50,6 +56,11 @@ y no llevan anotaciones `org.springframework.*`.
 | `TrackingNotFoundException` | 404 | `ErrorResponse` |
 | `DuplicateResourceException` | 409 | `ErrorResponse` |
 | `UserAlreadyExistsException` | 409 | `ErrorResponse` |
+| `UserEmailAlreadyExistsException` | 409 | `ErrorResponse` |
+| `ProductSkuAlreadyExistsException` | 409 | `ErrorResponse` |
+| `CategoryNameAlreadyExistsException` | 409 | `ErrorResponse` |
+| `SellerTaxIdAlreadyExistsException` | 409 | `ErrorResponse` |
+| `WarehouseNameAlreadyExistsException` | 409 | `ErrorResponse` |
 | `InvalidStatusTransitionException` | 409 | `ErrorResponse` + `details` (`Current status`, `Target status`) |
 | `CategoryHasProductsException` | 409 | `ErrorResponse` |
 | `ProductNotAvailableException` | 409 | `ErrorResponse` |
@@ -57,6 +68,7 @@ y no llevan anotaciones `org.springframework.*`.
 | `ShipmentAlreadyExistsException` | 409 | `ErrorResponse` |
 | `ReturnAlreadyProcessedException` | 409 | `ErrorResponse` |
 | `BusinessRuleException` | 422 | `ErrorResponse` |
+| `ProductNotActiveException` | 422 | `ErrorResponse` |
 | `InvalidQuantityException` | 422 | `ErrorResponse` |
 | `InsufficientStockException` | 422 | `ErrorResponse` |
 | `DamagedInventoryException` | 422 | `ErrorResponse` |
@@ -80,20 +92,23 @@ devuelven 422; el mensaje lo construye el servicio y no expone detalles internos
 (409, RF-041); ambos mensajes describen el estado actual sin filtrar datos
 internos.
 
-Las siete excepciones granulares añadidas mantienen el mismo contrato:
+Las trece excepciones granulares añadidas mantienen el mismo contrato:
 `InvalidQuantityException` e `InsufficientStockException` distinguen cantidad
 inválida de falta de stock; `DamagedInventoryException` bloquea operaciones sobre
 inventario dañado; `InventoryNotInitializedException` representa una cantidad de
-inventario no inicializada; `UserAlreadyExistsException` representa el duplicado
-de email; `InvalidRefundAmountException` el monto no positivo; e
-`InvoiceNotRefundableException` una factura inactiva o impaga. Salvo
-`UserAlreadyExistsException`, que mapea a 409, las demás mapean a 422.
+inventario no inicializada; `InvalidRefundAmountException` el monto no positivo;
+e `InvoiceNotRefundableException` una factura inactiva o impaga. En el cierre se
+añadieron `ProductNotActiveException` (422) y los duplicados específicos
+`UserEmailAlreadyExistsException`, `ProductSkuAlreadyExistsException`,
+`CategoryNameAlreadyExistsException`, `SellerTaxIdAlreadyExistsException` y
+`WarehouseNameAlreadyExistsException` (409). Salvo las reglas de negocio, que
+mapean a 422, los duplicados mapean a 409.
 
 Las pruebas `OrderControllerTest`, `UserControllerTest` y `RefundControllerTest`
-verifican el contrato HTTP real de `InsufficientStockException` (422),
-`UserAlreadyExistsException` (409), `InvalidRefundAmountException` (422) y
-`RefundNotAllowedException` (422) mediante `@WebMvcTest` y `MockMvc`, además de
-las pruebas unitarias del handler.
+verifican el contrato HTTP real de `ProductNotActiveException` (422),
+`InsufficientStockException` (422), `UserEmailAlreadyExistsException` (409),
+`InvalidRefundAmountException` (422) y `RefundNotAllowedException` (422) mediante
+`@WebMvcTest` y `MockMvc`, además de las pruebas unitarias del handler.
 
 ### Excepciones de framework y seguridad
 
@@ -150,7 +165,7 @@ Esto evita filtrar SQL, rutas internas o credenciales. La prueba
 usa `MockMvc` en modo standalone y cubre:
 
 - 404 para recurso inexistente.
-- 422 para regla de negocio.
-- 409 para duplicidad y transición inválida.
+- 422 para regla de negocio y producto inactivo.
+- 409 para duplicidad genérica, duplicidad específica y transición inválida.
 - 400 para `DomainException` no mapeada.
 - 500 con mensaje genérico.

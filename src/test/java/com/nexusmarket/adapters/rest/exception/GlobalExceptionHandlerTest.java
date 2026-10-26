@@ -14,6 +14,8 @@ import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.DomainException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.ProductNotActiveException;
+import com.nexusmarket.domain.exceptions.ProductSkuAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -63,6 +65,25 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.message").value("User with email 'a@b.com' already exists"));
+    }
+
+    @Test
+    @DisplayName("ProductSkuAlreadyExistsException -> 409")
+    void productSkuAlreadyExistsMapsTo409() throws Exception {
+        mockMvc.perform(get("/test/product-sku-duplicate"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Product with sku 'SKU-1' already exists"));
+    }
+
+    @Test
+    @DisplayName("ProductNotActiveException -> 422")
+    void productNotActiveMapsTo422() throws Exception {
+        mockMvc.perform(get("/test/product-not-active"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message")
+                        .value("Product with id '5' is not active and cannot be added to an order"));
     }
 
     @Test
@@ -127,6 +148,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/duplicate")
         void duplicate() {
             throw new DuplicateResourceException("User", "email", "a@b.com");
+        }
+
+        @GetMapping("/test/product-sku-duplicate")
+        void productSkuDuplicate() {
+            throw new ProductSkuAlreadyExistsException("SKU-1");
+        }
+
+        @GetMapping("/test/product-not-active")
+        void productNotActive() {
+            throw new ProductNotActiveException(5L);
         }
 
         @GetMapping("/test/authentication")

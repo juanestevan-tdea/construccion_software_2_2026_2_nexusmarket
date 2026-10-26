@@ -2,7 +2,7 @@ package com.nexusmarket.domain.services;
 
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.CategoryNameAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.ports.out.CategoryRepositoryPort;
@@ -20,7 +20,7 @@ public class CategoryDomainService {
 
     public Category createCategory(String name, String description, Long parentId) {
         if (categoryRepositoryPort.existsByName(name)) {
-            throw new DuplicateResourceException("Category", "name", name);
+            throw new CategoryNameAlreadyExistsException(name);
         }
 
         Category parent = null;
@@ -47,7 +47,7 @@ public class CategoryDomainService {
             if (categoryRepositoryPort.findByName(name)
                     .filter(c -> !c.getId().equals(id))
                     .isPresent()) {
-                throw new DuplicateResourceException("Category", "name", name);
+                throw new CategoryNameAlreadyExistsException(name);
             }
             category.setName(name);
         }

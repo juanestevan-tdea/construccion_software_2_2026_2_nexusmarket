@@ -9,7 +9,7 @@ import com.nexusmarket.domain.ports.out.ProductRepositoryPort;
 import com.nexusmarket.domain.services.CategoryDomainService;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
+import com.nexusmarket.domain.exceptions.CategoryNameAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,10 +62,11 @@ class CategoryServiceTest {
     }
 
     @Test
-    void createCategory_ThrowsDuplicateResourceException_WhenNameExists() {
+    void createCategory_ThrowsCategoryNameAlreadyExistsException_WhenNameExists() {
         when(categoryRepositoryPort.existsByName("Books")).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () -> categoryUseCase.createCategory("Books", null, null));
+        assertThrows(CategoryNameAlreadyExistsException.class,
+                () -> categoryUseCase.createCategory("Books", null, null));
     }
 
     @Test

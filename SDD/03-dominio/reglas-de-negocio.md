@@ -20,7 +20,7 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 **Invariante en código:** `!productRepositoryPort.existsBySku(sku)` (antes de `save`).
 
-**Origen:** `ProductUseCaseImpl.createProduct`, `ProductRepositoryPort.existsBySku(String)`, `DuplicateResourceException` → `409 Conflict`.
+**Origen:** `ProductUseCaseImpl.createProduct`, `ProductRepositoryPort.existsBySku(String)`, `ProductSkuAlreadyExistsException` → `409 Conflict`.
 
 ---
 
@@ -187,3 +187,13 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 **Invariante en código:** shipment.status not in {DELIVERED, CANCELLED} || target == shipment.status.
 
 **Origen:** ShipmentStatusService.updateStatus lanza InvalidStatusTransitionException -> 409 Conflict. Estado nulo también se rechaza.
+
+---
+
+## RN-019 - Solo se añaden productos activos a una orden
+
+**Prosa:** Un comprador no puede agregar a su orden un producto desactivado; la validación ocurre antes de reservar o modificar ítems.
+
+**Invariante en código:** `product.active == true` (precondición de `OrderCalculationService.addItem`).
+
+**Origen:** `OrderCalculationService.addItem` lanza `ProductNotActiveException` → `422 Unprocessable Entity`. La excepción extiende `BusinessRuleException` para conservar compatibilidad con el contrato anterior.

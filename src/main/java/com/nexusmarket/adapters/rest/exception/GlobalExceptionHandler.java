@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.nexusmarket.adapters.rest.dtos.responses.ErrorResponse;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.CategoryHasProductsException;
+import com.nexusmarket.domain.exceptions.CategoryNameAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.DamagedInventoryException;
 import com.nexusmarket.domain.exceptions.DomainException;
 import com.nexusmarket.domain.exceptions.DuplicateResourceException;
@@ -41,17 +42,22 @@ import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
 import com.nexusmarket.domain.exceptions.InvoiceNotRefundableException;
 import com.nexusmarket.domain.exceptions.PaymentGatewayException;
+import com.nexusmarket.domain.exceptions.ProductNotActiveException;
 import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
+import com.nexusmarket.domain.exceptions.ProductSkuAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.RefundAmountExceededException;
 import com.nexusmarket.domain.exceptions.RefundNotAllowedException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.ReturnAlreadyProcessedException;
 import com.nexusmarket.domain.exceptions.ReturnNotAllowedException;
 import com.nexusmarket.domain.exceptions.ReturnWindowExpiredException;
+import com.nexusmarket.domain.exceptions.SellerTaxIdAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.ShipmentAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.TrackingNotFoundException;
 import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.UserEmailAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
+import com.nexusmarket.domain.exceptions.WarehouseNameAlreadyExistsException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -97,9 +103,39 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
+    @ExceptionHandler(CategoryNameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleCategoryNameAlreadyExists(
+            CategoryNameAlreadyExistsException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(ProductSkuAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleProductSkuAlreadyExists(
+            ProductSkuAlreadyExistsException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(SellerTaxIdAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleSellerTaxIdAlreadyExists(
+            SellerTaxIdAlreadyExistsException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(WarehouseNameAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleWarehouseNameAlreadyExists(
+            WarehouseNameAlreadyExistsException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExists(
             UserAlreadyExistsException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(UserEmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUserEmailAlreadyExists(
+            UserEmailAlreadyExistsException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), request, null);
     }
 
@@ -117,6 +153,12 @@ public class GlobalExceptionHandler {
         log.warn("Optimistic locking failure at {} ({})", request.getRequestURI(),
                 ex.getClass().getSimpleName());
         return build(HttpStatus.CONFLICT, "Resource was updated concurrently by another transaction", request, null);
+    }
+
+    @ExceptionHandler(ProductNotActiveException.class)
+    public ResponseEntity<ErrorResponse> handleProductNotActive(
+            ProductNotActiveException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(ProductNotAvailableException.class)

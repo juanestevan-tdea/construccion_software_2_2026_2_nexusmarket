@@ -4,7 +4,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.nexusmarket.adapters.rest.controllers.admin.UserController;
 import com.nexusmarket.adapters.rest.dtos.requests.UserCreateRequestDTO;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
-import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.UserEmailAlreadyExistsException;
 import com.nexusmarket.infrastructure.security.CustomUserDetailsService;
 import com.nexusmarket.infrastructure.security.JwtAuthenticationFilter;
 import com.nexusmarket.infrastructure.security.JwtService;
@@ -285,7 +285,7 @@ class UserControllerTest {
                 .build();
 
         when(userUseCasePort.createUser("newuser@test.com", "New User", "secret123", UserRole.SELLER))
-                .thenThrow(new UserAlreadyExistsException("newuser@test.com"));
+                .thenThrow(new UserEmailAlreadyExistsException("newuser@test.com"));
 
         mockMvc.perform(post("/api/v1/admin/users")
                         .with(authenticatedAs(sampleUser(99L, "admin@test.com", "Admin", UserRole.ADMIN)))

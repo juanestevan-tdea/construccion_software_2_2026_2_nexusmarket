@@ -39,7 +39,7 @@ C4Deployment
 |----------|--------|--------------------------|-----------|----------------------------|
 | `mysql` | `mysql:8.0` | 3306 → 3306 | `mysql_data` → `/var/lib/mysql` | `MYSQL_ROOT_PASSWORD` (obligatoria, desde `.env`), `MYSQL_DATABASE=nexusmarket` |
 | `mongodb` | `mongo:7` | 27017 → 27017 | `mongodb_data` → `/data/db` | — |
-| `app` | build (Dockerfile) | 8080 → 8080 | — | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MONGODB_URI`, `JWT_SECRET` (obligatoria) |
+| `app` | build (Dockerfile) | 8080 → 8080 | — | `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MONGODB_URI`, `JWT_SECRET` (obligatoria) |
 
 ## Red y volúmenes
 
@@ -73,4 +73,4 @@ docker-compose ps
 docker-compose logs -f app
 ```
 
-La aplicación queda disponible en `http://localhost:8080`. La documentación interactiva está expuesta de forma pública por `springdoc-openapi`: Swagger UI en `http://localhost:8080/swagger-ui.html` y el contrato generado en `http://localhost:8080/v3/api-docs` (JSON) o `/v3/api-docs.yaml`. `SDD/04-api/openapi.yaml` se conserva como contrato de referencia curado a mano.
+La aplicación queda disponible en `http://localhost:8080`. En desarrollo, la documentación interactiva está expuesta de forma pública por `springdoc-openapi`: Swagger UI en `http://localhost:8080/swagger-ui.html` y el contrato generado en `http://localhost:8080/v3/api-docs` (JSON) o `/v3/api-docs.yaml`. El perfil `prod`, activo en Compose, desactiva Swagger y los endpoints OpenAPI; `SDD/04-api/openapi.yaml` se conserva como contrato de referencia curado a mano.

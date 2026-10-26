@@ -1,6 +1,6 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.UserEmailAlreadyExistsException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.policies.PasswordPolicy;
 import com.nexusmarket.domain.ports.out.PasswordHasherPort;
@@ -25,7 +25,7 @@ public class UserCreationService {
 
     public User createUser(String email, String fullName, String password, UserRole role) {
         if (userRepositoryPort.existsByEmail(email)) {
-            throw new UserAlreadyExistsException(email);
+            throw new UserEmailAlreadyExistsException(email);
         }
         PasswordPolicy.validate(password);
 

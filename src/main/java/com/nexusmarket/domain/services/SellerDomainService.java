@@ -1,8 +1,8 @@
 package com.nexusmarket.domain.services;
 
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
+import com.nexusmarket.domain.exceptions.SellerTaxIdAlreadyExistsException;
 import com.nexusmarket.domain.models.Seller;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.out.SellerRepositoryPort;
@@ -29,7 +29,7 @@ public class SellerDomainService {
         }
 
         if (sellerRepositoryPort.findByTaxId(taxId).isPresent()) {
-            throw new DuplicateResourceException("Seller", "taxId", taxId);
+            throw new SellerTaxIdAlreadyExistsException(taxId);
         }
 
         Seller seller = Seller.builder()
@@ -66,7 +66,7 @@ public class SellerDomainService {
 
         if (taxId != null && !taxId.isEmpty()) {
             if (sellerRepositoryPort.findByTaxId(taxId).filter(s -> !s.getId().equals(id)).isPresent()) {
-                throw new DuplicateResourceException("Seller", "taxId", taxId);
+                throw new SellerTaxIdAlreadyExistsException(taxId);
             }
             seller.setTaxId(taxId);
         }

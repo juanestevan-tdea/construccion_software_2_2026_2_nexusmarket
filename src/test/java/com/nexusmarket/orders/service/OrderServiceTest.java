@@ -4,6 +4,7 @@ import com.nexusmarket.adapters.useCases.OrderUseCaseImpl;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.ProductNotActiveException;
 import com.nexusmarket.domain.models.Buyer;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Order;
@@ -167,10 +168,11 @@ class OrderServiceTest {
         when(orderRepositoryPort.findById(10L)).thenReturn(Optional.of(cartOrder()));
         when(productRepositoryPort.findById(5L)).thenReturn(Optional.of(product(false)));
 
-        BusinessRuleException exception = assertThrows(BusinessRuleException.class,
+        ProductNotActiveException exception = assertThrows(ProductNotActiveException.class,
                 () -> orderUseCase.addItem(10L, 5L, 1));
 
-        assertTrue(exception.getMessage().contains("not active"));
+        assertEquals("Product with id '5' is not active and cannot be added to an order",
+                exception.getMessage());
         verify(orderRepositoryPort, never()).save(any(Order.class));
     }
 

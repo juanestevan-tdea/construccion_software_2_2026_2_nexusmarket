@@ -40,8 +40,8 @@ seguridad y arquitectura.
 | 401 | Token ausente, expirado o inválido | `AuthenticationException` |
 | 403 | Rol insuficiente o recurso de otro usuario | `AccessDeniedException` |
 | 404 | Recurso inexistente | `ResourceNotFoundException`, `TrackingNotFoundException` |
-| 409 | Duplicidad, transición inválida, conflicto de estado | `DuplicateResourceException`, `InvalidStatusTransitionException`, etc. |
-| 422 | Regla de negocio violada | `BusinessRuleException` y subtipos |
+| 409 | Duplicidad, transición inválida, conflicto de estado | `DuplicateResourceException` y subtipos (`ProductSkuAlreadyExistsException`, `CategoryNameAlreadyExistsException`, `SellerTaxIdAlreadyExistsException`, `WarehouseNameAlreadyExistsException`, `UserEmailAlreadyExistsException`), `InvalidStatusTransitionException`, etc. |
+| 422 | Regla de negocio violada | `BusinessRuleException` y subtipos (`ProductNotActiveException`, etc.) |
 | 500 | Error no controlado (mensaje genérico) | `Exception` |
 | 502 | Falla de pasarela de pago | `PaymentGatewayException` |
 

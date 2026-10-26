@@ -99,7 +99,7 @@ Cambios de código verificados en el árbol de trabajo, **sin commit ni push**:
   cliente.
 - Las transiciones de devolución, reembolso y envío respetan el estado previo: devolución `REQUESTED`, reembolso `PENDING`; los envíos en `DELIVERED`/`CANCELLED` no se pueden reabrir.
 
-Resultado local de la suite: **228 pruebas, 0 fallos, 0 errores, 0 omitidas**
+Resultado local de la suite: **233 pruebas, 0 fallos, 0 errores, 0 omitidas**
 (`mvnw clean package`). No se ejecutaron pruebas contra MySQL/MongoDB reales ni
 contra Docker.
 
@@ -112,8 +112,9 @@ Siguen pendientes y **no se consideran resueltos**:
 3. Pruebas de integración reales (Testcontainers o equivalente) para JPA,
    consultas derivadas de MongoDB y migraciones.
 4. Endurecimiento de producción: usuario MySQL con privilegios mínimos,
-   MongoDB con autenticación, CORS por entorno, `ddl-auto=validate` con Flyway
-   y mantener los logs SQL/MongoDB en `INFO`/`false` salvo depuración local.
+   MongoDB con autenticación, CORS por entorno, incorporar Flyway y pasar a
+   `ddl-auto=validate`, y mantener los logs SQL/MongoDB en `INFO`/`false` salvo
+   depuración local.
 
 ## Estado de publicación
 

@@ -5,7 +5,7 @@ import com.nexusmarket.domain.ports.in.model.RegisterCommand;
 import com.nexusmarket.domain.ports.in.model.AuthenticationResult;
 import com.nexusmarket.adapters.useCases.AuthenticationUseCaseImpl;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
-import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.UserEmailAlreadyExistsException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.AuthenticationUseCasePort;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
@@ -297,15 +297,15 @@ class AuthServiceTest {
 
     // ---------- register: delegated duplicate detection ----------
     @Test
-    @DisplayName("register_PropagatesUserAlreadyExistsException_FromUserService")
-    void register_propagatesUserAlreadyExistsException_fromUserService() {
+    @DisplayName("register_PropagatesUserEmailAlreadyExistsException_FromUserService")
+    void register_propagatesUserEmailAlreadyExistsException_fromUserService() {
         RegisterCommand request = buyerRequest();
 
         when(userUseCasePort.createUser(anyString(), anyString(), anyString(), any(UserRole.class)))
-                .thenThrow(new UserAlreadyExistsException("buyer1@test.com"));
+                .thenThrow(new UserEmailAlreadyExistsException("buyer1@test.com"));
 
         assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(UserAlreadyExistsException.class);
+                .isInstanceOf(UserEmailAlreadyExistsException.class);
 
         verify(buyerUseCasePort, never()).createBuyer(any(), any());
         verifyNoInteractions(jwtService);

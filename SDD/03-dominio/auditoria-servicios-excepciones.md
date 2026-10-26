@@ -30,7 +30,7 @@
 > `BillingServiceConfig` y `AuditServiceConfig`. La suite completa levanta el
 > contexto de Spring y valida la inyección de los 28 beans.
 >
-> Suite final: **228 pruebas, 0 fallos, 0 errores, 0 omitidas**
+> Suite final: **233 pruebas, 0 fallos, 0 errores, 0 omitidas**
 > (`mvn clean test`).
 
 ## 1. Resumen del estado actual
@@ -41,9 +41,9 @@ Se inspeccionaron:
 - **16 implementaciones de casos de uso** en `adapters/useCases`.
 - **19 controladores REST** en `adapters/rest/controllers`.
 - **16 puertos de entrada** y **14 puertos de salida**.
-- **25 clases de excepción** en `domain/exceptions`: `DomainException` (abstracta)
-  y 24 excepciones concretas.
-- **38 clases de prueba** y la suite completa de **228 pruebas**.
+- **31 clases de excepción** en `domain/exceptions`: `DomainException` (abstracta)
+  y 30 excepciones concretas.
+- **39 clases de prueba** y la suite completa de **233 pruebas**.
 
 El dominio no importa Spring (ni `jakarta.servlet`, ni Spring MVC, ni DTO REST)
 ni repositorios Mongo/JPA. Los controladores no inyectan puertos de salida. La separación de
@@ -73,7 +73,7 @@ existir cobertura indirecta a través de controladores o flujos de registro.
 | Servicio | Responsabilidad y métodos principales | Puertos / dependencias | Excepciones | Pruebas directas | SRP |
 |---|---|---|---|---|---|
 | `AddBuyerAddressService` | Añadir dirección adicional a un comprador (`addAdditionalAddress`) | `BuyerRepositoryPort` | `ResourceNotFoundException` | — | Cohesivo; operación única |
-| `CategoryDomainService` | Crear, actualizar y eliminar categorías (`createCategory`, `updateCategory`, `deleteCategory`) | `CategoryRepositoryPort`, `ProductRepositoryPort` | `DuplicateResourceException`, `BusinessRuleException`, `CategoryHasProductsException`, `ResourceNotFoundException` | `CategoryServiceTest` | Cohesivo para el agregado Categoría; valida ciclos y subcategorías (P2-04 corregido) |
+| `CategoryDomainService` | Crear, actualizar y eliminar categorías (`createCategory`, `updateCategory`, `deleteCategory`) | `CategoryRepositoryPort`, `ProductRepositoryPort` | `CategoryNameAlreadyExistsException`, `BusinessRuleException`, `CategoryHasProductsException`, `ResourceNotFoundException` | `CategoryServiceTest` | Cohesivo para el agregado Categoría; valida ciclos y subcategorías (P2-04 corregido) |
 | `ChangeBuyerCommercialStatusService` | Cambiar estado comercial del comprador | `BuyerRepositoryPort` | `ResourceNotFoundException` | — | Cohesivo; operación única |
 | `ConsultAuditLogsService` | Consultar auditoría por usuario, entidad, rango y id | `AuditLogRepositoryPort` | `ResourceNotFoundException` | `AuditServiceTest` | Cohesivo; solo lectura |
 | `ConsultSessionEventsService` | Consultar eventos de sesión con filtros y paginación | `SessionAuditPort` | — | `ConsultSessionEventsServiceTest`, `SessionEventQueryUseCaseImplTest` | Fachada de lectura delgada pero justificada: aísla el puerto de auditoría de escritura |
@@ -82,24 +82,24 @@ existir cobertura indirecta a través de controladores o flujos de registro.
 | `InventoryManagementService` | Crear inventario, reservar (solo cantidades positivas), confirmar pago, marcar dañado y ajustar | `InventoryRepositoryPort`, `ProductRepositoryPort`, `WarehouseRepositoryPort` | `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `InventoryNotInitializedException`, `WarehouseCapacityExceededException`, `ResourceNotFoundException` | `InventoryServiceTest` | Cohesivo para el ciclo de vida del inventario; cantidad, stock, estado dañado y cantidad no inicializada tienen excepciones específicas |
 | `InvoiceGenerateService` | Validar orden facturable y duplicado; generar factura | `InvoiceRepositoryPort`, `OrderRepositoryPort` | `InvoiceNotPayableException`, `InvoiceAlreadyExistsException`, `ResourceNotFoundException` | `InvoiceServiceTest` | Cohesivo; emisión de factura. **P2-07 pendiente:** genera `paid=true`, lo que deja inalcanzable el camino exitoso de anulación |
 | `InvoiceVoidService` | Anular una factura activa e impaga | `InvoiceRepositoryPort` | `InvoiceNotPayableException`, `ResourceNotFoundException` | `InvoiceServiceTest` | Cohesivo; se retiró la dependencia de reembolsos y se corrigió RN-010 |
-| `OrderCalculationService` | Añadir/quitar ítems y recalcular el total | `OrderRepositoryPort`, `ProductRepositoryPort`, `InventoryRepositoryPort` | `InvalidQuantityException`, `InsufficientStockException`, `BusinessRuleException`, `ResourceNotFoundException` | `OrderServiceTest` | Cohesivo para composición de la orden; valida producto activo, cantidad y stock disponible |
+| `OrderCalculationService` | Añadir/quitar ítems y recalcular el total | `OrderRepositoryPort`, `ProductRepositoryPort`, `InventoryRepositoryPort` | `InvalidQuantityException`, `InsufficientStockException`, `ProductNotActiveException`, `ResourceNotFoundException` | `OrderServiceTest` | Cohesivo para composición de la orden; valida producto activo, cantidad y stock disponible |
 | `OrderCreateService` | Crear orden en `CART` validando comprador y usuario activo | `OrderRepositoryPort`, `BuyerRepositoryPort`, `UserRepositoryPort` | `BusinessRuleException`, `ResourceNotFoundException` | `OrderServiceTest` | Cohesivo; creación de orden |
 | `OrderLifecycleService` | Aplicar transiciones de estado de la orden | `OrderRepositoryPort` | `ResourceNotFoundException`; `InvalidStatusTransitionException` desde el modelo | `OrderServiceTest` | Cohesivo; delegación de transiciones |
 | `PasswordChangeService` | Verificar contraseña actual, aplicar política, cifrar y revocar sesiones | `UserRepositoryPort`, `PasswordHasherPort` | `BusinessRuleException`, `ResourceNotFoundException` | `PasswordChangeServiceTest`, `AuthServiceTest`, `TokenInvalidationServiceTest` | Cohesivo; cambio de contraseña |
-| `ProductDomainService` | Crear, actualizar y desactivar productos; validar vendedor, categoría e inventario | `ProductRepositoryPort`, `CategoryRepositoryPort`, `SellerRepositoryPort`, `UserRepositoryPort`, `InventoryRepositoryPort` | `BusinessRuleException`, `DuplicateResourceException`, `ProductNotAvailableException`, `ResourceNotFoundException` | `ProductServiceTest` | Cohesivo para publicación de productos; cinco puertos son un punto P2 a vigilar |
+| `ProductDomainService` | Crear, actualizar y desactivar productos; validar vendedor, categoría e inventario | `ProductRepositoryPort`, `CategoryRepositoryPort`, `SellerRepositoryPort`, `UserRepositoryPort`, `InventoryRepositoryPort` | `BusinessRuleException`, `ProductSkuAlreadyExistsException`, `ProductNotAvailableException`, `ResourceNotFoundException` | `ProductServiceTest` | Cohesivo para publicación de productos; cinco puertos son un punto P2 a vigilar |
 | `RefundApproveService` | Aprobar o rechazar un reembolso `PENDING` | `RefundRepositoryPort` | `InvalidStatusTransitionException`, `ResourceNotFoundException` | `RefundServiceTest` | Cohesivo; estados ya procesados → 409 (RF-035) |
 | `RefundProcessService` | Crear reembolso validando factura activa/pagada, monto acumulado y devolución | `RefundRepositoryPort`, `InvoiceRepositoryPort`, `ReturnRepositoryPort` | `InvalidRefundAmountException`, `InvoiceNotRefundableException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ResourceNotFoundException` | `RefundServiceTest` | Cohesivo; cada condición de rechazo tiene una excepción semántica |
 | `RegisterAuditLogService` | Validar y persistir un registro de auditoría | `AuditLogRepositoryPort` | `BusinessRuleException` | `AuditServiceTest` | Cohesivo; escritura de auditoría |
 | `ReturnProcessService` | Crear, aprobar, rechazar y completar devoluciones | `ReturnRepositoryPort`, `OrderRepositoryPort` | `ReturnAlreadyProcessedException`, `ReturnNotAllowedException`, `ReturnWindowExpiredException`, `ResourceNotFoundException` | `ReturnServiceTest` | Cohesivo para el ciclo de vida; aprobar/rechazar fuera de `REQUESTED` → 409 (RF-041) |
-| `SellerDomainService` | Crear, activar, desactivar y actualizar vendedores | `SellerRepositoryPort`, `UserRepositoryPort` | `BusinessRuleException`, `DuplicateResourceException`, `ResourceNotFoundException` | — | Cohesivo; ciclo de vida del vendedor |
+| `SellerDomainService` | Crear, activar, desactivar y actualizar vendedores | `SellerRepositoryPort`, `UserRepositoryPort` | `BusinessRuleException`, `SellerTaxIdAlreadyExistsException`, `ResourceNotFoundException` | `SellerServiceTest` | Cohesivo; ciclo de vida del vendedor |
 | `SessionAuditService` | Registrar eventos de sesión de forma asíncrona y tolerante a fallos | `SessionAuditPort` | Captura `Exception` deliberadamente para no romper autenticación | `SessionAuditServiceTest`, `JwtAuthenticationFilterAuditTest`, `JwtAuthenticationFilterBlockedUserTest`, pruebas de controladores | Cohesivo; escritura de auditoría |
 | `SessionInvalidationService` | Incrementar `tokenVersion` para revocar JWT | `UserRepositoryPort` | `ResourceNotFoundException` | `UserServiceTest` | Cohesivo; invalidación explícita |
 | `ShipmentCreateService` | Crear envío para una orden `DISPATCHED` | `ShipmentRepositoryPort`, `OrderRepositoryPort`, `WarehouseRepositoryPort` | `BusinessRuleException`, `ShipmentAlreadyExistsException`, `ResourceNotFoundException` | `ShipmentServiceTest` | Cohesivo; creación de envío |
 | `ShipmentStatusService` | Actualizar estado respetando estados terminales | `ShipmentRepositoryPort` | `InvalidStatusTransitionException`, `ResourceNotFoundException` | `ShipmentServiceTest` | Cohesivo; transición de envío |
-| `UserCreationService` | Validar duplicado, aplicar `PasswordPolicy`, cifrar y crear usuario | `UserRepositoryPort`, `PasswordHasherPort` | `UserAlreadyExistsException`; `BusinessRuleException` desde la política | `UserServiceTest` | Cohesivo; alta de usuario con duplicado específico |
+| `UserCreationService` | Validar duplicado, aplicar `PasswordPolicy`, cifrar y crear usuario | `UserRepositoryPort`, `PasswordHasherPort` | `UserEmailAlreadyExistsException`; `BusinessRuleException` desde la política | `UserServiceTest` | Cohesivo; alta de usuario con duplicado específico |
 | `UserQueryService` | Consultar usuarios por id, email, rol y listados | `UserRepositoryPort` | `ResourceNotFoundException` | `UserServiceTest` | Cohesivo; solo lectura |
 | `UserStatusService` | Bloquear, activar y cambiar rol | `UserRepositoryPort` | `ResourceNotFoundException` | `UserServiceTest` | Cohesivo; estado administrativo |
-| `WarehouseDomainService` | Crear y actualizar bodegas; validar capacidad | `WarehouseRepositoryPort`, `InventoryRepositoryPort` | `DuplicateResourceException`, `ResourceNotFoundException`, `WarehouseCapacityExceededException` | `WarehouseServiceTest` | Cohesivo; ciclo de vida de bodega |
+| `WarehouseDomainService` | Crear y actualizar bodegas; validar capacidad | `WarehouseRepositoryPort`, `InventoryRepositoryPort` | `WarehouseNameAlreadyExistsException`, `ResourceNotFoundException`, `WarehouseCapacityExceededException` | `WarehouseServiceTest` | Cohesivo; ciclo de vida de bodega |
 
 ## 3. Inventario de casos de uso
 
@@ -135,13 +135,19 @@ ni Spring. `GlobalExceptionHandler` decide el código HTTP.
 |---|---|---|---|---|
 | `ResourceNotFoundException` | Recurso inexistente | Casos de uso, servicios y mappers JPA | 404 | Correcta; mensaje con recurso e id |
 | `TrackingNotFoundException` | Código de seguimiento inexistente | `ShipmentUseCaseImpl.findByTracking` | 404 | Correcta; específica del caso de tracking |
-| `BusinessRuleException` | Regla de negocio genérica: estado, política, producto inactivo o auditoría | `PasswordPolicy`, servicios de usuario/compra/producto/categoría/orden/auditoría | 422 | Correcta como regla general; ya no cubre cantidades, stock, inventario dañado o no inicializado, duplicado de usuario ni elegibilidad de factura |
+| `BusinessRuleException` | Regla de negocio genérica: estado, política o auditoría | `PasswordPolicy`, servicios de usuario/compra/producto/categoría/orden/auditoría | 422 | Correcta como regla general; ya no cubre cantidades, stock, inventario dañado o no inicializado, producto inactivo, duplicados de recurso ni elegibilidad de factura |
 | `InvalidQuantityException` | Cantidad nula, cero o negativa | `Inventory.reserve`/`release`/`adjust`, `InventoryManagementService.createInventory`, `OrderCalculationService.addItem` | 422 | Nueva; evita reutilizar `BusinessRuleException` para una condición con semántica propia |
 | `InsufficientStockException` | Stock disponible insuficiente | `Inventory.reserve`, `OrderCalculationService.addItem` | 422 | Nueva; distingue falta de stock de una cantidad mal formada |
 | `DamagedInventoryException` | Operación sobre inventario `DAMAGED` | `Inventory.reserve`, `Inventory.confirmPayment` | 422 | Nueva; separa el estado del inventario de las reglas genéricas |
 | `InventoryNotInitializedException` | Operación con `quantity == null` | `Inventory.release`, `Inventory.adjust` | 422 | Nueva; elimina los últimos usos de `BusinessRuleException` en el agregado Inventario |
-| `DuplicateResourceException` | Recurso duplicado | Productos, categorías, vendedores, bodegas | 409 | Correcta; el alta de usuario ya no la usa |
-| `UserAlreadyExistsException` | Email de usuario ya registrado | `UserCreationService` | 409 | Nueva; específica del agregado Usuario |
+| `ProductNotActiveException` | Producto inactivo añadido a una orden | `OrderCalculationService.addItem` | 422 | Nueva; subtipo de `BusinessRuleException` para conservar compatibilidad |
+| `DuplicateResourceException` | Recurso duplicado | Fallback genérico | 409 | Correcta como red de seguridad; los servicios usan subtipos específicos |
+| `UserAlreadyExistsException` | Email de usuario ya registrado | Base de compatibilidad | 409 | Se conserva; el productor usa `UserEmailAlreadyExistsException` |
+| `UserEmailAlreadyExistsException` | Email de usuario duplicado | `UserCreationService` | 409 | Nueva; subtipo de `UserAlreadyExistsException` |
+| `ProductSkuAlreadyExistsException` | SKU de producto duplicado | `ProductDomainService.createProduct` | 409 | Nueva; subtipo de `DuplicateResourceException` |
+| `CategoryNameAlreadyExistsException` | Nombre de categoría duplicado | `CategoryDomainService.createCategory`, `updateCategory` | 409 | Nueva; subtipo de `DuplicateResourceException` |
+| `SellerTaxIdAlreadyExistsException` | `taxId` de vendedor duplicado | `SellerDomainService.createSeller`, `updateSeller` | 409 | Nueva; subtipo de `DuplicateResourceException` |
+| `WarehouseNameAlreadyExistsException` | Nombre de bodega duplicado | `WarehouseDomainService.createWarehouse`, `updateWarehouse` | 409 | Nueva; subtipo de `DuplicateResourceException` |
 | `InvalidStatusTransitionException` | Transición de estado inválida | Modelos `Order`/`Shipment`, `ShipmentStatusService`, `RefundApproveService` | 409 | Correcta; expone estado actual y destino como detalles seguros. Se amplió a reembolsos ya procesados (RF-035) |
 | `ProductNotAvailableException` | Producto con stock reservado no desactivable | `ProductDomainService.deactivateProduct` | 409 | Correcta |
 | `CategoryHasProductsException` | Categoría con productos | `CategoryDomainService.deleteCategory` | 409 | Correcta |
@@ -163,8 +169,12 @@ La división de excepciones se completó en la fase de cierre. Se añadieron sie
 tipos granulares —`InsufficientStockException`, `InvalidQuantityException`,
 `UserAlreadyExistsException`, `InvalidRefundAmountException`,
 `InvoiceNotRefundableException`, `DamagedInventoryException` e
-`InventoryNotInitializedException`— y se actualizaron los servicios, el
-`GlobalExceptionHandler`, `DomainExceptionContractTest` y las pruebas de orden,
+`InventoryNotInitializedException`— y después seis más para erradicar los
+genéricos restantes: `ProductNotActiveException`, `UserEmailAlreadyExistsException`,
+`ProductSkuAlreadyExistsException`, `CategoryNameAlreadyExistsException`,
+`SellerTaxIdAlreadyExistsException` y `WarehouseNameAlreadyExistsException`. Se
+actualizaron los servicios, el `GlobalExceptionHandler`,
+`DomainExceptionContractTest` y las pruebas de orden, catálogo, vendedores,
 inventario, usuario y reembolsos. `RefundNotAllowedException` queda limitada a
 la devolución que no pertenece a la orden de la factura; ya no representa montos
 inválidos ni facturas inactivas/impagas.
@@ -193,7 +203,7 @@ inválidos ni facturas inactivas/impagas.
 | P2-02 | `domain/services/ProductDomainService.java` | Publicación y ciclo de vida del producto | Cinco puertos de salida y validaciones de vendedor, usuario, categoría e inventario | Constructor con 5 dependencias | La publicación puede acumular más reglas y volverse difícil de probar | **Sin cambio**: las reglas pertenecen al mismo agregado. Si aparecen reglas de publicación independientes, extraer una política de publicación |
 | P2-03 | Servicios de `domain/services` | Lógica de dominio | Los 28 servicios usan `@Service`/`@Transactional` y dos usan `PasswordEncoder` de Spring Security | 28 de 28 clases con `import org.springframework`; `UserCreationService`, `PasswordChangeService` | Acoplamiento al contenedor/seguridad; dificulta reutilizar el dominio fuera de Spring | **Completado:** los 28 servicios son POJO puros. `@Service`/`@Transactional` se retiraron del dominio, los beans se declaran en `UserServiceConfig`, `CommerceServiceConfig`, `BillingServiceConfig` y `AuditServiceConfig`, las transacciones viven en `adapters/useCases` y `PasswordEncoder` se sustituyó por `PasswordHasherPort`. El candado `SrpArchitectureTest` cubre todo el paquete. Ver §6.1 |
 | P2-04 | `domain/services/CategoryDomainService.java` | Integridad de la jerarquía de categorías | Solo impedía que una categoría fuera su propio padre; no detectaba ciclos con descendientes ni validaba categorías hijas al borrar | `updateCategory` comparaba `parentId.equals(id)` y no recorría ancestros; `deleteCategory` solo consultaba productos | Jerarquías cíclicas o borrado de una categoría padre con hijas; posible error de integridad en persistencia | **Corregido:** `updateCategory` recorre ancestros y detecta ciclos; `deleteCategory` consulta `findByParentId` y rechaza hijas (`BusinessRuleException`, 422). Pruebas en `CategoryServiceTest` |
-| P2-05 | `domain/services/OrderCalculationService.java` | Composición de la orden | `addItem` validaba cantidad y existencia, pero no que el producto estuviera activo ni el stock disponible | `addItem` solo consultaba `productRepositoryPort.findById` | Se podían añadir productos inactivos o sin stock; el fallo se trasladaba al checkout | **Resuelto:** `addItem` rechaza producto inactivo (`BusinessRuleException`, 422) y compara la cantidad con el stock `AVAILABLE` agregado por producto (nuevo `InventoryRepositoryPort` inyectado, helper `availableStock`). 6 pruebas nuevas en `OrderServiceTest`: éxito, producto inexistente (404), inactivo, stock insuficiente, inventario solo `RESERVED`/`DAMAGED` y sin registros |
+| P2-05 | `domain/services/OrderCalculationService.java` | Composición de la orden | `addItem` validaba cantidad y existencia, pero no que el producto estuviera activo ni el stock disponible | `addItem` solo consultaba `productRepositoryPort.findById` | Se podían añadir productos inactivos o sin stock; el fallo se trasladaba al checkout | **Resuelto:** `addItem` rechaza producto inactivo (`ProductNotActiveException`, 422) y compara la cantidad con el stock `AVAILABLE` agregado por producto (nuevo `InventoryRepositoryPort` inyectado, helper `availableStock`). 6 pruebas en `OrderServiceTest` y 1 contrato HTTP en `OrderControllerTest`: éxito, producto inexistente (404), inactivo (422), stock insuficiente, inventario solo `RESERVED`/`DAMAGED` y sin registros |
 | P2-06 | Controladores de comprador/vendedor | Autorización de propiedad | Cada controlador repite comparaciones de `userId`/`buyerId`/`sellerId` | `ProductController`, `OrderController`, `BuyerController`, `SellerController`, `ReturnController` | Duplicación y riesgo de olvidar una comprobación en un endpoint nuevo | **Sin cambio inmediato**: funciona y está cubierto por pruebas; extraer una política de propiedad si se repite en más endpoints |
 | P2-07 | `InvoiceGenerateService` / `InvoiceVoidService` | Generación y anulación de facturas | La anulación de una factura pagada se bloquea correctamente, pero la generación crea siempre `paid = true`, así que el camino exitoso de anulación no es alcanzable desde el flujo normal | `InvoiceVoidService` ya lanza `InvoiceNotPayableException` si `paid = true`; `InvoiceGenerateService` usa `paid(true)` | Anular una factura pagada está impedido (correcto), pero RF-032 (anular una factura impaga) solo se puede ejecutar con datos heredados/importados | **Validación resuelta:** la regla “una factura pagada no puede anularse” estaba implementada y probada (`InvoiceServiceTest`: `voidInvoice_ThrowsInvoiceNotPayableException_WhenPaid`). **Sigue abierta la decisión funcional** sobre el `paid=true` de la generación (si la factura debe nacer impaga o si el pago se registra en otro flujo); no se cambió el comportamiento para no inventar un pago |
 | P2-08 | `RefundProcessService` | Integridad factura–devolución | Verificaba que la devolución existiera, pero no que perteneciera a la misma orden que la factura | `returnRepositoryPort.existsById(returnRequestId)` no comparaba `orderId` de factura y devolución | Un reembolso podía asociarse a una devolución de otra orden con ids válidos pero no relacionados | **Resuelto:** se usa `findById` (404 si no existe) y se compara `invoice.orderId` con `return.orderId`, lanzando `RefundNotAllowedException` (422) si difieren o si la factura no tiene orden. El `returnRequestId` sigue siendo opcional. 3 pruebas nuevas en `RefundServiceTest`: otra orden, devolución inexistente y misma orden con éxito |
@@ -204,12 +214,12 @@ inválidos ni facturas inactivas/impagas.
 |---|---|---|---|---|
 | P3-01 | `InvoiceNotPayableException` | El mensaje anterior decía “Order must be PAID” aunque la generación también admite `DISPATCHED`, `DELIVERED` y `FINISHED` | `InvoiceGenerateService` valida cuatro estados | **Corregido:** mensaje neutral de estado facturable/anulable; los servicios lanzan mensajes específicos |
 | P3-02 | `ReturnAlreadyProcessedException` | El mensaje decía “processed or is pending” incluso al aprobar/rechazar/completar una devolución ya procesada | Uso en `ReturnProcessService` para estados no válidos | **Corregido:** mensaje que indica que el estado no permite la operación |
-| P3-03 | `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `DuplicateResourceException`, `UserAlreadyExistsException` | Semántica de duplicado con cuatro tipos y el mismo HTTP 409 | Handlers separados en `GlobalExceptionHandler` | Se conservan: aportan contexto de recurso y permiten un tratamiento futuro distinto. No se creó una abstracción adicional |
+| P3-03 | `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `DuplicateResourceException`, `UserEmailAlreadyExistsException` y los subtipos de duplicado de producto, categoría, vendedor y bodega | Semántica de duplicado con varios tipos y el mismo HTTP 409 | Handlers separados en `GlobalExceptionHandler` | Se conservan: aportan contexto de recurso y permiten un tratamiento futuro distinto. `DuplicateResourceException` y `UserAlreadyExistsException` quedan como fallback/compatibilidad; los servicios lanzan los subtipos específicos |
 | P3-04 | `PaymentGatewayException` | No tiene productor en el código actual | Solo aparece en el handler y en `DomainExceptionContractTest` | Se conserva documentada; eliminar solo si se confirma que no se integrará una pasarela |
-| P3-05 | `GlobalExceptionHandler.handleUnmappedDomainException` | Devuelve `ex.getMessage()` para una excepción de dominio nueva | Handler de respaldo 400 | Los 24 tipos actuales tienen handler específico; para tipos futuros, considerar mensaje genérico y log interno para no filtrar detalles |
+| P3-05 | `GlobalExceptionHandler.handleUnmappedDomainException` | Devuelve `ex.getMessage()` para una excepción de dominio nueva | Handler de respaldo 400 | Los 30 tipos actuales tienen handler específico; para tipos futuros, considerar mensaje genérico y log interno para no filtrar detalles |
 | P3-06 | `SessionAuditService`, `JwtAuthenticationFilter`, `JwtService` | Capturas genéricas de `Exception` | Auditoría de sesión y validación JWT | **Justificadas**: el registro de auditoría es best-effort y el filtro debe fallar cerrado sin autenticar. No se cambió |
 | P3-07 | Mappers JPA | Lanzan `ResourceNotFoundException` de dominio desde el adaptador | Varios `*JpaMapper` | Dirección de dependencia correcta (adaptador → dominio), pero mezcla detalle de persistencia con excepción de dominio; revisar si se crea un puerto de carga de relaciones |
-| P3-08 | Pruebas | Cuatro servicios y dos casos de uso no tienen prueba unitaria directa | `AddBuyerAddressService`, `ChangeBuyerCommercialStatusService`, `CreateBuyerService`, `SellerDomainService`, `BuyerUseCaseImpl`, `SellerUseCaseImpl` | Añadir pruebas directas cuando se toquen esos flujos; hoy hay cobertura indirecta parcial de controladores/registro |
+| P3-08 | Pruebas | Cuatro servicios y dos casos de uso no tienen prueba unitaria directa | `AddBuyerAddressService`, `ChangeBuyerCommercialStatusService`, `CreateBuyerService`, `BuyerUseCaseImpl`, `SellerUseCaseImpl` | Añadir pruebas directas cuando se toquen esos flujos; hoy hay cobertura indirecta parcial de controladores/registro. `SellerDomainService` ya tiene `SellerServiceTest` |
 | P3-09 | `SDD/04-api/contratos-por-endpoint.md` | Los parámetros de inventario documentados (`quantity`, `newQuantity`) no coincidían con el controlador (`amount`) y se listaban parámetros inexistentes en `confirm-payment`/`mark-damaged` | Controlador `InventoryController` | **Corregido en documentación:** se documentan `amount` como reserva y delta de ajuste, y se eliminan parámetros inexistentes |
 | P3-10 | `GlobalExceptionHandler` / contratos | El contrato HTTP de reembolsos/devoluciones ya procesados estaba desalineado con RF-035/RF-041 | Documentación y pruebas previas esperaban 422 | **Corregido:** código y pruebas alineados a 409; documentación de API y reglas actualizada |
 
@@ -336,7 +346,7 @@ fachadas de `adapters/useCases` son la frontera y las llamadas servicio→servic
 se ejecutan dentro de esa transacción; (b) las pruebas usan mocks, no
 instanciaciones directas masivas, por lo que no hubo que reescribirlas; (c) el
 registro asíncrono se preservó con `AsyncSessionAuditService`; la suite completa
-quedó en 228 pruebas verdes.
+quedó en 233 pruebas verdes.
 
 No se encontraron controladores con lógica de negocio compleja ni acceso directo
 a repositorios. La autorización por rol y propiedad sigue en `SecurityConfig` y
@@ -386,8 +396,8 @@ en comprobaciones de propiedad de los controladores.
 ### Suite ejecutada
 
 - **Comando:** `.\mvnw.cmd -B clean package`
-- **Resultado real:** **228 pruebas, 0 fallos, 0 errores, 0 omitidas**.
-- **Clases de prueba:** 37.
+- **Resultado real:** **233 pruebas, 0 fallos, 0 errores, 0 omitidas**.
+- **Clases de prueba:** 39.
 - **Pruebas específicas de las correcciones:**
   - `InvoiceServiceTest` (6): generación exitosa, orden no facturable, factura duplicada, anulación exitosa de factura activa e impaga, rechazo de factura pagada y rechazo de factura ya inactiva.
   - `RefundServiceTest` (12): creación exitosa, factura impaga, factura inactiva, monto excedido, monto acumulado excedido, monto no positivo, devolución de otra orden, devolución inexistente, creación con devolución de la misma orden, aprobación de `PENDING`, aprobar un reembolso rechazado (409) y rechazar uno aprobado (409).
@@ -395,6 +405,9 @@ en comprobaciones de propiedad de los controladores.
   - `ReturnServiceTest` (9): creación, orden no entregada, ventana expirada, duplicado activo, agregación por comprador, completar sin aprobar, aprobar un rechazado (409), rechazar un aprobado (409) y completar un rechazado (409).
   - `InventoryServiceTest` (12): creación, cantidad negativa, cantidad nula, capacidad excedida, reserva dañada, confirmación de pago dañada, cantidad insuficiente, reserva cero, reserva negativa, liberación no inicializada, ajuste no inicializado y marcado como dañado.
   - `CategoryServiceTest` (7): creación, duplicado, borrado con productos, borrado con subcategorías, borrado exitoso, ciclo de jerarquía y categoría inexistente.
+  - `SellerServiceTest` (2): alta exitosa y `taxId` duplicado.
+  - `OrderControllerTest` (8): incluye el contrato HTTP 422 de producto inactivo.
+  - `GlobalExceptionHandlerTest` (10): incluye los mapeos 409 y 422 de las excepciones específicas nuevas.
 
 La salida de `SessionAuditServiceTest` incluye un stack trace de un fallo
 simulado de MongoDB; es el comportamiento esperado de la prueba de tolerancia,
@@ -417,8 +430,8 @@ no un fallo de la suite.
    disponible en el entorno (`dockerDesktopLinuxEngine`).
 3. **Sin prueba directa** para `AddBuyerAddressService`,
    `ChangeBuyerCommercialStatusService`, `CreateBuyerService`,
-   `SellerDomainService`, `BuyerUseCaseImpl` ni `SellerUseCaseImpl`; hay cobertura
-   indirecta parcial.
+   `BuyerUseCaseImpl` ni `SellerUseCaseImpl`; hay cobertura indirecta parcial.
+   `SellerDomainService` ya cuenta con `SellerServiceTest`.
 4. **Cobertura de jerarquía de categorías:** hay pruebas de ciclo directo y de
    borrado con hijas; no hay prueba de una jerarquía preexistente ya corrupta ni
    de concurrencia entre actualizaciones.

@@ -1,9 +1,9 @@
 package com.nexusmarket.domain.services;
 
 
-import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.exceptions.InvalidQuantityException;
+import com.nexusmarket.domain.exceptions.ProductNotActiveException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Order;
@@ -38,8 +38,7 @@ public class OrderCalculationService {
 
         // P2-05: solo se pueden añadir productos activos y con stock disponible.
         if (Boolean.FALSE.equals(product.getActive())) {
-            throw new BusinessRuleException(
-                    String.format("Product with id '%s' is not active and cannot be added to an order", productId));
+            throw new ProductNotActiveException(productId);
         }
 
         int available = availableStock(productId);

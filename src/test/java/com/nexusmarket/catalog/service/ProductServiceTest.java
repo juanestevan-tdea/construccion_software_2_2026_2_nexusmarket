@@ -2,8 +2,8 @@ package com.nexusmarket.catalog.service;
 
 import com.nexusmarket.adapters.useCases.ProductUseCaseImpl;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
+import com.nexusmarket.domain.exceptions.ProductSkuAlreadyExistsException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
@@ -90,10 +90,12 @@ class ProductServiceTest {
     }
 
     @Test
-    void createProduct_ThrowsException_WhenSkuExists() {
+    void createProduct_ThrowsProductSkuAlreadyExistsException_WhenSkuExists() {
         when(productRepositoryPort.existsBySku("SKU-100")).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () -> productUseCase.createProduct("SKU-100", "Smartphone", null, BigDecimal.valueOf(100), ProductType.PHYSICAL, 1L, 1L));
+        assertThrows(ProductSkuAlreadyExistsException.class,
+                () -> productUseCase.createProduct("SKU-100", "Smartphone", null,
+                        BigDecimal.valueOf(100), ProductType.PHYSICAL, 1L, 1L));
     }
 
     @Test

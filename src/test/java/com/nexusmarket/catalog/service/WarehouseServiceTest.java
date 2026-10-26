@@ -1,9 +1,9 @@
 package com.nexusmarket.catalog.service;
 
 import com.nexusmarket.adapters.useCases.WarehouseUseCaseImpl;
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
+import com.nexusmarket.domain.exceptions.WarehouseNameAlreadyExistsException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.in.warehouse.WarehouseUseCasePort;
@@ -64,10 +64,12 @@ class WarehouseServiceTest {
     }
 
     @Test
-    void createWarehouse_ThrowsDuplicateResourceException_WhenNameExists() {
+    void createWarehouse_ThrowsWarehouseNameAlreadyExistsException_WhenNameExists() {
         when(warehouseRepositoryPort.existsByName("Main Central Warehouse")).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () -> warehouseUseCase.createWarehouse("Main Central Warehouse", "Bogota", WarehouseType.MARKETPLACE, 1000));
+        assertThrows(WarehouseNameAlreadyExistsException.class,
+                () -> warehouseUseCase.createWarehouse("Main Central Warehouse", "Bogota",
+                        WarehouseType.MARKETPLACE, 1000));
     }
 
     @Test

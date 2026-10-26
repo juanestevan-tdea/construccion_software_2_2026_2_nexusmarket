@@ -1,8 +1,8 @@
 package com.nexusmarket.domain.services;
 
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
+import com.nexusmarket.domain.exceptions.WarehouseNameAlreadyExistsException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Warehouse;
 import com.nexusmarket.domain.ports.out.InventoryRepositoryPort;
@@ -18,7 +18,7 @@ public class WarehouseDomainService {
 
     public Warehouse createWarehouse(String name, String location, WarehouseType type, Integer capacity) {
         if (warehouseRepositoryPort.existsByName(name)) {
-            throw new DuplicateResourceException("Warehouse", "name", name);
+            throw new WarehouseNameAlreadyExistsException(name);
         }
 
         Warehouse warehouse = Warehouse.builder()
@@ -39,7 +39,7 @@ public class WarehouseDomainService {
             if (warehouseRepositoryPort.findByName(name)
                     .filter(w -> !w.getId().equals(id))
                     .isPresent()) {
-                throw new DuplicateResourceException("Warehouse", "name", name);
+                throw new WarehouseNameAlreadyExistsException(name);
             }
             warehouse.setName(name);
         }

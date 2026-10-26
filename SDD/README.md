@@ -57,20 +57,23 @@ construido con **arquitectura hexagonal (Ports & Adapters)** sobre
    Los endpoints de aprobación, rechazo y finalización se movieron a
    `/api/v1/supervisor/returns/**`.
 6. **Excepciones acopladas a Spring (corregida).**
-   Se añadió `DomainException` y las 24 excepciones concretas heredan de ella.
+   Se añadió `DomainException` y las 30 excepciones concretas heredan de ella.
    `GlobalExceptionHandler` mapea 404/409/422/400/502 y tiene un fallback 400
    para excepciones de dominio no mapeadas.
 7. **OpenAPI servido por springdoc (resuelta).**
    `springdoc-openapi-starter-webmvc-ui` 3.0.1 genera el contrato en
    `/v3/api-docs` y publica Swagger UI en `/swagger-ui.html`; `SecurityConfig`
-   deja ambas rutas en `permitAll`. `04-api/openapi.yaml` se mantiene como
-   contrato de referencia curado a mano.
+   deja ambas rutas en `permitAll` en desarrollo. El perfil `prod` desactiva
+   Swagger y OpenAPI. `04-api/openapi.yaml` se mantiene como contrato de
+   referencia curado a mano.
 8. **Notificaciones sin uso (pendiente).**
    `NotificationPort` y `NoOpNotificationAdapter` existen, pero ningún caso de
    uso los invoca.
 9. **Esquema sin Flyway (pendiente).**
-   `spring.jpa.hibernate.ddl-auto=update` gobierna el esquema. Existe
-   `V1__add_token_version.sql`, pero Flyway no está en el `pom.xml`.
+   `spring.jpa.hibernate.ddl-auto=update` gobierna el esquema en todos los
+   perfiles, incluido `prod`. Existe `V1__add_token_version.sql`, pero Flyway no
+   está en el `pom.xml`; al incorporarlo, el perfil `prod` debería pasar a
+   `validate`.
 10. **SRP de usuarios y controladores (corregida).**
    `UserManagementService` se dividió en cinco servicios cohesionados.
    Los controladores ya no inyectan repositorios de salida y

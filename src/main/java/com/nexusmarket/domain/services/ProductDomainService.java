@@ -1,8 +1,8 @@
 package com.nexusmarket.domain.services;
 
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
-import com.nexusmarket.domain.exceptions.DuplicateResourceException;
 import com.nexusmarket.domain.exceptions.ProductNotAvailableException;
+import com.nexusmarket.domain.exceptions.ProductSkuAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
 import com.nexusmarket.domain.models.Category;
 import com.nexusmarket.domain.models.Inventory;
@@ -38,7 +38,7 @@ public class ProductDomainService {
         }
 
         if (productRepositoryPort.existsBySku(sku)) {
-            throw new DuplicateResourceException("Product", "sku", sku);
+            throw new ProductSkuAlreadyExistsException(sku);
         }
 
         Category category = categoryRepositoryPort.findById(categoryId)

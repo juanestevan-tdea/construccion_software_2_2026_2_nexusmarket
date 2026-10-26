@@ -46,13 +46,19 @@ condición distinta y se traduce en `GlobalExceptionHandler`.
 |---|---|---|---|
 | `ResourceNotFoundException` | Recurso inexistente | 404 | Confirmada, sin cambio |
 | `TrackingNotFoundException` | Código de seguimiento inexistente | 404 | Confirmada, sin cambio |
-| `BusinessRuleException` | Regla de negocio genérica: estado, política de contraseñas, producto inactivo o auditoría | 422 | Confirmada; ya no cubre cantidades, stock, inventario dañado o no inicializado, duplicado de usuario ni elegibilidad de factura |
+| `BusinessRuleException` | Regla de negocio genérica: estado, política de contraseñas o auditoría | 422 | Confirmada; ya no cubre cantidades, stock, inventario dañado o no inicializado, producto inactivo, duplicados de recurso ni elegibilidad de factura |
+| `ProductNotActiveException` | Producto inactivo añadido a una orden | 422 | Nueva; subtipo de `BusinessRuleException` que expresa la regla concreta |
 | `InvalidQuantityException` | Cantidad nula, cero o negativa en inventario o pedido | 422 | Nueva; reemplaza usos genéricos en `Inventory` y `OrderCalculationService` |
 | `InsufficientStockException` | Stock disponible menor que la cantidad solicitada | 422 | Nueva; reemplaza el uso genérico en `Inventory.reserve` y `OrderCalculationService` |
 | `DamagedInventoryException` | Operación sobre inventario en estado `DAMAGED` | 422 | Nueva; reemplaza el uso genérico en `Inventory.reserve` y `confirmPayment` |
 | `InventoryNotInitializedException` | Operación sobre inventario con `quantity == null` | 422 | Nueva; reemplaza los dos usos genéricos en `Inventory.release` y `Inventory.adjust` |
-| `DuplicateResourceException` | Duplicado de producto, categoría, vendedor o bodega | 409 | Confirmada; el alta de usuario ya no la usa |
-| `UserAlreadyExistsException` | Email de usuario ya registrado | 409 | Nueva; específica de `UserCreationService` |
+| `DuplicateResourceException` | Recurso duplicado | 409 | Fallback genérico; los servicios usan subtipos específicos |
+| `UserAlreadyExistsException` | Email de usuario ya registrado | 409 | Base de compatibilidad; el productor usa `UserEmailAlreadyExistsException` |
+| `UserEmailAlreadyExistsException` | Email de usuario duplicado | 409 | Nueva; subtipo de `UserAlreadyExistsException` |
+| `ProductSkuAlreadyExistsException` | SKU de producto duplicado | 409 | Nueva; subtipo de `DuplicateResourceException` |
+| `CategoryNameAlreadyExistsException` | Nombre de categoría duplicado | 409 | Nueva; subtipo de `DuplicateResourceException` |
+| `SellerTaxIdAlreadyExistsException` | `taxId` de vendedor duplicado | 409 | Nueva; subtipo de `DuplicateResourceException` |
+| `WarehouseNameAlreadyExistsException` | Nombre de bodega duplicado | 409 | Nueva; subtipo de `DuplicateResourceException` |
 | `InvalidStatusTransitionException` | Transición de estado inválida; también reembolso ya procesado | 409 | Confirmada; se amplió su uso a `RefundApproveService` conforme a RF-035 |
 | `ProductNotAvailableException` | Producto no disponible | 409 | Confirmada, sin cambio |
 | `CategoryHasProductsException` | Categoría con productos | 409 | Confirmada, sin cambio |
@@ -74,8 +80,8 @@ condición distinta y se traduce en `GlobalExceptionHandler`.
 anulación de facturas. Su constructor de mensaje permite describir cada
 condición sin crear una excepción nueva.
 
-Con las siete excepciones granulares añadidas, `domain/exceptions` contiene
-**25 clases**: `DomainException` (abstracta) y **24 excepciones concretas**.
+Con las trece excepciones granulares añadidas, `domain/exceptions` contiene
+**31 clases**: `DomainException` (abstracta) y **30 excepciones concretas**.
 `DomainExceptionContractTest` verifica por reflexión que todas heredan de la
 base, no extienden `ResponseStatusException` y no usan anotaciones de Spring.
 
@@ -87,7 +93,7 @@ base, no extienden `ResponseStatusException` y no usan anotaciones de Spring.
 | Controladores con reglas de propiedad | Comparan `userId`/`sellerId`/`buyerId` | La autorización de recurso vive en el adaptador | Extraer un `ResourceOwnershipPolicy` si se repite en más controladores | Adaptador HTTP delgado | `SrpArchitectureTest` |
 | `UserCreationService` | Alta de usuario y aplicación de la política de contraseña | La política solo se aplicaba al cambiar contraseña | Se creó `PasswordPolicy` y se reutiliza en alta, alta administrativa y cambio | Alta de usuario coherente | `UserServiceTest`, `PasswordChangeServiceTest` |
 | `InvoiceGenerateService` / `InvoiceVoidService` | Generación y anulación de facturas | La generación marca `paid = true`, pero la anulación exige `paid = false`; no existe endpoint para marcar impaga | **Pendiente de decisión funcional:** definir si la factura nace impaga, si el pago se registra aparte o si la anulación debe admitir otro estado | Flujo de facturación coherente | `InvoiceServiceTest` (solo cubre datos con `paid=false`) |
-| `OrderCalculationService` | Composición de la orden | Valida producto activo, cantidad positiva (`InvalidQuantityException`) y stock disponible (`InsufficientStockException`) | **Resuelto:** el servicio usa stock `AVAILABLE` agregado y rechaza productos inactivos con `BusinessRuleException` | Composición de orden | `OrderServiceTest` |
+| `OrderCalculationService` | Composición de la orden | Valida producto activo, cantidad positiva (`InvalidQuantityException`) y stock disponible (`InsufficientStockException`) | **Resuelto:** el servicio usa stock `AVAILABLE` agregado y rechaza productos inactivos con `ProductNotActiveException` | Composición de orden | `OrderServiceTest` |
 
 ## Contratos arquitectónicos agregados
 

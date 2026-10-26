@@ -58,7 +58,7 @@ espera a que ambos estén saludables. La contraseña root se toma de
 Resultado esperado:
 
 ```
-Tests run: 228, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 233, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -101,6 +101,10 @@ curl.exe -s http://127.0.0.1:8080/actuator/health
 
 ### Secretos, perfiles locales y artefactos
 
+- El perfil `prod` (`application-prod.yml`) exige `DB_URL`, `DB_USERNAME`,
+  `DB_PASSWORD`, `MONGODB_URI` y `JWT_SECRET` desde el entorno, mantiene
+  `show-sql=false` y desactiva Swagger/OpenAPI. `docker compose` lo activa con
+  `SPRING_PROFILES_ACTIVE=prod`.
 - `.env` está ignorado por Git y `.env.example` solo contiene valores ficticios.
 - `application-local*.properties`, `application-dev.properties`, `config/` y
   material de claves están ignorados. Maven excluye los perfiles locales del
@@ -180,6 +184,7 @@ docker compose down -v    # elimina también los datos
 | Variable | Valor por defecto | Uso |
 |---|---|---|
 | `SERVER_PORT` | `8080` | Puerto HTTP de Spring Boot |
+| `SPRING_PROFILES_ACTIVE` | — | `prod` activa `application-prod.yml`; Docker Compose lo define |
 | `DB_URL` | `jdbc:mysql://localhost:3306/nexusmarket?...` | JDBC URL de MySQL |
 | `DB_USERNAME` | `root` | Usuario de MySQL |
 | `DB_PASSWORD` | **Sin valor por defecto** | Contraseña de MySQL; obligatoria |

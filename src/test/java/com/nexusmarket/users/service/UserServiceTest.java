@@ -3,7 +3,7 @@ package com.nexusmarket.users.service;
 import com.nexusmarket.adapters.useCases.UserUseCaseImpl;
 import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.ResourceNotFoundException;
-import com.nexusmarket.domain.exceptions.UserAlreadyExistsException;
+import com.nexusmarket.domain.exceptions.UserEmailAlreadyExistsException;
 import com.nexusmarket.domain.models.User;
 import com.nexusmarket.domain.ports.in.admin.UserUseCasePort;
 import com.nexusmarket.domain.ports.out.PasswordHasherPort;
@@ -83,13 +83,14 @@ class UserServiceTest {
 
     // ---------- createUser: duplicate email ----------
     @Test
-    @DisplayName("createUser_ThrowsUserAlreadyExistsException_WhenEmailExists")
-    void createUser_throwsUserAlreadyExistsException_whenEmailExists() {
+    @DisplayName("createUser_ThrowsUserEmailAlreadyExistsException_WhenEmailExists")
+    void createUser_throwsUserEmailAlreadyExistsException_whenEmailExists() {
         when(userRepositoryPort.existsByEmail("taken@test.com")).thenReturn(true);
 
         assertThatThrownBy(() -> userUseCase.createUser(
                 "taken@test.com", "Juan Perez", RAW_PASSWORD, UserRole.BUYER))
-                .isInstanceOf(UserAlreadyExistsException.class);
+                .isInstanceOf(UserEmailAlreadyExistsException.class)
+                .hasMessage("User with email 'taken@test.com' already exists");
 
         verify(userRepositoryPort, never()).save(any(User.class));
         verify(passwordHasherPort, never()).hash(anyString());
