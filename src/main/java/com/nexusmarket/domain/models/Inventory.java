@@ -1,9 +1,9 @@
 package com.nexusmarket.domain.models;
 
-import com.nexusmarket.domain.exceptions.BusinessRuleException;
 import com.nexusmarket.domain.exceptions.DamagedInventoryException;
 import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.exceptions.InvalidQuantityException;
+import com.nexusmarket.domain.exceptions.InventoryNotInitializedException;
 import com.nexusmarket.domain.valueobjects.InventoryStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,7 +48,7 @@ public class Inventory {
             throw new InvalidQuantityException("Release amount must be greater than zero");
         }
         if (this.quantity == null) {
-            throw new BusinessRuleException("Inventory quantity is not initialized");
+            throw new InventoryNotInitializedException("Inventory quantity is not initialized");
         }
         this.quantity += amount;
         this.status = InventoryStatus.AVAILABLE;
@@ -67,7 +67,7 @@ public class Inventory {
 
     public void adjust(int amount) {
         if (this.quantity == null) {
-            throw new BusinessRuleException("Inventory quantity is not initialized");
+            throw new InventoryNotInitializedException("Inventory quantity is not initialized");
         }
         if (this.quantity + amount < 0) {
             throw new InvalidQuantityException("Quantity cannot be negative");

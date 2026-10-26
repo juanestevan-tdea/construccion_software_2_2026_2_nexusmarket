@@ -14,14 +14,14 @@ no hay pruebas E2E contra bases reales.
 | Categorías | RF-015–RF-017 | `CategoryUseCasePort` | `CategoryDomainService` | `CategoryController` | `CategoryServiceTest` (7) | Implementado; ciclos y borrado con hijas probados |
 | Catálogo público | RF-019 | `CatalogUseCasePort` | `CatalogUseCaseImpl` | `CatalogController` | `CatalogServiceTest` (3) | Implementado y probado |
 | Órdenes | RF-023–RF-029 | `OrderUseCasePort` | `OrderCreateService`, `OrderCalculationService`, `OrderLifecycleService` | `OrderController`, `WarehouseOrderController` | `OrderServiceTest` (10), `OrderControllerTest` (7), `WarehouseOrderControllerTest` (4) | Implementado; aislamiento por comprador y transiciones por WAREHOUSE_OPERATOR probados |
-| Inventario / bodegas | RF-018, RF-020–RF-022 | `InventoryUseCasePort`, `WarehouseUseCasePort` | `InventoryManagementService`, `InventoryConsultService`, `WarehouseDomainService` | `InventoryController`, `WarehouseController` | `InventoryServiceTest` (10), `WarehouseServiceTest` (4) | Implementado; reserva positiva y cantidades inválidas probadas |
+| Inventario / bodegas | RF-018, RF-020–RF-022 | `InventoryUseCasePort`, `WarehouseUseCasePort` | `InventoryManagementService`, `InventoryConsultService`, `WarehouseDomainService` | `InventoryController`, `WarehouseController` | `InventoryServiceTest` (12), `WarehouseServiceTest` (4) | Implementado; reserva positiva, cantidades inválidas y cantidad no inicializada probadas |
 | Facturación | RF-030–RF-032 | `InvoiceUseCasePort` | `InvoiceGenerateService`, `InvoiceVoidService` | `InvoiceController` | `InvoiceServiceTest` (6) | Implementado; anulación conforme a RN-010/RF-032 |
-| Reembolsos | RF-033–RF-035 | `RefundUseCasePort` | `RefundApproveService`, `RefundProcessService` | `RefundController` | `RefundServiceTest` (12) | Implementado; estados ya procesados, factura inactiva, monto inválido y monto acumulado probados |
+| Reembolsos | RF-033–RF-035 | `RefundUseCasePort` | `RefundApproveService`, `RefundProcessService` | `RefundController` | `RefundServiceTest` (12), `RefundControllerTest` (2) | Implementado; estados ya procesados, factura inactiva, monto inválido, monto acumulado y contrato HTTP 422 probados |
 | Envíos | RF-036–RF-038 | `ShipmentUseCasePort` | `ShipmentCreateService`, `ShipmentStatusService` | `ShipmentController` | `ShipmentServiceTest` (5) | Implementado y probado |
 | Devoluciones | RF-039–RF-041 | `ReturnUseCasePort` | `ReturnProcessService` | `ReturnController`, `ReturnManagementController` | `ReturnServiceTest` (9), `ReturnControllerTest` (3), `ReturnManagementControllerTest` (4) | Implementado; aprobación por SUPERVISOR y estados ya procesados probados |
 | Auditoría | RNF-009–RNF-010 | `AuditUseCasePort`, `SessionEventQueryUseCasePort` | `ConsultAuditLogsService`, `RegisterAuditLogService`, `SessionAuditService` | `AuditController`, `SessionEventController` | `AuditServiceTest` (3), `SessionEventMongoAdapterTest` (6), `SessionEventQueryUseCaseImplTest` (3), `ConsultSessionEventsServiceTest` (1), `HttpRequestMetadataExtractorTest` (4) | Implementado y probado |
 | Errores / contrato HTTP | RNF-003, RNF-011 | — | `GlobalExceptionHandler` | Todos | `GlobalExceptionHandlerTest` (8), `DomainExceptionContractTest` (3) | Implementado y probado |
-| Seguridad / roles | RNF-001–RNF-002 | — | `SecurityConfig`, `JwtService`, `JwtAuthenticationFilter` | Todos | `UserControllerTest` (17), `AuthControllerTest` (11), `ProductControllerTest` (9), `OrderControllerTest` (7), `WarehouseOrderControllerTest` (4), `ReturnManagementControllerTest` (4), `BuyerControllerTest` (6), `SellerControllerTest` (5), `BuyerManagementControllerTest` (3) | Implementado; roles y propiedad probados |
+| Seguridad / roles | RNF-001–RNF-002 | — | `SecurityConfig`, `JwtService`, `JwtAuthenticationFilter` | Todos | `UserControllerTest` (17), `AuthControllerTest` (11), `ProductControllerTest` (9), `OrderControllerTest` (7), `WarehouseOrderControllerTest` (4), `ReturnManagementControllerTest` (4), `BuyerControllerTest` (6), `SellerControllerTest` (5), `BuyerManagementControllerTest` (3), `RefundControllerTest` (2) | Implementado; roles y propiedad probados |
 
 ## Cobertura de requisitos no funcionales
 
@@ -34,7 +34,7 @@ no hay pruebas E2E contra bases reales.
 | RNF-005 Disponibilidad / stateless | `SESSION_STATELESS`, Docker healthchecks | Configurado; sin prueba de carga |
 | RNF-006 Transacciones ACID | `@Transactional` en las fachadas de `adapters/useCases` | Configurado; sin prueba de integración real |
 | RNF-007 Arquitectura hexagonal | `DomainExceptionContractTest`, `SrpArchitectureTest`; puertos sin DTOs REST; controladores sin repositorios | Verificado en estructura; `domain/services` no usa anotaciones de Spring |
-| RNF-008 Pruebas | 224 pruebas, 0 fallos | Verificado con `mvnw clean package` |
+| RNF-008 Pruebas | 228 pruebas, 0 fallos | Verificado con `mvnw clean package` |
 | RNF-009 Auditoría MongoDB | `SessionAuditService`, `ConsultSessionEventsService`, `AuditServiceTest`, `SessionEventMongoAdapterTest`, `SessionEventQueryUseCaseImplTest` | Verificado con mocks |
 | RNF-010 Actuator | `spring-boot-starter-actuator`, `/actuator/health` | Configurado |
 | RNF-011 Contrato HTTP | `ErrorResponse`, códigos semánticos | Verificado |

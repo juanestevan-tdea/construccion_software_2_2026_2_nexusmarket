@@ -4,6 +4,7 @@ import com.nexusmarket.adapters.useCases.InventoryUseCaseImpl;
 import com.nexusmarket.domain.exceptions.DamagedInventoryException;
 import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.exceptions.InvalidQuantityException;
+import com.nexusmarket.domain.exceptions.InventoryNotInitializedException;
 import com.nexusmarket.domain.exceptions.WarehouseCapacityExceededException;
 import com.nexusmarket.domain.models.Inventory;
 import com.nexusmarket.domain.models.Product;
@@ -161,6 +162,32 @@ class InventoryServiceTest {
         assertEquals("Reservation amount must be greater than zero", exception.getMessage());
         assertEquals(4, inv.getQuantity());
         assertEquals(InventoryStatus.AVAILABLE, inv.getStatus());
+    }
+
+    @Test
+    void release_ThrowsInventoryNotInitializedException_WhenQuantityIsNull() {
+        Inventory inv = new Inventory();
+        inv.setId(1L);
+        inv.setStatus(InventoryStatus.AVAILABLE);
+        inv.setQuantity(null);
+
+        InventoryNotInitializedException exception = assertThrows(
+                InventoryNotInitializedException.class, () -> inv.release(5));
+
+        assertEquals("Inventory quantity is not initialized", exception.getMessage());
+    }
+
+    @Test
+    void adjust_ThrowsInventoryNotInitializedException_WhenQuantityIsNull() {
+        Inventory inv = new Inventory();
+        inv.setId(1L);
+        inv.setStatus(InventoryStatus.AVAILABLE);
+        inv.setQuantity(null);
+
+        when(inventoryRepositoryPort.findById(1L)).thenReturn(Optional.of(inv));
+
+        assertThrows(InventoryNotInitializedException.class,
+                () -> inventoryUseCase.adjust(1L, 5));
     }
 
     @Test

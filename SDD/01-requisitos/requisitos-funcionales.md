@@ -249,7 +249,8 @@ Los roles requeridos reflejan la aplicación efectiva de `infrastructure/securit
   3. Reserva con cantidad > disponible → `422 Unprocessable Entity` (`InsufficientStockException`).
   4. Operar inventario `DAMAGED` → `422 Unprocessable Entity` (`DamagedInventoryException`).
   5. Ajuste que deja cantidad negativa → `422 Unprocessable Entity` (`InvalidQuantityException` "Quantity cannot be negative").
-  6. Inventario inexistente → `404 Not Found`.
+  6. Ajuste o liberación con cantidad no inicializada → `422 Unprocessable Entity` (`InventoryNotInitializedException`).
+  7. Inventario inexistente → `404 Not Found`.
 
 ---
 

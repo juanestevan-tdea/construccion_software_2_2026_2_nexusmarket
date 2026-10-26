@@ -82,11 +82,11 @@ Cada regla se expresa en prosa y se acompaña de su **invariante en términos de
 
 ## RN-008 — El ajuste de inventario no puede dejar la cantidad negativa
 
-**Prosa:** Al ajustar (sumar o restar) el inventario, la cantidad resultante no puede ser menor que cero.
+**Prosa:** Al ajustar (sumar o restar) el inventario, la cantidad resultante no puede ser menor que cero y la cantidad actual debe estar inicializada.
 
-**Invariante en código:** `inventory.quantity + amount >= 0`
+**Invariante en código:** `inventory.quantity != null && inventory.quantity + amount >= 0`
 
-**Origen:** `Inventory.adjust(int)` lanza `InvalidQuantityException("Quantity cannot be negative")` → `422 Unprocessable Entity`.
+**Origen:** `Inventory.adjust(int)` lanza `InventoryNotInitializedException` si `quantity == null` e `InvalidQuantityException("Quantity cannot be negative")` si el resultado es negativo → `422 Unprocessable Entity`. `Inventory.release(int)` también lanza `InventoryNotInitializedException` cuando la cantidad no está inicializada.
 
 ---
 

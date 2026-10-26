@@ -223,8 +223,9 @@ aún no está aprobada (`ReturnNotAllowedException`).
 
 Errores: `422` capacidad excedida (`WarehouseCapacityExceededException`),
 cantidad inválida (`InvalidQuantityException`, incluida una reserva con
-`amount <= 0`), stock insuficiente (`InsufficientStockException`) o inventario
-dañado (`DamagedInventoryException`).
+`amount <= 0`), stock insuficiente (`InsufficientStockException`), inventario
+dañado (`DamagedInventoryException`) o cantidad no inicializada
+(`InventoryNotInitializedException`).
 
 ## 13. Envíos — `/api/v1/warehouse/shipments`
 

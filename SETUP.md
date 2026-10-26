@@ -58,7 +58,7 @@ espera a que ambos estén saludables. La contraseña root se toma de
 Resultado esperado:
 
 ```
-Tests run: 224, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 228, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

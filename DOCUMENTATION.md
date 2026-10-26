@@ -66,11 +66,11 @@ Reglas respetadas:
 
 ### 3.1 Excepciones
 
-`DomainException` es la raíz abstracta. Las 23 excepciones concretas
+`DomainException` es la raíz abstracta. Las 24 excepciones concretas
 (`ResourceNotFoundException`, `BusinessRuleException`, `DuplicateResourceException`,
 `InvalidStatusTransitionException`, `InsufficientStockException`,
-`InvalidQuantityException`, `DamagedInventoryException`, `UserAlreadyExistsException`,
-etc.) heredan de ella
+`InvalidQuantityException`, `DamagedInventoryException`,
+`InventoryNotInitializedException`, `UserAlreadyExistsException`, etc.) heredan de ella
 y no llevan anotaciones de Spring. `GlobalExceptionHandler` es el único punto que
 traduce a HTTP:
 
@@ -78,7 +78,7 @@ traduce a HTTP:
 |---|---|
 | `ResourceNotFoundException`, `TrackingNotFoundException` | 404 |
 | `DuplicateResourceException`, `UserAlreadyExistsException`, `InvalidStatusTransitionException`, `CategoryHasProductsException`, `ProductNotAvailableException`, `InvoiceAlreadyExistsException`, `ShipmentAlreadyExistsException`, `ReturnAlreadyProcessedException` | 409 |
-| `BusinessRuleException`, `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `InvoiceNotPayableException`, `InvoiceNotRefundableException`, `InvalidRefundAmountException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ReturnWindowExpiredException`, `ReturnNotAllowedException`, `WarehouseCapacityExceededException` | 422 |
+| `BusinessRuleException`, `InvalidQuantityException`, `InsufficientStockException`, `DamagedInventoryException`, `InventoryNotInitializedException`, `InvoiceNotPayableException`, `InvoiceNotRefundableException`, `InvalidRefundAmountException`, `RefundAmountExceededException`, `RefundNotAllowedException`, `ReturnWindowExpiredException`, `ReturnNotAllowedException`, `WarehouseCapacityExceededException` | 422 |
 | `PaymentGatewayException` | 502 |
 | `DomainException` no mapeada | 400 |
 | Cualquier otra excepción | 500 con mensaje genérico |
@@ -93,7 +93,7 @@ com.nexusmarket/
 ├── domain/
 │   ├── models/          # 15 modelos (incluye SessionEvent)
 │   ├── valueobjects/    # 11 enums (UserRole, OrderStatus, RefundStatus...)
-│   ├── exceptions/      # DomainException + 23 subtipos
+│   ├── exceptions/      # DomainException + 24 subtipos
 │   ├── ports/in/        # 16 puertos de entrada + modelos de comando
 │   ├── ports/out/       # 14 puertos de persistencia
 │   └── services/        # 28 servicios con responsabilidad única
@@ -246,7 +246,7 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 .\mvnw.cmd clean test
 ```
 
-- **224 pruebas**, 0 fallos, 0 errores, 0 omitidas.
+- **228 pruebas**, 0 fallos, 0 errores, 0 omitidas.
 - Unitarias con Mockito para servicios y casos de uso.
 - `@WebMvcTest` para controladores, seguridad, roles y propiedad de recursos.
 - Transiciones inválidas de devolución, reembolso y envío (estados terminales).
@@ -284,6 +284,6 @@ MySQL y MongoDB puede dejar la auditoría incompleta si falla el segundo paso.
 
 - Rama principal: `main`.
 - Compilación: `BUILD SUCCESS` con `release 17`; la suite local se ejecutó con JDK 21 (Temurin). El CI declara JDK 17.
-- Pruebas: 224 en verde.
+- Pruebas: 228 en verde.
 - Docker Compose: configuración validada con `docker compose config`.
 - No se ha validado un despliegue productivo.

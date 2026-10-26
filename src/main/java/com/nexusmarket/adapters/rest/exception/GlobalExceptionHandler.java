@@ -36,6 +36,7 @@ import com.nexusmarket.domain.exceptions.InsufficientStockException;
 import com.nexusmarket.domain.exceptions.InvalidQuantityException;
 import com.nexusmarket.domain.exceptions.InvalidRefundAmountException;
 import com.nexusmarket.domain.exceptions.InvalidStatusTransitionException;
+import com.nexusmarket.domain.exceptions.InventoryNotInitializedException;
 import com.nexusmarket.domain.exceptions.InvoiceAlreadyExistsException;
 import com.nexusmarket.domain.exceptions.InvoiceNotPayableException;
 import com.nexusmarket.domain.exceptions.InvoiceNotRefundableException;
@@ -133,6 +134,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DamagedInventoryException.class)
     public ResponseEntity<ErrorResponse> handleDamagedInventory(
             DamagedInventoryException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InventoryNotInitializedException.class)
+    public ResponseEntity<ErrorResponse> handleInventoryNotInitialized(
+            InventoryNotInitializedException ex, HttpServletRequest request) {
         return build(HttpStatus.UNPROCESSABLE_CONTENT, ex.getMessage(), request, null);
     }
 

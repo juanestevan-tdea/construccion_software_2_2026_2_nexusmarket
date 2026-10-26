@@ -139,8 +139,10 @@ La reserva exige `amount > 0`, stock suficiente y un inventario que no esté
 cantidad y marcaba el inventario como `RESERVED`, corrompiendo el stock. Las
 reglas viven en el modelo `Inventory` para que se apliquen también a invocaciones
 directas del servicio, no solo al controlador: `InvalidQuantityException`,
-`InsufficientStockException` y `DamagedInventoryException`. Están cubiertas por
-`InventoryServiceTest`.
+`InsufficientStockException` y `DamagedInventoryException`. Además,
+`Inventory.release` y `Inventory.adjust` lanzan
+`InventoryNotInitializedException` cuando `quantity` no está inicializada. Están
+cubiertas por `InventoryServiceTest`.
 
 ## `AuthenticationUseCaseImpl`
 

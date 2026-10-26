@@ -28,6 +28,7 @@ class DomainExceptionContractTest {
             InvalidQuantityException.class,
             InvalidRefundAmountException.class,
             InvalidStatusTransitionException.class,
+            InventoryNotInitializedException.class,
             InvoiceAlreadyExistsException.class,
             InvoiceNotPayableException.class,
             InvoiceNotRefundableException.class,

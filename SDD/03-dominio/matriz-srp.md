@@ -24,7 +24,7 @@ controladores, adaptadores y excepciones. Clasificación:
 | `InvoiceVoidService` | Anulación de facturas; dependía de `RefundRepositoryPort` para decidir si una factura pagada podía anularse | Mezclaba la regla de anulación con el estado de reembolsos y contradecía RN-010/RF-032 | Se retiró la dependencia de reembolsos: solo se anula una factura activa e impaga; se reutiliza `InvoiceNotPayableException` | Servicio de anulación cohesionado | `InvoiceServiceTest` |
 | `RefundApproveService` | Aprobar o rechazar reembolsos | Usaba `RefundNotAllowedException` (422) para estados ya procesados, contradiciendo RF-035 | Los estados distintos de `PENDING` lanzan `InvalidStatusTransitionException` (409), con estado actual y destino | Servicio de decisión de reembolso alineado con el contrato | `RefundServiceTest` |
 | `ReturnProcessService` | Aprobar, rechazar y completar devoluciones | Aprobaciones/rechazos sobre estados ya procesados devolvían 422 en lugar del 409 de RF-041 | Toda operación sobre una devolución no `REQUESTED` (salvo completar una `APPROVED`) lanza `ReturnAlreadyProcessedException` (409); completar una `REQUESTED` conserva 422 | Servicio de ciclo de vida de devolución alineado con RF-041 | `ReturnServiceTest` |
-| `Inventory` / `InventoryManagementService` | Reserva y ajuste de stock | `reserve` aceptaba cantidades no positivas; un `amount` negativo incrementaba el stock y lo marcaba `RESERVED` | Se exige `amount > 0` (`InvalidQuantityException`), stock suficiente (`InsufficientStockException`), se rechaza inventario dañado (`DamagedInventoryException`) y se rechazan cantidades nulas al crear inventario | Invariante de reserva cohesionada en el agregado | `InventoryServiceTest` |
+| `Inventory` / `InventoryManagementService` | Reserva y ajuste de stock | `reserve` aceptaba cantidades no positivas; un `amount` negativo incrementaba el stock y lo marcaba `RESERVED` | Se exige `amount > 0` (`InvalidQuantityException`), stock suficiente (`InsufficientStockException`), se rechaza inventario dañado (`DamagedInventoryException`), se distingue la cantidad no inicializada (`InventoryNotInitializedException`) y se rechazan cantidades nulas al crear inventario | Invariante de reserva cohesionada en el agregado | `InventoryServiceTest` |
 | `CategoryDomainService` | Alta, actualización y borrado de categorías | No detectaba ciclos con descendientes ni bloqueaba el borrado de una categoría con hijas | Se recorre la cadena de ancestros y se valida `findByParentId` antes de eliminar | Integridad de jerarquía dentro del servicio de categorías | `CategoryServiceTest` |
 
 ## Hallazgos potenciales
@@ -46,10 +46,11 @@ condición distinta y se traduce en `GlobalExceptionHandler`.
 |---|---|---|---|
 | `ResourceNotFoundException` | Recurso inexistente | 404 | Confirmada, sin cambio |
 | `TrackingNotFoundException` | Código de seguimiento inexistente | 404 | Confirmada, sin cambio |
-| `BusinessRuleException` | Regla de negocio genérica: estado, política de contraseñas, producto inactivo o auditoría | 422 | Confirmada; ya no cubre cantidades, stock, inventario dañado, duplicado de usuario ni elegibilidad de factura |
+| `BusinessRuleException` | Regla de negocio genérica: estado, política de contraseñas, producto inactivo o auditoría | 422 | Confirmada; ya no cubre cantidades, stock, inventario dañado o no inicializado, duplicado de usuario ni elegibilidad de factura |
 | `InvalidQuantityException` | Cantidad nula, cero o negativa en inventario o pedido | 422 | Nueva; reemplaza usos genéricos en `Inventory` y `OrderCalculationService` |
 | `InsufficientStockException` | Stock disponible menor que la cantidad solicitada | 422 | Nueva; reemplaza el uso genérico en `Inventory.reserve` y `OrderCalculationService` |
 | `DamagedInventoryException` | Operación sobre inventario en estado `DAMAGED` | 422 | Nueva; reemplaza el uso genérico en `Inventory.reserve` y `confirmPayment` |
+| `InventoryNotInitializedException` | Operación sobre inventario con `quantity == null` | 422 | Nueva; reemplaza los dos usos genéricos en `Inventory.release` y `Inventory.adjust` |
 | `DuplicateResourceException` | Duplicado de producto, categoría, vendedor o bodega | 409 | Confirmada; el alta de usuario ya no la usa |
 | `UserAlreadyExistsException` | Email de usuario ya registrado | 409 | Nueva; específica de `UserCreationService` |
 | `InvalidStatusTransitionException` | Transición de estado inválida; también reembolso ya procesado | 409 | Confirmada; se amplió su uso a `RefundApproveService` conforme a RF-035 |
@@ -73,8 +74,8 @@ condición distinta y se traduce en `GlobalExceptionHandler`.
 anulación de facturas. Su constructor de mensaje permite describir cada
 condición sin crear una excepción nueva.
 
-Con las seis excepciones granulares añadidas, `domain/exceptions` contiene
-**24 clases**: `DomainException` (abstracta) y **23 excepciones concretas**.
+Con las siete excepciones granulares añadidas, `domain/exceptions` contiene
+**25 clases**: `DomainException` (abstracta) y **24 excepciones concretas**.
 `DomainExceptionContractTest` verifica por reflexión que todas heredan de la
 base, no extienden `ResponseStatusException` y no usan anotaciones de Spring.
 

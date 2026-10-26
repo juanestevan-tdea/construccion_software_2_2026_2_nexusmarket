@@ -99,7 +99,7 @@ Cambios de código verificados en el árbol de trabajo, **sin commit ni push**:
   cliente.
 - Las transiciones de devolución, reembolso y envío respetan el estado previo: devolución `REQUESTED`, reembolso `PENDING`; los envíos en `DELIVERED`/`CANCELLED` no se pueden reabrir.
 
-Resultado local de la suite: **224 pruebas, 0 fallos, 0 errores, 0 omitidas**
+Resultado local de la suite: **228 pruebas, 0 fallos, 0 errores, 0 omitidas**
 (`mvnw clean package`). No se ejecutaron pruebas contra MySQL/MongoDB reales ni
 contra Docker.
 

@@ -19,6 +19,7 @@ RuntimeException
     ├── InvalidQuantityException
     ├── InvalidRefundAmountException
     ├── InvalidStatusTransitionException
+    ├── InventoryNotInitializedException
     ├── InvoiceAlreadyExistsException
     ├── InvoiceNotPayableException
     ├── InvoiceNotRefundableException
@@ -37,7 +38,7 @@ RuntimeException
 ```
 
 `DomainException` no declara campos ni métodos con anotaciones de Spring. La
-prueba `DomainExceptionContractTest` verifica por reflexión que las 23
+prueba `DomainExceptionContractTest` verifica por reflexión que las 24
 excepciones concretas heredan de la base, no extienden `ResponseStatusException`
 y no llevan anotaciones `org.springframework.*`.
 
@@ -59,6 +60,7 @@ y no llevan anotaciones `org.springframework.*`.
 | `InvalidQuantityException` | 422 | `ErrorResponse` |
 | `InsufficientStockException` | 422 | `ErrorResponse` |
 | `DamagedInventoryException` | 422 | `ErrorResponse` |
+| `InventoryNotInitializedException` | 422 | `ErrorResponse` |
 | `InvoiceNotPayableException` | 422 | `ErrorResponse` |
 | `InvoiceNotRefundableException` | 422 | `ErrorResponse` |
 | `InvalidRefundAmountException` | 422 | `ErrorResponse` |
@@ -78,18 +80,20 @@ devuelven 422; el mensaje lo construye el servicio y no expone detalles internos
 (409, RF-041); ambos mensajes describen el estado actual sin filtrar datos
 internos.
 
-Las seis excepciones granulares añadidas mantienen el mismo contrato:
+Las siete excepciones granulares añadidas mantienen el mismo contrato:
 `InvalidQuantityException` e `InsufficientStockException` distinguen cantidad
 inválida de falta de stock; `DamagedInventoryException` bloquea operaciones sobre
-inventario dañado; `UserAlreadyExistsException` representa el duplicado de email;
-`InvalidRefundAmountException` el monto no positivo; e
+inventario dañado; `InventoryNotInitializedException` representa una cantidad de
+inventario no inicializada; `UserAlreadyExistsException` representa el duplicado
+de email; `InvalidRefundAmountException` el monto no positivo; e
 `InvoiceNotRefundableException` una factura inactiva o impaga. Salvo
 `UserAlreadyExistsException`, que mapea a 409, las demás mapean a 422.
 
-Las pruebas `OrderControllerTest` y `UserControllerTest` verifican el contrato
-HTTP real de `InsufficientStockException` (422) y `UserAlreadyExistsException`
-(409) mediante `@WebMvcTest` y `MockMvc`, además de las pruebas unitarias del
-handler.
+Las pruebas `OrderControllerTest`, `UserControllerTest` y `RefundControllerTest`
+verifican el contrato HTTP real de `InsufficientStockException` (422),
+`UserAlreadyExistsException` (409), `InvalidRefundAmountException` (422) y
+`RefundNotAllowedException` (422) mediante `@WebMvcTest` y `MockMvc`, además de
+las pruebas unitarias del handler.
 
 ### Excepciones de framework y seguridad
 
