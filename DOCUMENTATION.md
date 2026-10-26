@@ -211,7 +211,8 @@ Resumen por prefijo:
   (`RestAccessDeniedHandler`) con el mismo formato `ErrorResponse`.
 - Auditoría de login, logout, login fallido y cambio de contraseña en MongoDB.
 - El perfil `prod` exige secretos por entorno, mantiene `show-sql=false` y
-  desactiva Swagger/OpenAPI.
+  desactiva Swagger/OpenAPI. `SecurityConfig` además deniega esas rutas con el
+  perfil `prod`.
 
 Riesgos y pendientes:
 

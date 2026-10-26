@@ -4,6 +4,7 @@ import com.nexusmarket.domain.services.SessionAuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -20,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.Arrays;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -31,6 +34,7 @@ public class SecurityConfig {
     private final SessionAuditService sessionAuditService;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
+    private final Environment environment;
 
     // Endpoints públicos (sin autenticación)
     private static final String[] PUBLIC_ENDPOINTS = {
@@ -40,7 +44,7 @@ public class SecurityConfig {
         "/actuator/health/**"
     };
 
-    // Documentación OpenAPI / Swagger UI (siempre pública, sin JWT)
+    // Documentación OpenAPI / Swagger UI (pública solo fuera de producción)
     private static final String[] SWAGGER_ENDPOINTS = {
         "/v3/api-docs/**",
         "/swagger-ui/**",
@@ -66,41 +70,50 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session
                         -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                // Documentación OpenAPI (debe ir antes de cualquier regla de rol)
-                .requestMatchers(SWAGGER_ENDPOINTS).permitAll()
+                .authorizeHttpRequests(auth -> {
+                    if (isProdProfile()) {
+                        // Swagger queda denegado en producción aunque springdoc se reactive por error.
+                        auth.requestMatchers(SWAGGER_ENDPOINTS).denyAll();
+                    } else {
+                        // Documentación OpenAPI pública solo fuera de producción.
+                        auth.requestMatchers(SWAGGER_ENDPOINTS).permitAll();
+                    }
 
-                // Auth endpoints
-                .requestMatchers(AUTHENTICATED_AUTH_ENDPOINTS).authenticated()
-                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                    auth.requestMatchers(AUTHENTICATED_AUTH_ENDPOINTS).authenticated()
+                            .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
-                // Perfil propio accesible por cualquier autenticado
-                .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/me").authenticated()
+                            // Perfil propio accesible por cualquier autenticado
+                            .requestMatchers(HttpMethod.GET, "/api/v1/admin/users/me").authenticated()
 
-                // Admin routes
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                            // Admin routes
+                            .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                // Supervisor routes
-                .requestMatchers("/api/v1/supervisor/**").hasRole("SUPERVISOR")
+                            // Supervisor routes
+                            .requestMatchers("/api/v1/supervisor/**").hasRole("SUPERVISOR")
 
-                // Seller routes
-                .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
+                            // Seller routes
+                            .requestMatchers("/api/v1/seller/**").hasRole("SELLER")
 
-                // Buyer routes
-                .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")
+                            // Buyer routes
+                            .requestMatchers("/api/v1/buyer/**").hasRole("BUYER")
 
-                // Warehouse operator routes
-                .requestMatchers("/api/v1/warehouse/**").hasRole("WAREHOUSE_OPERATOR")
+                            // Warehouse operator routes
+                            .requestMatchers("/api/v1/warehouse/**").hasRole("WAREHOUSE_OPERATOR")
 
-                // Catalog (autenticado, cualquier rol)
-                .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").authenticated()
+                            // Catalog (autenticado, cualquier rol)
+                            .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").authenticated()
 
-                // Cualquier otra ruta requiere autenticación
-                .anyRequest().authenticated())
+                            // Cualquier otra ruta requiere autenticación
+                            .anyRequest().authenticated();
+                })
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private boolean isProdProfile() {
+        return Arrays.stream(environment.getActiveProfiles()).anyMatch("prod"::equalsIgnoreCase);
     }
 
     @Bean

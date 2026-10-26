@@ -41,7 +41,7 @@ El `jti` se incluye para auditoría; no se usa como lista de revocación.
 |---|---|
 | `/api/v1/auth/register`, `/api/v1/auth/login` | `permitAll` |
 | `/actuator/health` | `permitAll` |
-| `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` | `permitAll` (Swagger UI y contrato OpenAPI públicos) |
+| `/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html` | `permitAll` en desarrollo; `denyAll` con perfil `prod` |
 | `/api/v1/admin/users/me` | Autenticado |
 | `/api/v1/admin/**` | `ADMIN` |
 | `/api/v1/buyer/**` | `BUYER` |
@@ -53,6 +53,8 @@ El `jti` se incluye para auditoría; no se usa como lista de revocación.
 
 Sesiones HTTP deshabilitadas (`SessionCreationPolicy.STATELESS`), CSRF
 deshabilitado por ser API stateless, CORS se integra en SecurityConfig con `.cors(...)` y `CorsConfig`; el preflight se resuelve antes de la autorización JWT.
+`SecurityConfig` consulta el perfil activo: con `prod`, las rutas de Swagger se
+deniegan explícitamente; además `application-prod.yml` desactiva springdoc.
 
 ### 2. Reglas de método (`@EnableMethodSecurity` + `@PreAuthorize`)
 

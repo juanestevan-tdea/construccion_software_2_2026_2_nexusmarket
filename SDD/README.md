@@ -63,9 +63,9 @@ construido con **arquitectura hexagonal (Ports & Adapters)** sobre
 7. **OpenAPI servido por springdoc (resuelta).**
    `springdoc-openapi-starter-webmvc-ui` 3.0.1 genera el contrato en
    `/v3/api-docs` y publica Swagger UI en `/swagger-ui.html`; `SecurityConfig`
-   deja ambas rutas en `permitAll` en desarrollo. El perfil `prod` desactiva
-   Swagger y OpenAPI. `04-api/openapi.yaml` se mantiene como contrato de
-   referencia curado a mano.
+   deja ambas rutas en `permitAll` en desarrollo y las deniega con el perfil
+   `prod`. `application-prod.yml` también desactiva Swagger y OpenAPI.
+   `04-api/openapi.yaml` se mantiene como contrato de referencia curado a mano.
 8. **Notificaciones sin uso (pendiente).**
    `NotificationPort` y `NoOpNotificationAdapter` existen, pero ningún caso de
    uso los invoca.
